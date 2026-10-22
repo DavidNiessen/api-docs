@@ -19,7 +19,7 @@ jobs:
   quality:
     name: Quality
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -34,6 +34,12 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Check formatting and lint
         run: npm run check
+      - name: Build demo publication
+        run: npm run demo:build
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Test reader and API playground
+        run: npm run test:e2e
       - name: Check conventional PR title
         if: github.event_name == 'pull_request'
         env:

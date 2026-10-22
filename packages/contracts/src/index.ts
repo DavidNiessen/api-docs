@@ -72,6 +72,7 @@ export interface ApiDocument {
   servers: string[];
 }
 export interface Guide {
+  order: number;
   slug: string;
   title: string;
   description: string;

@@ -19,18 +19,30 @@
     "check:pr-title": "node scripts/check-pr-title.mjs",
     "build:packages": "tsc -b",
     "typecheck": "tsc -b && tsc -p tsconfig.tests.json",
-    "test": "npm run build:packages && vitest run"
+    "test": "npm run build && vitest run",
+    "build": "npm run build:packages && npm run build:client -w @api-docs/reader",
+    "dev": "npm run build && node packages/cli/dist/main.js dev examples/demo",
+    "demo:build": "node packages/cli/dist/main.js build examples/demo",
+    "demo:serve": "node packages/cli/dist/main.js serve examples/demo/.api-docs/site --port 3000",
+    "test:e2e": "playwright test",
+    "demo:api": "node scripts/mock-api.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.64.1",
+    "@types/hast": "3.0.5",
     "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
     "eslint": "10.13.0",
     "globals": "17.13.0",
     "markdownlint-cli2": "0.24.0",
     "prettier": "3.9.10",
     "typescript": "5.9.3",
     "typescript-eslint": "8.72.0",
+    "vite": "8.3.5",
     "vitest": "5.0.5"
   },
   "workspaces": [

@@ -1,19 +1,17 @@
 # Contributing
 
-The project is in its planning phase. Start with the [product](docs/planning/01-product.md), [architecture](docs/planning/02-architecture.md), and [delivery](docs/planning/03-delivery-and-launch.md) documents. Proposed features are not implemented capabilities.
+The project is implementing its roadmap. Start with the [product](docs/planning/01-product.md), [architecture](docs/planning/02-architecture.md), and [delivery](docs/planning/03-delivery-and-launch.md) documents. The README and tests identify runnable capabilities; roadmap features are not automatically implemented.
 
 ## Local checks
 
 Install the Node.js version in `.node-version` and npm 11. The repository uses npm 11.9.0 as its package-manager baseline and commits `package-lock.json`.
 
 ```sh
-npm ci --ignore-scripts
+npm ci
 npm run check
 ```
 
-Run `npm run format` to apply formatting. `npm run check` verifies Prettier formatting, JavaScript tooling with ESLint, and Markdown with markdownlint. It does not currently run application tests, builds, or TypeScript checks because no application implementation exists. Add those checks with the first runnable packages.
-
-The current tooling has no required dependency lifecycle scripts, so installation uses `--ignore-scripts`. Reassess that policy explicitly when introducing build tools with legitimate installation steps.
+Run `npm run format` to apply formatting. `npm run check` verifies Prettier, ESLint, Markdown, strict TypeScript, compiler tests, and a production build. Browser tests run with `npm run demo:build && npm run test:e2e` after `npx playwright install chromium`. For a system Chromium install, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to its executable path.
 
 If the managed environment's default npm cache is not writable, prefix installation with `npm_config_cache=/workspace/.npm-cache`; keep this machine-specific path out of portable repository configuration.
 
@@ -44,4 +42,4 @@ The `Repository quality` workflow runs on branch pushes, PRs (including title ed
 
 Dependabot checks npm dependencies and GitHub Actions weekly. Actions are pinned by commit SHA. Maintainers must enable branch rules requiring `Quality` and review; repository files do not activate those settings.
 
-Release automation, TypeScript/application checks, packaged Java/Node test matrices, security scanning, licensing, and community governance are tracked in the [launch plan](docs/planning/03-delivery-and-launch.md). No production release or package publication is configured at this stage.
+Release automation, packaged Java/Node test matrices, security scanning, licensing, and community governance are tracked in the [launch plan](docs/planning/03-delivery-and-launch.md). No production release or package publication is configured at this stage.

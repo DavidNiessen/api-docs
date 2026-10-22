@@ -1,0 +1,384 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Orbit API",
+    "version": "v1",
+    "description": "The Orbit API helps you manage projects, keys, and webhooks."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:4010/v1",
+      "description": "Local demo API"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/projects": {
+      "get": {
+        "operationId": "list-projects",
+        "summary": "List projects",
+        "description": "Retrieve a paginated list of projects in your workspace. Projects are returned in reverse chronological order, with the most recently created project first.",
+        "tags": ["Projects"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of projects to return. Defaults to 20.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "Pagination cursor from the previous response.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Project"
+                      }
+                    },
+                    "has_more": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "next_cursor": {
+                      "type": ["string", "null"],
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "create-project",
+        "summary": "Create a project",
+        "description": "Create a new project in your workspace. Give it a name, add a description, and start building something great.",
+        "tags": ["Projects"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "The name of your new project.",
+                    "example": "My first project"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "An optional project description.",
+                    "example": "A little space for big ideas."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}": {
+      "parameters": [
+        {
+          "name": "project_id",
+          "in": "path",
+          "required": true,
+          "description": "The unique identifier of the project.",
+          "schema": {
+            "type": "string",
+            "example": "proj_k8x92m"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "get-project",
+        "summary": "Retrieve a project",
+        "description": "Retrieve the details of an existing project using its unique identifier.",
+        "tags": ["Projects"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "update-project",
+        "summary": "Update a project",
+        "description": "Update the name or description of an existing project. Only supplied fields are changed.",
+        "tags": ["Projects"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Renamed project"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Updated description"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-project",
+        "summary": "Delete a project",
+        "description": "Permanently delete a project and all its associated resources. This action cannot be undone.",
+        "tags": ["Projects"],
+        "responses": {
+          "204": {
+            "description": "Project deleted successfully"
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys": {
+      "get": {
+        "operationId": "list-api-keys",
+        "summary": "List API keys",
+        "description": "List the API keys associated with your workspace. Secret values are never returned.",
+        "tags": ["API keys"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "key_abc123"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Production"
+                      },
+                      "prefix": {
+                        "type": "string",
+                        "example": "orb_live_"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "operationId": "list-webhooks",
+        "summary": "List webhooks",
+        "description": "Retrieve the webhook endpoints configured for your workspace.",
+        "tags": ["Webhooks"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "wh_abc123"
+                      },
+                      "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "https://your-app.com/webhooks"
+                      },
+                      "events": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": ["project.created"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Use demo-token for the local mock API."
+      }
+    },
+    "schemas": {
+      "Project": {
+        "type": "object",
+        "required": ["id", "name", "created_at"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the project.",
+            "example": "proj_k8x92m"
+          },
+          "name": {
+            "type": "string",
+            "description": "A human-readable name for your project.",
+            "example": "My first project"
+          },
+          "description": {
+            "type": "string",
+            "description": "A short description of what this project does.",
+            "example": "A little space for big ideas."
+          },
+          "status": {
+            "type": "string",
+            "description": "Current project status.",
+            "enum": ["active", "archived"],
+            "example": "active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the project was created.",
+            "example": "2026-01-15T10:30:00Z"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Custom key-value pairs for your integration.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "not_found"
+          },
+          "message": {
+            "type": "string",
+            "example": "The requested resource does not exist."
+          }
+        }
+      }
+    }
+  }
+}

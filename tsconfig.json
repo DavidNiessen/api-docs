@@ -15,6 +15,18 @@
     },
     {
       "path": "packages/search"
+    },
+    {
+      "path": "packages/content"
+    },
+    {
+      "path": "packages/compiler"
+    },
+    {
+      "path": "apps/reader"
+    },
+    {
+      "path": "packages/cli"
     }
   ]
 }

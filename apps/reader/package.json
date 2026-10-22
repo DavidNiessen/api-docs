@@ -1,0 +1,24 @@
+{
+  "name": "@api-docs/reader",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./render": {
+      "types": "./dist/render.d.ts",
+      "import": "./dist/render.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build:client": "vite build"
+  },
+  "dependencies": {
+    "@api-docs/contracts": "0.1.0",
+    "@api-docs/search": "0.1.0",
+    "@api-docs/explorer": "0.1.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {}
+}

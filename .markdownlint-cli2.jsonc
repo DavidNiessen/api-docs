@@ -1,6 +1,11 @@
 {
   "globs": ["**/*.md"],
-  "ignores": ["node_modules/**", "coverage/**", "dist/**"],
+  "ignores": [
+    "**/node_modules/**",
+    "coverage/**",
+    "**/dist/**",
+    "**/.api-docs/**",
+  ],
   "config": {
     "default": true,
     "MD013": false,

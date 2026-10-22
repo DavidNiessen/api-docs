@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../spec"
+    },
+    {
+      "path": "../content"
+    },
+    {
+      "path": "../plugin-sdk"
+    },
+    {
+      "path": "../search"
+    }
+  ]
+}

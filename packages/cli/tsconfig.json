@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../compiler"
+    },
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../spec"
+    },
+    {
+      "path": "../search"
+    },
+    {
+      "path": "../../apps/reader"
+    }
+  ]
+}

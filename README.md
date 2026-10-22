@@ -2,7 +2,7 @@
 
 A planned open source, self-hosted API documentation platform: polished documentation, interactive API references, and framework integrations without a required hosted service.
 
-**Status: product and engineering planning.** This repository does not yet contain a working documentation application. The specifications below define the intended product and its acceptance criteria; they are not claims about implemented features.
+**Status: implementation in progress.** The OpenAPI compiler, static React reader, local search, API explorer, and CLI are runnable. The roadmap includes further server, framework, security, and release work; this is not yet a production release.
 
 ## Product direction
 
@@ -18,16 +18,42 @@ A planned open source, self-hosted API documentation platform: polished document
 2. [Architecture and engineering design](docs/planning/02-architecture.md): stack, package boundaries, plugin contracts, integrations, and security.
 3. [Delivery and open source launch](docs/planning/03-delivery-and-launch.md): phased implementation, CI/CD, release gates, risks, and the launch checklist.
 
+## Run the example
+
+Use Node.js from `.node-version` and npm 11:
+
+```sh
+npm ci
+npm run build
+npm run demo:build
+npm run demo:serve
+```
+
+The documentation server listens on port 3000. In a second terminal, run `npm run demo:api` to start the local API on port 4010. Use the public fixture token `demo-token` in the playground. These are local demonstration services.
+
+## Document your own API
+
+```sh
+node packages/cli/dist/main.js init my-docs
+node packages/cli/dist/main.js build my-docs
+node packages/cli/dist/main.js serve my-docs/.api-docs/site
+```
+
+Edit `docs.config.yaml`, point it to your YAML or JSON OpenAPI document, and add Markdown guides. Copy the generated `.api-docs/site` folder to any static host. See the [CLI reference](docs/cli.md).
+
 ## Repository checks
 
 Use Node.js from `.node-version` and npm 11:
 
 ```sh
-npm ci --ignore-scripts
+npm ci
 npm run check
+npm run demo:build
+npx playwright install chromium
+npm run test:e2e
 ```
 
-Prettier, ESLint, and Markdown linting run on feature branch pushes, pull requests, merge queue candidates, and `master`. PR titles use conventional commit format. See [CONTRIBUTING](CONTRIBUTING.md) for details and the distinction between current documentation checks and planned application/release pipelines.
+Prettier, ESLint, and Markdown linting run on feature branch pushes, pull requests, merge queue candidates, and `master`. PR titles use conventional commit format. Strict TypeScript checks, compiler/security unit tests, deterministic publication checks, browser workflows, and automated accessibility checks also run in CI. See [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Project principles
 

@@ -1,0 +1,13 @@
+schemaVersion: 1
+name: Orbit
+description: Everything you need to build exceptional experiences with the Orbit API.
+specs:
+  - id: orbit
+    path: openapi.json
+    version: v1
+theme:
+  accent: '#148567'
+  radius: 10
+links:
+  - label: GitHub
+    href: https://github.com/DavidNiessen/api-docs

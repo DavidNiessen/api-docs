@@ -10,7 +10,7 @@ export default defineConfig([
     '**/target/',
     'playwright-report/',
     'test-results/',
-    '.api-docs/',
+    '**/.api-docs/**',
   ]),
   ...tseslint.configs.recommended,
   {
