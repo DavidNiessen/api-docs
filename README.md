@@ -17,6 +17,7 @@ An open source, self-hosted API documentation platform: polished documentation, 
 1. [Product specification](docs/planning/01-product.md): scope, visual direction, features, and measurable launch requirements.
 2. [Architecture and engineering design](docs/planning/02-architecture.md): stack, package boundaries, plugin contracts, integrations, and security.
 3. [Delivery and open source launch](docs/planning/03-delivery-and-launch.md): phased implementation, CI/CD, release gates, risks, and the launch checklist.
+4. [Implementation progress](docs/planning/04-progress.md): current estimate, completed capabilities, validation and remaining launch work.
 
 ## Run the example
 

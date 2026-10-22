@@ -1,4 +1,9 @@
-import type { Operation, Parameter, SecurityScheme } from '@api-docs/contracts';
+import type { Operation, Schema, SecurityScheme } from '@api-docs/contracts';
+import {
+  encodeValue,
+  serializeParameters,
+  setRequestHeader,
+} from './parameters.js';
 import { isJsonMediaType } from '@api-docs/contracts';
 export interface RequestInput {
   server: string;
@@ -7,6 +12,8 @@ export interface RequestInput {
   contentType?: string;
   accept?: string;
   credentials?: Record<string, string>;
+  schemas?: Record<string, Schema>;
+  openapiVersion?: string | undefined;
 }
 export interface PreparedRequest {
   url: string;
@@ -20,48 +27,6 @@ const base64 = (value: string): string =>
       String.fromCharCode(byte),
     ).join(''),
   );
-const encode = (value: unknown): string => encodeURIComponent(String(value));
-function valueFor(raw: string, parameter: Parameter): unknown {
-  if (parameter.schema.type === 'array' || parameter.schema.type === 'object') {
-    try {
-      return JSON.parse(raw) as unknown;
-    } catch {
-      throw new Error(`${parameter.name} must be valid JSON`);
-    }
-  }
-  return raw;
-}
-function entries(value: unknown): [string, string][] {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? Object.entries(value).map(([key, item]) => [key, String(item)])
-    : [];
-}
-function pathValue(value: unknown, parameter: Parameter): string {
-  const style = parameter.style ?? 'simple';
-  const explode = parameter.explode ?? false;
-  const object = entries(value);
-  const parts = Array.isArray(value)
-    ? value.map(encode)
-    : object.length
-      ? object.flatMap(([key, item]) =>
-          explode
-            ? [`${encode(key)}=${encode(item)}`]
-            : [encode(key), encode(item)],
-        )
-      : [encode(value)];
-  if (style === 'label') return `.${parts.join(explode ? '.' : ',')}`;
-  if (style === 'matrix')
-    return explode && (Array.isArray(value) || object.length)
-      ? parts
-          .map(
-            (part) =>
-              `;${Array.isArray(value) ? `${encode(parameter.name)}=` : ''}${part}`,
-          )
-          .join('')
-      : `;${encode(parameter.name)}=${parts.join(',')}`;
-  if (style !== 'simple') throw new Error(`Unsupported path style: ${style}`);
-  return parts.join(',');
-}
 export function prepareRequest(
   operation: Operation,
   schemes: Record<string, SecurityScheme>,
@@ -83,84 +48,25 @@ export function prepareRequest(
       'Server must be an HTTP(S) URL without credentials, a query, or a fragment',
     );
   let path = operation.path;
-  const query = new URLSearchParams();
+  const serialized = serializeParameters(
+    operation.parameters,
+    input.parameters,
+    input,
+  );
+  const query = serialized.query;
   const response = operation.responses.find((item) => /^2/.test(item.status));
   const accept =
     input.accept ?? Object.keys(response?.content ?? {})[0] ?? '*/*';
   if (/[\r\n]/.test(accept))
     throw new Error('Response format cannot contain newlines');
-  const headers: Record<string, string> = { Accept: accept };
-  for (const parameter of operation.parameters) {
-    const raw = input.parameters[`${parameter.in}:${parameter.name}`] ?? '';
-    if (!raw && parameter.required)
-      throw new Error(`${parameter.name} is required`);
-    if (!raw) continue;
-    const value = valueFor(raw, parameter);
-    const object = entries(value);
-    if (parameter.in === 'path')
-      path = path.replaceAll(
-        `{${parameter.name}}`,
-        pathValue(value, parameter),
-      );
-    else if (parameter.in === 'query') {
-      const style = parameter.style ?? 'form';
-      const explode = parameter.explode ?? true;
-      if (style === 'deepObject') {
-        if (!object.length)
-          throw new Error(`${parameter.name} must be an object`);
-        for (const [key, item] of object)
-          query.append(`${parameter.name}[${key}]`, item);
-      } else if (['form', 'spaceDelimited', 'pipeDelimited'].includes(style)) {
-        if (Array.isArray(value)) {
-          if (explode && style === 'form')
-            for (const item of value)
-              query.append(parameter.name, String(item));
-          else
-            query.append(
-              parameter.name,
-              value.join(
-                style === 'spaceDelimited'
-                  ? ' '
-                  : style === 'pipeDelimited'
-                    ? '|'
-                    : ',',
-              ),
-            );
-        } else if (object.length && explode)
-          for (const [key, item] of object) query.append(key, item);
-        else
-          query.append(
-            parameter.name,
-            object.length ? object.flat().join(',') : String(value),
-          );
-      } else throw new Error(`Unsupported query style: ${style}`);
-    } else if (parameter.in === 'header') {
-      if (
-        /[\r\n]/.test(raw) ||
-        /^(host|cookie|origin|content-length|connection|sec-|proxy-)/i.test(
-          parameter.name,
-        )
-      )
-        throw new Error(
-          `Header cannot be set by the browser: ${parameter.name}`,
-        );
-      headers[parameter.name] = Array.isArray(value)
-        ? value.join(',')
-        : object.length
-          ? object
-              .flatMap(([key, item]) =>
-                parameter.explode ? `${key}=${item}` : [key, item],
-              )
-              .join(',')
-          : String(value);
-    } else
-      throw new Error(
-        'Cookie parameters require a same-origin authenticated session and cannot be set manually in a browser',
-      );
-  }
+  const headers: Record<string, string> = { ...serialized.headers };
+  setRequestHeader(headers, 'Accept', accept);
+  for (const [name, value] of Object.entries(serialized.paths))
+    path = path.replaceAll(`{${name}}`, value);
+  if (path.split('/').some((segment) => /^(?:\.|%2e){1,2}$/i.test(segment)))
+    throw new Error('Path parameters cannot resolve to URL dot segments');
   if (/\{[^}]+\}/.test(path)) throw new Error('Unresolved path parameter');
   const url = new URL(base.href.replace(/\/$/, '') + path);
-  for (const [key, value] of query) url.searchParams.append(key, value);
   if (operation.security.length) {
     const alternative =
       operation.security.find(
@@ -183,21 +89,28 @@ export function prepareRequest(
       if (!scheme || !credential) continue;
       if (/[\r\n]/.test(credential))
         throw new Error('Credentials cannot contain newlines');
-      if (scheme.type === 'apiKey' && scheme.in === 'query')
-        url.searchParams.set(scheme.name ?? name, credential);
-      else if (scheme.type === 'apiKey' && scheme.in === 'header')
-        headers[scheme.name ?? name] = credential;
+      if (scheme.type === 'apiKey' && scheme.in === 'query') {
+        const key = scheme.name ?? name;
+        for (let i = query.length - 1; i >= 0; i--)
+          if (query[i]!.name === key) query.splice(i, 1);
+        query.push({ name: key, value: encodeValue(credential) });
+      } else if (scheme.type === 'apiKey' && scheme.in === 'header')
+        setRequestHeader(headers, scheme.name ?? name, credential);
       else if (
         scheme.type === 'http' &&
         scheme.scheme?.toLowerCase() === 'basic'
       )
-        headers.Authorization = `Basic ${base64(credential)}`;
+        setRequestHeader(
+          headers,
+          'Authorization',
+          `Basic ${base64(credential)}`,
+        );
       else if (
         scheme.type === 'oauth2' ||
         scheme.type === 'openIdConnect' ||
         (scheme.type === 'http' && scheme.scheme?.toLowerCase() === 'bearer')
       )
-        headers.Authorization = `Bearer ${credential}`;
+        setRequestHeader(headers, 'Authorization', `Bearer ${credential}`);
       else throw new Error(`Unsupported authentication method: ${name}`);
     }
   }
@@ -219,8 +132,11 @@ export function prepareRequest(
       throw new Error(
         'Multipart file uploads are not yet supported by this explorer',
       );
-    headers['Content-Type'] = contentType;
+    setRequestHeader(headers, 'Content-Type', contentType);
   }
+  url.search = query
+    .map(({ name, value }) => `${encodeValue(name)}=${value}`)
+    .join('&');
   return {
     url: url.href,
     method: operation.method.toUpperCase(),
@@ -244,6 +160,7 @@ export function redactRequest(
       for (const representation of [
         secret,
         encodeURIComponent(secret),
+        encodeValue(secret),
         encodedForm,
         base64(secret),
       ])

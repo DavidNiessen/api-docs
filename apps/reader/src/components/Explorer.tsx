@@ -36,6 +36,15 @@ export function Explorer({
       operation.parameters
         .filter((parameter) => parameter.required)
         .map((parameter) => {
+          const media = Object.entries(parameter.content ?? {})[0];
+          if (media)
+            return [
+              `${parameter.in}:${parameter.name}`,
+              formatExample(
+                exampleChoices(media[1], api.schemas)[0]!.value,
+                media[0],
+              ),
+            ];
           const value = exampleChoices(parameter, api.schemas)[0]!.value;
           return [
             `${parameter.in}:${parameter.name}`,
@@ -103,6 +112,8 @@ export function Explorer({
       return {
         request: prepareRequest(operation, api.securitySchemes, {
           server,
+          schemas: api.schemas,
+          openapiVersion: api.openapiVersion,
           parameters,
           body,
           contentType,
@@ -133,6 +144,8 @@ export function Explorer({
     try {
       request = prepareRequest(operation, api.securitySchemes, {
         server,
+        schemas: api.schemas,
+        openapiVersion: api.openapiVersion,
         parameters,
         body,
         contentType,

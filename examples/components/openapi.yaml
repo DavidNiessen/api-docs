@@ -118,6 +118,50 @@ paths:
                     default: false
         '400':
           description: Invalid request
+  /serialization/{color}:
+    get:
+      operationId: serializeParameters
+      summary: Parameter serialization
+      description: Exercise flat styles and a JSON-valued query parameter.
+      tags: [Examples]
+      servers:
+        - url: http://127.0.0.1:4010/v1
+      security:
+        - bearer: []
+      parameters:
+        - name: color
+          in: path
+          required: true
+          style: matrix
+          explode: true
+          schema: { type: array, items: { type: string } }
+          example: [blue, black]
+        - name: tags
+          in: query
+          required: true
+          explode: false
+          schema:
+            $ref: '#/components/schemas/Colors'
+          example: ['a,b', 'c&d']
+        - name: payload
+          in: query
+          required: true
+          content:
+            application/json:
+              schema: { type: string }
+              example: hello world
+        - name: X-Color
+          in: header
+          required: true
+          explode: true
+          schema: { type: object, additionalProperties: { type: integer } }
+          example: { R: 100, G: 200 }
+      responses:
+        '200':
+          description: Received serialization
+          content:
+            application/json:
+              schema: { type: object }
   /projects:
     get:
       operationId: oauthProjects
@@ -139,6 +183,9 @@ paths:
           description: Authentication required
 components:
   schemas:
+    Colors:
+      type: array
+      items: { type: string }
     Identifier:
       type: integer
       description: A nonnegative numeric identifier.

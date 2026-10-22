@@ -21,7 +21,7 @@ const server = createServer(async (request, response) => {
   );
   response.setHeader(
     'Access-Control-Allow-Headers',
-    'Authorization,Content-Type',
+    'Authorization,Content-Type,X-Color',
   );
   response.setHeader('Content-Type', 'application/json');
   const send = (status, body) => {
@@ -58,7 +58,12 @@ const server = createServer(async (request, response) => {
     send(400, { error: 'invalid_json' });
     return;
   }
-  if (url.pathname === '/v1/projects' && request.method === 'GET') {
+  if (
+    url.pathname.startsWith('/v1/serialization/') &&
+    request.method === 'GET'
+  ) {
+    send(200, { url: request.url, header: request.headers['x-color'] });
+  } else if (url.pathname === '/v1/projects' && request.method === 'GET') {
     const limit = Math.min(
       100,
       Math.max(1, Number(url.searchParams.get('limit') ?? 20)),
