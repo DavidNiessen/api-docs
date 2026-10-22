@@ -22,6 +22,7 @@ const codes = new Set([
   'operation-anonymous',
   'invalid-example',
   'example-schema-unsupported',
+  'example-serialization-unsupported',
   'external-example',
   'broken-link',
   'broken-anchor',

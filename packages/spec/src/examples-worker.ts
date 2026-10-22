@@ -1,7 +1,7 @@
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import type { FormatsPlugin } from 'ajv-formats';
-import { resolveSchema } from '@api-docs/contracts';
+import { isJsonMediaType, resolveSchema } from '@api-docs/contracts';
 import type {
   ApiDocument,
   Diagnostic,
@@ -219,18 +219,44 @@ function validateExamples(api: ApiDocument): Diagnostic[] {
       schema: Schema,
       value: { example?: unknown; examples?: unknown },
       source: string,
+      mediaType?: string,
     ) => {
+      const check = (example: unknown, location: string) => {
+        const actual = resolveSchema(schema, api.schemas);
+        const plainString =
+          mediaType?.split(';')[0]?.trim().toLowerCase() === 'text/plain' &&
+          (actual.type === 'string' ||
+            (Array.isArray(actual.type) && actual.type.includes('string')));
+        if (
+          mediaType &&
+          !isJsonMediaType(mediaType) &&
+          !plainString &&
+          actual['x-api-docs-boolean-schema'] !== false
+        ) {
+          if (typeof example !== 'string') validate(schema, example, location);
+          else if (++examples > 10_000) throw new Error('Example count budget');
+          add(
+            'example-serialization-unsupported',
+            location,
+            typeof example === 'string'
+              ? 'Serialized non-JSON example was not decoded or checked against its logical schema; review it with a media-specific validator.'
+              : 'Native example was checked against its logical schema; non-JSON wire serialization was not verified.',
+          );
+          return;
+        }
+        validate(schema, example, location);
+      };
       if (Object.hasOwn(value, 'example'))
-        validate(schema, value.example, `${source}/example`);
+        check(value.example, `${source}/example`);
       if (Array.isArray(value.examples))
         value.examples.forEach((example, i) =>
-          validate(schema, example, `${source}/examples/${i}`),
+          check(example, `${source}/examples/${i}`),
         );
       else
         for (const [name, raw] of Object.entries(record(value.examples))) {
           const item = record(raw);
           if (Object.hasOwn(item, 'value'))
-            validate(schema, item.value, `${source}/examples/${name}`);
+            check(item.value, `${source}/examples/${name}`);
           else if (item.externalValue)
             add(
               'external-example',
@@ -265,7 +291,7 @@ function validateExamples(api: ApiDocument): Diagnostic[] {
     }
     const media = (content: Record<string, Media>, source: string) => {
       for (const [type, item] of Object.entries(content)) {
-        authored(item.schema, item, `${source}/${type}`);
+        authored(item.schema, item, `${source}/${type}`, type);
         walk(item.schema, `${source}/${type}/schema`);
       }
     };

@@ -10,7 +10,7 @@ async function fixture(
   schema: Schema | boolean,
   value: unknown,
   run: (root: string) => Promise<void>,
-  options: { version?: string; components?: unknown } = {},
+  options: { version?: string; components?: unknown; mediaType?: string } = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), 'api-docs-examples-'));
   try {
@@ -22,7 +22,12 @@ async function fixture(
           post: {
             description: 'Validate values.',
             requestBody: {
-              content: { 'application/json': { schema, example: value } },
+              content: {
+                [options.mediaType ?? 'application/json']: {
+                  schema,
+                  example: value,
+                },
+              },
             },
             responses: { 200: { description: 'OK' } },
           },
@@ -43,6 +48,80 @@ async function fixture(
 const load = (root: string) =>
   loadSpec(root, { id: 'test', path: 'openapi.json' });
 describe('offline authored example validation', () => {
+  it.each([
+    'application/xml',
+    'application/x-www-form-urlencoded',
+    'application/octet-stream',
+  ])(
+    'reports serialized %s examples for review instead of falsely rejecting them as JSON objects',
+    async (mediaType) => {
+      await fixture(
+        { type: 'object', properties: { name: { type: 'string' } } },
+        'sensitive-serialized-marker',
+        async (root) => {
+          const diagnostics = await checkExamples(await load(root));
+          expect(diagnostics).toEqual([
+            expect.objectContaining({
+              code: 'example-serialization-unsupported',
+              severity: 'warning',
+            }),
+          ]);
+          expect(JSON.stringify(diagnostics)).not.toContain(
+            'sensitive-serialized-marker',
+          );
+        },
+        { mediaType },
+      );
+    },
+  );
+  it('checks logical values for non-JSON media while explicitly leaving serialization unverified', async () => {
+    await fixture(
+      { type: 'object', required: ['name'] },
+      {},
+      async (root) => {
+        const diagnostics = await checkExamples(await load(root));
+        expect(diagnostics).toContainEqual(
+          expect.objectContaining({ code: 'invalid-example' }),
+        );
+        expect(diagnostics).toContainEqual(
+          expect.objectContaining({
+            code: 'example-serialization-unsupported',
+          }),
+        );
+      },
+      { mediaType: 'application/xml' },
+    );
+  });
+  it('validates raw text strings and JSON media without trimming or implicit JSON decoding', async () => {
+    await fixture(
+      { type: 'string', minLength: 5 },
+      '  a  ',
+      async (root) => {
+        expect(await checkExamples(await load(root))).toEqual([]);
+      },
+      { mediaType: 'text/plain; charset=utf-8' },
+    );
+    await fixture(
+      { type: 'string', minLength: 2 },
+      '',
+      async (root) => {
+        expect(await checkExamples(await load(root))).toContainEqual(
+          expect.objectContaining({ code: 'invalid-example' }),
+        );
+      },
+      { mediaType: 'text/plain' },
+    );
+    await fixture(
+      { type: 'object' },
+      '{"name":"value"}',
+      async (root) => {
+        expect(await checkExamples(await load(root))).toContainEqual(
+          expect.objectContaining({ code: 'invalid-example' }),
+        );
+      },
+      { mediaType: 'application/problem+json; charset=utf-8' },
+    );
+  });
   it.each([
     [{ type: 'boolean' }, false],
     [{ type: 'integer', minimum: 0 }, 0],
