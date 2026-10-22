@@ -1,10 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import type { Schema } from '@api-docs/contracts';
 import {
-  bodyFieldModel,
+  bodyFieldModel as createModel,
   bodyFieldLabel,
 } from '../apps/reader/src/body-fields.js';
 import type { BodyFieldModel } from '../apps/reader/src/body-fields.js';
+/** These fixtures require object fields; an accidental root-array model must fail. */
+function bodyFieldModel(
+  ...args: Parameters<typeof createModel>
+): BodyFieldModel {
+  const model = createModel(...args);
+  if (model.available && !('fields' in model))
+    throw new Error('Expected object fields');
+  return model;
+}
+
 const count = (model: BodyFieldModel): number =>
   model.available
     ? model.fields.length +

@@ -2,13 +2,23 @@ import { describe, it, expect } from 'vitest';
 import type { Schema } from '@api-docs/contracts';
 import { serializeJsonValue } from '@api-docs/contracts';
 import {
-  bodyFieldModel,
+  bodyFieldModel as createModel,
   bodyFieldLabel,
 } from '../apps/reader/src/body-fields.js';
 import type {
   BodyFieldModel,
   BodyArrayModel,
 } from '../apps/reader/src/body-fields.js';
+
+/** These fixtures require object fields; an accidental root-array model must fail. */
+function bodyFieldModel(
+  ...args: Parameters<typeof createModel>
+): BodyFieldModel {
+  const model = createModel(...args);
+  if (model.available && !('fields' in model))
+    throw new Error('Expected object fields');
+  return model;
+}
 
 function array(
   raw: string,
@@ -165,5 +175,55 @@ describe('bounded array request fields', () => {
     );
     if (!enumModel.available) throw new Error(enumModel.error);
     expect(enumModel.fields[0]!.array).toBeUndefined();
+  });
+});
+
+describe('root array request models', () => {
+  it('resolves root and item references while retaining precise and sensitive values', () => {
+    const raw = '[{"id":9007199254740993,"token":"private","unknown":1e400}]';
+    const model = createModel(
+      raw,
+      { $ref: '#/components/schemas/List' },
+      {
+        List: { type: 'array', items: { $ref: '#/components/schemas/Item' } },
+        Item: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            token: { type: 'string', writeOnly: true },
+          },
+        },
+      },
+      false,
+    );
+    if (!model.available || !('items' in model))
+      throw new Error('Expected array controls');
+    expect(serializeJsonValue(model.value)).toBe(raw);
+    const item = model.items[0]!.nested;
+    if (!item?.available) throw new Error('Expected item fields');
+    expect(
+      item.fields.find((field) => field.name === 'token')!.schema.writeOnly,
+    ).toBe(true);
+    const empty = createModel(
+      '[]',
+      { type: 'array', items: { type: 'integer', default: 5 } },
+      {},
+      false,
+    );
+    if (!empty.available || !('items' in empty))
+      throw new Error('Expected empty array controls');
+    expect(empty.items).toEqual([]);
+    expect(empty.schema.default).toBe(5);
+  });
+  it('retains JSON fallback for scalar roots, incompatible and constrained arrays', () => {
+    for (const value of ['42', 'null', '"text"', 'true'])
+      expect(createModel(value, {}, {}, false).available).toBe(false);
+    for (const schema of [
+      { type: 'object', properties: { name: { type: 'string' } } },
+      { type: ['array', 'string'] },
+      { type: 'array', enum: [[1], [2]] },
+      { type: 'array', const: [1] },
+    ])
+      expect(createModel('[1]', schema, {}, false).available).toBe(false);
   });
 });

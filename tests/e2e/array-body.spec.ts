@@ -196,3 +196,104 @@ test('array reindexing discards incomplete drafts and mode changes restore valid
   expect(JSON.parse(serialized).members).toEqual([{ name: 'Grace', id: 2 }]);
   expect(serialized).toContain('1.234567890123456789');
 });
+
+test('root array bodies use referenced item fields and preserve exact batch requests', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(route);
+  const playground = page.getByLabel('API playground');
+  const media = 'application/vnd.api-docs.list+json';
+  await playground
+    .getByRole('combobox', { name: 'Content type', exact: true })
+    .selectOption(media);
+  await playground
+    .getByLabel('Request body', { exact: true })
+    .fill(
+      '[{"name":"Ada","id":9007199254740993,"responseOnly":"retained","unknown":1e400},{"name":"Grace","id":2}]',
+    );
+  await playground.getByRole('button', { name: 'Fields', exact: true }).click();
+  await expect(
+    playground.getByLabel('Include body [0].responseOnly', { exact: true }),
+  ).toHaveCount(0);
+  await playground
+    .getByLabel('Body [0].name', { exact: true })
+    .fill('Batch Ada');
+  await playground.getByLabel('Body [1].id', { exact: true }).fill('-');
+  await expect(
+    playground.getByRole('button', { name: 'Send request' }),
+  ).toBeDisabled();
+  await playground
+    .getByRole('button', { name: 'Remove body [1]', exact: true })
+    .click();
+  await expect(
+    playground.getByRole('button', { name: 'Send request' }),
+  ).toBeEnabled();
+  await playground
+    .getByRole('button', { name: 'Add item to body $', exact: true })
+    .click();
+  await playground.getByLabel('Include body [1].name', { exact: true }).check();
+  await playground
+    .getByLabel('Body [1].name', { exact: true })
+    .fill('New batch member');
+  await playground
+    .getByLabel('bearer credential', { exact: true })
+    .fill('demo-token');
+  const result = page.waitForResponse('http://127.0.0.1:4010/v1/body-editor');
+  page.once('dialog', (dialog) => dialog.accept());
+  await playground.getByRole('button', { name: 'Send request' }).click();
+  const response = await result,
+    sent = response.request().postData()!;
+  expect(response.status()).toBe(200);
+  expect(response.request().headers()['content-type']).toBe(media);
+  expect(sent).toContain('9007199254740993');
+  expect(sent).toContain('1e400');
+  expect(JSON.parse(sent)).toMatchObject([
+    { name: 'Batch Ada', responseOnly: 'retained' },
+    { name: 'New batch member' },
+  ]);
+  for (const theme of ['light', 'dark']) {
+    if (theme === 'dark') {
+      await playground
+        .getByRole('button', { name: 'Close playground' })
+        .click();
+      await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+      await page.getByRole('button', { name: 'Try this endpoint' }).click();
+      await playground
+        .getByRole('combobox', { name: 'Content type', exact: true })
+        .selectOption(media);
+      await playground.getByLabel('Request body', { exact: true }).fill(sent);
+      await playground
+        .getByRole('button', { name: 'Fields', exact: true })
+        .click();
+    }
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+  }
+  await playground.getByRole('button', { name: 'JSON', exact: true }).click();
+  const body = playground.getByLabel('Request body', { exact: true });
+  await body.fill('42');
+  await expect(
+    playground.getByRole('button', { name: 'Fields', exact: true }),
+  ).toBeDisabled();
+  await body.fill('[]');
+  await playground.getByRole('button', { name: 'Fields', exact: true }).click();
+  await playground
+    .getByRole('button', { name: 'Add item to body $', exact: true })
+    .click();
+  await playground.getByLabel('Include body [0].name', { exact: true }).check();
+  await playground
+    .getByLabel('Body [0].name', { exact: true })
+    .fill('Created from empty');
+  await playground.getByRole('button', { name: 'JSON', exact: true }).click();
+  expect(JSON.parse(await body.inputValue())).toEqual([
+    { name: 'Created from empty' },
+  ]);
+  expect(errors).toEqual([]);
+});

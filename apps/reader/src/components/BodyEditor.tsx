@@ -342,7 +342,7 @@ function ArrayFields({
   const pendingFocus = useRef<number | null>(null);
   report.current = onError;
   const errorKey = JSON.stringify([...path, '$add']),
-    label = bodyFieldLabel(path);
+    label = bodyFieldLabel(path) || '$';
   useEffect(() => () => report.current(errorKey, ''), [errorKey]);
   useEffect(() => {
     const index = pendingFocus.current;
@@ -649,11 +649,20 @@ export function BodyEditor({
             edit them in JSON. Required fields and schema constraints still
             apply.
           </p>
-          <ObjectFields
-            model={model}
-            onChange={(value) => onChange(serializeJsonValue(value, true))}
-            onError={fieldError}
-          />
+          {'fields' in model ? (
+            <ObjectFields
+              model={model}
+              onChange={(value) => onChange(serializeJsonValue(value, true))}
+              onError={fieldError}
+            />
+          ) : (
+            <ArrayFields
+              model={model}
+              path={[]}
+              onChange={(value) => onChange(serializeJsonValue(value, true))}
+              onError={fieldError}
+            />
+          )}
           {errors.current.size > 0 && (
             <p className="subtle">
               Fix incomplete field values before sending, or return to JSON to

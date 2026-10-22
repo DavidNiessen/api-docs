@@ -193,6 +193,12 @@ paths:
               password: fixture-body-password
               responseOnly: retained-read-only-value
               fixed: fixed
+          application/vnd.api-docs.list+json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/NestedProfile' }
+            example:
+              - { name: Ada, id: 1 }
       responses:
         '200':
           description: Received request text

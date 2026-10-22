@@ -43,7 +43,7 @@ export function bodyFieldModel(
   schema: Schema,
   schemas: Record<string, Schema>,
   legacy: boolean,
-): BodyFieldModel {
+): BodyFieldModel | BodyArrayModel {
   const budget = { remaining: 100 };
   const resolved = (schema: Schema, sensitive = false): Schema => ({
     ...resolveSchema(schema, schemas, { ignoreReferenceSiblings: legacy }),
@@ -84,6 +84,8 @@ export function bodyFieldModel(
         throw new Error('Use JSON for ambiguous array type unions.');
       if (
         complex(actual) ||
+        Object.hasOwn(actual, 'const') ||
+        Array.isArray(actual.enum) ||
         actual.prefixItems ||
         Array.isArray(actual.items) ||
         actual.items === false ||
@@ -135,7 +137,7 @@ export function bodyFieldModel(
   ): BodyFieldModel {
     try {
       if (value.kind !== 'object')
-        throw new Error('Use JSON to edit non-object request bodies.');
+        throw new Error('Use JSON to edit scalar request bodies.');
       if (depth >= 8)
         throw new Error(
           'Use JSON for objects beyond eight field-editor levels.',
@@ -199,7 +201,10 @@ export function bodyFieldModel(
     }
   }
   try {
-    return build(parseJsonValue(body), schema, 0);
+    const value = parseJsonValue(body);
+    return value.kind === 'array'
+      ? buildArray(value, schema, 0, false)
+      : build(value, schema, 0);
   } catch (error) {
     return {
       available: false,
