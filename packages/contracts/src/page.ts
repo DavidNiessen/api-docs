@@ -23,12 +23,14 @@ function schemaSubset(
       throw new Error('Operation schema graph exceeds its node budget');
     const object = item as Record<string, unknown>;
     if (typeof object.$ref === 'string' && object.$ref.startsWith('#/')) {
-      const key = object.$ref.startsWith('#/components/schemas/')
+      const key = Object.hasOwn(api.schemas, object.$ref)
         ? object.$ref
-            .slice('#/components/schemas/'.length)
-            .replace(/~1/g, '/')
-            .replace(/~0/g, '~')
-        : object.$ref;
+        : object.$ref.startsWith('#/components/schemas/')
+          ? object.$ref
+              .slice('#/components/schemas/'.length)
+              .replace(/~1/g, '/')
+              .replace(/~0/g, '~')
+          : object.$ref;
       if (Object.hasOwn(api.schemas, key) && !Object.hasOwn(schemas, key)) {
         schemas[key] = api.schemas[key]!;
         queue.push(api.schemas[key]);
@@ -40,6 +42,7 @@ function schemaSubset(
 }
 function navigationOperation(operation: Operation): Operation {
   return {
+    ...(operation.kind ? { kind: operation.kind } : {}),
     id: operation.id,
     slug: operation.slug,
     method: operation.method,

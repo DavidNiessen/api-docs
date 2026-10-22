@@ -9,14 +9,49 @@ export function resolveSchema(
   schema: Schema,
   schemas: Record<string, Schema>,
 ): Schema {
-  const ref = text(schema.$ref);
-  const key = ref.startsWith('#/components/schemas/')
-    ? ref
-        .slice('#/components/schemas/'.length)
-        .replace(/~1/g, '/')
-        .replace(/~0/g, '~')
-    : ref;
-  return Object.hasOwn(schemas, key) ? schemas[key]! : schema;
+  let actual = schema;
+  const seen = new Set<string>();
+  for (let depth = 0; depth < 64; depth++) {
+    const ref = text(actual.$ref);
+    if (!ref || seen.has(ref)) return actual;
+    seen.add(ref);
+    const key = ref.startsWith('#/components/schemas/')
+      ? ref
+          .slice('#/components/schemas/'.length)
+          .replace(/~1/g, '/')
+          .replace(/~0/g, '~')
+      : ref;
+    const target = Object.hasOwn(schemas, ref)
+      ? schemas[ref]
+      : Object.hasOwn(schemas, key)
+        ? schemas[key]
+        : undefined;
+    if (!target) return actual;
+    const siblings = Object.fromEntries(
+      Object.entries(actual).filter(([key]) => key !== '$ref'),
+    );
+    const annotations = new Set([
+      'title',
+      'description',
+      'deprecated',
+      'example',
+      'examples',
+      'default',
+      'readOnly',
+      'writeOnly',
+      'externalDocs',
+      'xml',
+    ]);
+    if (Object.keys(siblings).some((key) => !annotations.has(key)))
+      return {
+        ...Object.fromEntries(
+          Object.entries(siblings).filter(([key]) => annotations.has(key)),
+        ),
+        allOf: [target, siblings],
+      };
+    actual = { ...target, ...siblings };
+  }
+  return actual;
 }
 
 export function exampleFor(
@@ -26,6 +61,8 @@ export function exampleFor(
   seen = new Set<Schema>(),
 ): unknown {
   if (depth > 5 || seen.has(schema)) return null;
+  if (schema['x-api-docs-boolean-schema'] === false) return null;
+  if (schema.const !== undefined) return schema.const;
   if (schema.example !== undefined) return schema.example;
   if (Array.isArray(schema.examples) && schema.examples.length)
     return schema.examples[0];

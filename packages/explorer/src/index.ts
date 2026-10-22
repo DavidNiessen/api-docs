@@ -65,6 +65,10 @@ export function prepareRequest(
   schemes: Record<string, SecurityScheme>,
   input: RequestInput,
 ): PreparedRequest {
+  if (operation.kind && operation.kind !== 'endpoint')
+    throw new Error(
+      'Webhooks and callbacks are inbound events and cannot be executed in the API explorer',
+    );
   const base = new URL(input.server);
   if (
     !['https:', 'http:'].includes(base.protocol) ||

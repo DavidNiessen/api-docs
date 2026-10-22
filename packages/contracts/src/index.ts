@@ -18,6 +18,9 @@ export interface Parameter {
   style?: string;
   explode?: boolean;
   example?: unknown;
+  content?: Record<string, Media>;
+  allowReserved?: boolean;
+  deprecated?: boolean;
 }
 export interface Media {
   schema: Schema;
@@ -31,6 +34,9 @@ export interface ApiResponse {
   headers: Record<string, unknown>;
 }
 export interface Operation {
+  kind?: 'endpoint' | 'webhook' | 'callback';
+  callback?: { operationId: string; name: string; expression: string };
+  externalDocs?: { url: string; description?: string };
   id: string;
   slug: string;
   method: HttpMethod;

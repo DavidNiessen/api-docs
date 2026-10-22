@@ -15,6 +15,10 @@ A cloud Linux run on 22 October 2026 used Node 24.19.0 with four reported availa
 
 This baseline uses route-specific content and bounded navigation. Reader JavaScript was approximately 79 KiB gzip before the dedicated search worker was added. Vite reports current bundle sizes in every production build. Cold search index transfer, browser rendering, and server request latency are separate measurements and must not be inferred from a warm Node search benchmark.
 
+## Validated compiler run
+
+After adding structural OpenAPI and JSON Schema validation, the same 10,000-operation/50,000-schema-node scenario completed in **97.34 seconds**, with **754.9 MiB** peak RSS, **7.99 ms** warm search p95 (100 samples), and **96.6 KiB** representative endpoint HTML. It used the same Node version, available CPU count and V8 memory limit. These are separate observed runs rather than a controlled attribution of individual changes. All declared full-build, memory and search budgets passed.
+
 ## Implementation controls
 
 Pages embed only their active guide/operation and reachable schemas. Navigation includes bounded groups and always includes the active endpoint; large sites offer search for the full corpus. Page transitions fetch the corresponding `page-data.json`. Search data is partitioned into 500-record shards, fetched with bounded concurrency on demand, and queried in a Web Worker. A synchronous fallback preserves search if workers are unavailable.

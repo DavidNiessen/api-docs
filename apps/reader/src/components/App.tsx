@@ -509,6 +509,30 @@ export function App({
                   {activeOperation.description ||
                     `Use this endpoint to ${activeOperation.summary.toLowerCase()}.`}
                 </p>
+                {activeOperation.kind &&
+                  activeOperation.kind !== 'endpoint' && (
+                    <div className="callout">
+                      <Icon name="info" />
+                      <span>
+                        {activeOperation.kind === 'webhook'
+                          ? 'Webhook'
+                          : 'Callback'}
+                        : your application receives this request from the API
+                        provider.
+                        {activeOperation.callback && (
+                          <>
+                            {' '}
+                            Triggered by{' '}
+                            <code>
+                              {activeOperation.callback.operationId}
+                            </code>{' '}
+                            using{' '}
+                            <code>{activeOperation.callback.expression}</code>.
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 {activeOperation.deprecated && (
                   <div className="callout warning">
                     <Icon name="info" />
@@ -523,14 +547,40 @@ export function App({
                   <code>{activeOperation.path}</code>
                   <span className="endpoint-version">{activeApi.version}</span>
                 </div>
-                <OperationDetails api={activeApi} operation={activeOperation} />
+                <OperationDetails
+                  key={`${activeApi.id}:${activeApi.version}:${activeOperation.slug}`}
+                  api={activeApi}
+                  operation={activeOperation}
+                />
                 <PageFooter source={activeOperation.source} />
               </article>
-              <Explorer
-                key={`${activeApi.id}:${activeApi.version}:${activeOperation.slug}`}
-                api={activeApi}
-                operation={activeOperation}
-              />
+              {!activeOperation.kind || activeOperation.kind === 'endpoint' ? (
+                <Explorer
+                  key={`${activeApi.id}:${activeApi.version}:${activeOperation.slug}`}
+                  api={activeApi}
+                  operation={activeOperation}
+                />
+              ) : (
+                <aside
+                  className="explorer-column"
+                  aria-label="Event payload examples"
+                >
+                  {Object.entries(
+                    activeOperation.requestBody?.content ?? {},
+                  ).map(([type, media]) => (
+                    <CodeBlock
+                      key={type}
+                      title={`Incoming payload · ${type}`}
+                      code={JSON.stringify(
+                        media.example ??
+                          exampleFor(media.schema, activeApi.schemas),
+                        null,
+                        2,
+                      )}
+                    />
+                  ))}
+                </aside>
+              )}
             </>
           ) : activeGuide ? (
             <>
@@ -818,6 +868,9 @@ function OperationDetails({
       )}
       <section id="responses">
         <h2>Response</h2>
+        {!operation.responses.length && (
+          <p>No responses are documented in this specification.</p>
+        )}
         <div className="status-tabs">
           {operation.responses.map((item) => (
             <button

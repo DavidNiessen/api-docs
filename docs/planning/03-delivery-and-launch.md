@@ -1,6 +1,6 @@
 # Delivery, quality, and open source launch plan
 
-Status: implementation roadmap. Milestones are ordered by dependency and finish only when their exit gates pass. The repository currently contains planning documents and, once the foundation step lands, documentation quality automation. Application milestones remain unimplemented.
+Status: implementation roadmap. Milestones are ordered by dependency and finish only when their exit gates pass. Implementation is underway. The README, compatibility matrix, operator documentation and tests identify current capabilities; milestone requirements and unchecked release gates remain binding.
 
 ## 1. Delivery strategy
 

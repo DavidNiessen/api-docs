@@ -39,7 +39,7 @@ node packages/cli/dist/main.js build my-docs
 node packages/cli/dist/main.js serve my-docs/.api-docs/site
 ```
 
-Edit `docs.config.yaml`, point it to your YAML or JSON OpenAPI document, and add Markdown guides. Copy the generated `.api-docs/site` folder to any static host. See the [CLI reference](docs/cli.md).
+Edit `docs.config.yaml`, point it to your YAML or JSON OpenAPI document, and add Markdown guides. Copy the generated `.api-docs/site` folder to any static host. See the [CLI reference](docs/cli.md) and [OpenAPI compatibility](docs/openapi-compatibility.md).
 
 ## Repository checks
 

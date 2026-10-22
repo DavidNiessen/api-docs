@@ -3,13 +3,18 @@ import type { Schema } from '@api-docs/contracts';
 const object = (value: unknown): Schema =>
   value !== null && typeof value === 'object' ? (value as Schema) : {};
 function typeLabel(schema: Schema): string {
+  if (schema['x-api-docs-boolean-schema'] !== undefined)
+    return schema['x-api-docs-boolean-schema']
+      ? 'any value'
+      : 'no value allowed';
   if (schema.$ref) return String(schema.$ref).split('/').pop() ?? 'reference';
   if (schema.oneOf) return 'one of';
   if (schema.anyOf) return 'any of';
   if (schema.allOf) return 'all of';
   return Array.isArray(schema.type)
     ? schema.type.join(' | ')
-    : String(schema.type ?? (schema.properties ? 'object' : 'any'));
+    : String(schema.type ?? (schema.properties ? 'object' : 'any')) +
+        (schema.nullable === true ? ' | null' : '');
 }
 export function SchemaView({
   schema,
@@ -87,7 +92,24 @@ export function SchemaView({
             ))}
           </p>
         )}
-        {['minimum', 'maximum', 'minLength', 'maxLength', 'pattern', 'default']
+        {[
+          'minimum',
+          'maximum',
+          'exclusiveMinimum',
+          'exclusiveMaximum',
+          'multipleOf',
+          'minLength',
+          'maxLength',
+          'pattern',
+          'minItems',
+          'maxItems',
+          'uniqueItems',
+          'const',
+          'default',
+          'readOnly',
+          'writeOnly',
+          'discriminator',
+        ]
           .filter((key) => actual[key] !== undefined)
           .map((key) => (
             <small key={key}>
