@@ -1,0 +1,222 @@
+name: Release rehearsal
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Canonical target SemVer (no tags or publication are created)
+        type: string
+        required: true
+      date:
+        description: Reproducible YYYY-MM-DD notes date
+        type: string
+        required: true
+      initial:
+        description: First release with no merged release tags
+        type: boolean
+        default: true
+      baseline:
+        description: Optional local ancestor ref when initial is false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-rehearsal-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Validate rehearsal plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      java_matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - name: Require the trusted default branch
+        run: test "$GITHUB_REF" = refs/heads/master
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build:packages
+      - uses: ./.github/actions/prepare-release
+        with:
+          version: ${{ inputs.version }}
+          date: ${{ inputs.date }}
+          initial: ${{ inputs.initial }}
+          baseline: ${{ inputs.baseline }}
+          apply: 'false'
+      - name: Reuse the repository's supported Java matrix
+        id: matrix
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile, appendFile } from 'node:fs/promises';
+          import { parseSource } from '@api-docs/spec';
+          const workflow = parseSource(await readFile('.github/workflows/quality.yml', 'utf8'), 'quality.yml');
+          const matrix = workflow.jobs.java.strategy.matrix;
+          await appendFile(process.env.GITHUB_OUTPUT, `value=${JSON.stringify(matrix)}\n`);
+          NODE
+
+  source:
+    name: Prepared source and browser
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/prepare-release
+        id: prepare
+        with:
+          version: ${{ inputs.version }}
+          date: ${{ inputs.date }}
+          initial: ${{ inputs.initial }}
+          baseline: ${{ inputs.baseline }}
+      - run: npm audit --audit-level=moderate
+      - run: npm run check
+      - run: npm run demo:build
+      - run: npm run test:snippets
+      - run: npm run test:packages
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Retain unpublished rehearsal artifacts
+        if: always() && steps.prepare.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unpublished-rehearsal-${{ github.run_id }}
+          path: |
+            .api-docs/release/
+            .api-docs/npm-candidates/**/*.tgz
+            .api-docs/npm-candidates/**/manifest.json
+            .api-docs/npm-candidates/**/consumer-result.json
+            .api-docs/npm-candidates/**/consumer-package-lock.json
+            .api-docs/npm-candidates/**/consumer-sbom.cdx.json
+            playwright-report/
+            test-results/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  server:
+    name: Prepared server and Studio
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
+        env:
+          POSTGRES_USER: apidocs
+          POSTGRES_DB: apidocs
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U apidocs"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://apidocs:isolated-ci-fixture@127.0.0.1:5432/apidocs
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/prepare-release
+        with:
+          version: ${{ inputs.version }}
+          date: ${{ inputs.date }}
+          initial: ${{ inputs.initial }}
+          baseline: ${{ inputs.baseline }}
+      - run: npm run build
+      - run: npm run test:integration
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:studio
+
+  java:
+    name: Prepared Java ${{ matrix.java }} / Boot ${{ matrix.boot }}
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.java_matrix) }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/prepare-release
+        with:
+          version: ${{ inputs.version }}
+          date: ${{ inputs.date }}
+          initial: ${{ inputs.initial }}
+          baseline: ${{ inputs.baseline }}
+      - run: npm run build
+      - run: node scripts/prepare-java-fixture.mjs
+      - run: node scripts/check-java-results.mjs --clear
+      - name: Verify prepared Java integrations
+        working-directory: integrations/java
+        env:
+          BOOT_VERSION: ${{ matrix.boot }}
+        run: ./mvnw --batch-mode --no-transfer-progress --strict-checksums -Dspring-boot.version="$BOOT_VERSION" verify
+      - run: node scripts/check-java-results.mjs
+      - name: Retain current Java results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: prepared-java-${{ matrix.java }}-boot-${{ matrix.boot }}-${{ github.run_id }}
+          path: integrations/java/**/target/surefire-reports/*.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  result:
+    name: Rehearsal result
+    if: always()
+    needs: [plan, source, server, java]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every rehearsal job to succeed
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          SOURCE_RESULT: ${{ needs.source.result }}
+          SERVER_RESULT: ${{ needs.server.result }}
+          JAVA_RESULT: ${{ needs.java.result }}
+        run: |
+          test "$PLAN_RESULT" = success
+          test "$SOURCE_RESULT" = success
+          test "$SERVER_RESULT" = success
+          test "$JAVA_RESULT" = success

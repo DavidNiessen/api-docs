@@ -35,6 +35,20 @@ Only tracked regular metadata files are replaced; an absent changelog may be cre
 
 After applying, review `git diff`, finish migration/release notes, run all applicable source/browser/integration/Java/package checks against the exact prepared candidate, and commit it with a conventional release message. Applying does not install packages, stage/commit files, create tags, push or publish. The receipt identifies the plan's input commit; publication evidence must identify the final reviewed commit and artifact digests. Runtime/artifact schema versions and documentation API versions are independent and are not changed by this command.
 
+## Run the manual CI rehearsal
+
+The **Release rehearsal** workflow can be dispatched from `master` with a target version, an explicit notes date, and an initial-release or ancestor baseline. Its plan job requires the trusted default branch, validates a read-only proposal, and reads the Java matrix from the normal quality workflow. Each downstream job prepares the same metadata before checking the source/browser/snippets/packages, PostgreSQL/Studio and all supported Java/Spring combinations. A final result fails if any required job fails or is skipped.
+
+The workflow uses SHA-pinned actions, read-only repository permissions, full Git history, and quoted environment inputs. Its shared preparation action validates boolean/baseline choices and retains the JSON plan, preview and applied receipt. Source artifacts and current Java results are retained for review. The prepared working tree is deliberately dirty and labeled as an unpublished rehearsal: no tags, commits, registry packages, release entries or deployments are created. A rehearsal does not replace checks against a final reviewed clean commit or signed release artifacts.
+
+Remote execution currently remains unverified because of the GitHub account billing restriction. Local evidence below describes the commands actually exercised rather than a successful hosted workflow.
+
+## Local prepared-version rehearsal
+
+A full temporary clone at source `6f21ce4` was installed from the existing npm cache with network access disabled for npm, advanced from `0.1.0` to `0.2.0` through a saved JSON plan, and checked without changing the main checkout or publishing anything. Release-mode metadata alignment, formatting/lint, 63 tooling tests and 364 compiler/component tests passed. The candidate also passed all 27 reader browser journeys, 60 executable snippets across five languages, nine PostgreSQL integration tests, the Studio publishing journey, and all 12 installed npm components. The Java matrix passed 60 tests across JDK 17/21/25 and Spring Boot 3.5.16/4.1.1 with no skips.
+
+That rehearsal caught and corrected saved-plan optional-field mismatches and package JSON formatting before the final successful run. Its candidate remains development evidence from a prepared working tree; it is not a published or approved stable release. The shared CI preparation action was separately exercised in read-only/apply modes against a clean temporary clone, and workflow linting/matrix-output checks passed locally. The action's input-boundary and early-rejection tests also participate in the normal tooling suite.
+
 ## Pack and verify npm components
 
 First run the [distribution version audit](versioning.md), which also participates in `npm run check`. The current checkout permits development Maven snapshots; release-mode alignment is a later gate.

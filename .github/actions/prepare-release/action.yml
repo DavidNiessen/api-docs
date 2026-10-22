@@ -1,0 +1,54 @@
+name: Prepare release rehearsal metadata
+description: Verify a source-bound plan and optionally apply metadata for an unpublished rehearsal.
+inputs:
+  version:
+    description: Canonical target SemVer to rehearse
+    required: true
+  date:
+    description: Reproducible YYYY-MM-DD notes date
+    required: true
+  initial:
+    description: Use an initial-release baseline
+    default: 'true'
+  baseline:
+    description: Optional local ancestor ref when initial is false
+    default: ''
+  apply:
+    description: Apply metadata after a successful read-only rehearsal
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - name: Verify the plan and prepare metadata
+      shell: bash
+      env:
+        API_DOCS_CANDIDATE_VERSION: ${{ inputs.version }}
+        API_DOCS_RELEASE_DATE: ${{ inputs.date }}
+        API_DOCS_INITIAL_RELEASE: ${{ inputs.initial }}
+        API_DOCS_RELEASE_BASELINE: ${{ inputs.baseline }}
+        API_DOCS_APPLY_RELEASE: ${{ inputs.apply }}
+      run: |
+        set -euo pipefail
+        for value in "$API_DOCS_INITIAL_RELEASE" "$API_DOCS_APPLY_RELEASE"; do
+          if [[ "$value" != true && "$value" != false ]]; then
+            echo '::error::Release boolean inputs must be true or false.'
+            exit 1
+          fi
+        done
+        if [[ "$API_DOCS_INITIAL_RELEASE" == true && -n "$API_DOCS_RELEASE_BASELINE" ]]; then
+          echo '::error::Choose an initial release or an explicit baseline.'
+          exit 1
+        fi
+        args=(--version "$API_DOCS_CANDIDATE_VERSION" --date "$API_DOCS_RELEASE_DATE")
+        if [[ "$API_DOCS_INITIAL_RELEASE" == true ]]; then
+          args+=(--initial)
+        elif [[ -n "$API_DOCS_RELEASE_BASELINE" ]]; then
+          args+=(--since "$API_DOCS_RELEASE_BASELINE")
+        fi
+        mkdir -p .api-docs/release
+        node scripts/release-plan.mjs "${args[@]}" > .api-docs/release/plan.json
+        node scripts/release-prepare.mjs --plan .api-docs/release/plan.json > .api-docs/release/preview.json
+        if [[ "$API_DOCS_APPLY_RELEASE" == true ]]; then
+          node scripts/release-prepare.mjs --plan .api-docs/release/plan.json --apply > .api-docs/release/applied.json
+          npm run check:versions -- --release
+        fi
