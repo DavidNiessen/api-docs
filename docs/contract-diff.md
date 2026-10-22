@@ -25,6 +25,8 @@ Each document keeps its OpenAPI dialect: 3.0 typed `nullable` schemas accept nul
 
 Authentication comparison preserves OR alternatives, AND scheme requirements, OAuth scopes and anonymous alternatives. Removing an accepted credential alternative, adding required scopes, or changing the referenced scheme is breaking for ordinary endpoints. Incoming-event authentication changes require review.
 
+Scheme names and OAuth scope names remain meaningful even when named `description`, `default` or another schema annotation. Scheme descriptions and scope descriptions are documentation text; editing them does not change accepted authentication.
+
 ## Deliberate review boundaries
 
 This is a conservative structural check, not a general JSON Schema implication solver. Changed composition/conditional keywords, patterns, formats, visibility, multipart encoding, schema-valued additional-property policy transitions, and unknown schema keywords require review. Changes inside otherwise identical composition references also trigger review. Content-based response headers always require review while present. Comparing a newly constrained optional request property against a previously open object requires review.

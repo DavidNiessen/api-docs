@@ -59,6 +59,48 @@ function severities(a: Schema, b: Schema, direction: 'request' | 'response') {
 const operation = (document: ApiDocument): Operation => document.operations[0]!;
 
 describe('conservative API contract classification', () => {
+  it.each(['description', 'title', 'default', 'examples', 'deprecated'])(
+    'keeps a security scheme named %s in authentication changes',
+    (name) => {
+      const old = api();
+      old.securitySchemes[name] = { type: 'http', scheme: 'bearer' };
+      operation(old).security = [{ [name]: [] }];
+      const next = structuredClone(old);
+      operation(next).security = [];
+      expect(diffApi(old, next)).toEqual([
+        expect.objectContaining({ code: 'security-changed', severity: 'info' }),
+      ]);
+    },
+  );
+  it('compares scope names while ignoring scope and scheme descriptions', () => {
+    const old = api();
+    old.securitySchemes.oauth = {
+      type: 'oauth2',
+      description: 'Old scheme text',
+      flows: {
+        authorizationCode: {
+          authorizationUrl: 'https://auth.example.test/authorize',
+          tokenUrl: 'https://auth.example.test/token',
+          scopes: { description: 'Read records', default: 'Default access' },
+        },
+      },
+    };
+    operation(old).security = [{ oauth: ['description'] }];
+    const next = structuredClone(old);
+    next.securitySchemes.oauth!.description = 'New scheme text';
+    const flow = next.securitySchemes.oauth!.flows!.authorizationCode as {
+      scopes: Record<string, string>;
+    };
+    flow.scopes.description = 'Read all records';
+    expect(diffApi(old, next)).toEqual([]);
+    delete flow.scopes.description;
+    expect(diffApi(old, next)).toEqual([
+      expect.objectContaining({
+        code: 'security-tightened',
+        severity: 'breaking',
+      }),
+    ]);
+  });
   it('uses each OpenAPI dialect for nullable changes and migrations', () => {
     const old = api({ type: 'string', nullable: true });
     old.openapiVersion = '3.1.0';

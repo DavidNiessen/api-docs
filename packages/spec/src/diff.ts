@@ -5,6 +5,7 @@ import type {
   Operation,
   Schema,
   Media,
+  SecurityScheme,
 } from '@api-docs/contracts';
 import { record } from './source.js';
 
@@ -118,16 +119,31 @@ function keywordKind(keyword: string): 'schema' | 'map' | 'array' | 'value' {
     return 'schema';
   return 'value';
 }
-const meaningful = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(meaningful);
-  if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(([key]) => !annotations.has(key))
-        .map(([key, child]) => [key, meaningful(child)]),
-    );
-  return value;
-};
+function securityDefinition(value: SecurityScheme | undefined): unknown {
+  if (!value) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key !== 'description')
+      .map(([key, child]) => [
+        key,
+        key === 'flows'
+          ? Object.fromEntries(
+              Object.entries(record(child)).map(([name, flow]) => [
+                name,
+                Object.fromEntries(
+                  Object.entries(record(flow)).map(([field, setting]) => [
+                    field,
+                    field === 'scopes'
+                      ? Object.keys(record(setting)).sort()
+                      : setting,
+                  ]),
+                ),
+              ]),
+            )
+          : child,
+      ]),
+  );
+}
 
 /** A conservative structural classifier, not a general JSON Schema implication solver. */
 export function diffApi(
@@ -768,8 +784,8 @@ export function diffApi(
               Object.hasOwn(oldRequirement, name) &&
               scopes.every((scope) => oldRequirement[name]!.includes(scope)) &&
               equal(
-                meaningful(before.securitySchemes[name]),
-                meaningful(after.securitySchemes[name]),
+                securityDefinition(before.securitySchemes[name]),
+                securityDefinition(after.securitySchemes[name]),
               ),
           ),
         ),
@@ -781,7 +797,7 @@ export function diffApi(
         '/security',
         'A previously accepted authentication alternative or scope set is no longer sufficient.',
       );
-    else if (!equal(meaningful(old.security), meaningful(next.security)))
+    else if (!equal(old.security, next.security))
       add(
         'info',
         'security-changed',
