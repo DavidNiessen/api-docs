@@ -7,7 +7,7 @@ export interface ExpressDocsOptions {
   authenticate?: RequestHandler;
 }
 export async function createExpressDocs(options: ExpressDocsOptions) {
-  const { root, basePath } = await prepare(
+  const { root, basePath, allowsPath, hasNotFoundPage } = await prepare(
     options.directory,
     options.mountPath,
   );
@@ -16,6 +16,21 @@ export async function createExpressDocs(options: ExpressDocsOptions) {
   router.use((_request, response, next) => {
     for (const [key, value] of Object.entries(headers))
       response.setHeader(key, value);
+    next();
+  });
+  const notFound: RequestHandler = (_request, response) => {
+    response.status(404);
+    if (hasNotFoundPage) response.sendFile('404.html', { root });
+    else response.type('text/plain').send('Not found');
+  };
+  router.use((request, response, next) => {
+    let path: string;
+    try {
+      path = decodeURIComponent(request.path);
+    } catch {
+      return notFound(request, response, next);
+    }
+    if (!allowsPath(path)) return notFound(request, response, next);
     next();
   });
   router.use(
@@ -27,8 +42,6 @@ export async function createExpressDocs(options: ExpressDocsOptions) {
       fallthrough: true,
     }),
   );
-  router.use((_request, response) => {
-    response.status(404).sendFile('404.html', { root });
-  });
+  router.use(notFound);
   return { router, mountPath: basePath || '/', root };
 }

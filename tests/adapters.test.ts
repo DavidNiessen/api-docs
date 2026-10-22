@@ -1,5 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { mkdtemp, cp, readFile, writeFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  cp,
+  mkdir,
+  readFile,
+  writeFile,
+  rm,
+  symlink,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import express from 'express';
@@ -7,25 +15,55 @@ import Fastify from 'fastify';
 import { createExpressDocs } from '@api-docs/node/express';
 import { apiDocsPlugin } from '@api-docs/node/fastify';
 import { buildSite } from '@api-docs/cli';
-let directory: string;
-const server = Fastify();
-beforeAll(async () => {
-  const root = await mkdtemp(join(tmpdir(), 'api-docs-adapter-'));
-  await cp(resolve('examples/demo'), root, {
-    recursive: true,
-    filter: (path) => !path.includes('.api-docs'),
+import { artifactIdentity } from '@api-docs/compiler';
+import type { ArtifactManifest } from '@api-docs/contracts';
+describe.each(['', '/docs'])('framework adapters at %j', (prefix) => {
+  let directory: string;
+  let project: string;
+  const server = Fastify();
+  const headers = { authorization: 'Bearer fixture' };
+  const blocked = [
+    '/private.txt',
+    '/assets/private.txt',
+    '/extra/',
+    '/extra/index.html',
+    '/manifest.json',
+    '/outside-link.txt',
+  ];
+  beforeAll(async () => {
+    const root = (project = await mkdtemp(join(tmpdir(), 'api-docs-adapter-')));
+    await cp(resolve('examples/demo'), root, {
+      recursive: true,
+      filter: (path) => !path.includes('.api-docs'),
+    });
+    const config = join(root, 'docs.config.yaml');
+    await writeFile(
+      config,
+      (await readFile(config, 'utf8')) +
+        '\nbasePath: ' +
+        JSON.stringify(prefix) +
+        '\n',
+    );
+    directory = (await buildSite(root)).directory;
+    await mkdir(join(directory, 'extra'));
+    for (const path of [
+      'private.txt',
+      'assets/private.txt',
+      'extra/index.html',
+    ])
+      await writeFile(join(directory, path), 'unlisted-fixture-content');
+    await writeFile(join(root, 'outside.txt'), 'outside-fixture-content');
+    await symlink(
+      join(root, 'outside.txt'),
+      join(directory, 'outside-link.txt'),
+    );
+    server.get('/host-owned', async () => 'host-owned');
   });
-  const config = join(root, 'docs.config.yaml');
-  await writeFile(
-    config,
-    (await readFile(config, 'utf8')) + '\nbasePath: /docs\n',
-  );
-  directory = (await buildSite(root)).directory;
-});
-afterAll(async () => {
-  await server.close();
-});
-describe('framework adapters', () => {
+  afterAll(async () => {
+    await server.close();
+    await rm(project, { recursive: true, force: true });
+  });
+
   it('mounts Fastify docs at a subpath and applies authentication to every asset', async () => {
     await server.register(apiDocsPlugin, {
       directory,
@@ -34,16 +72,59 @@ describe('framework adapters', () => {
           return reply.code(401).send({ error: 'Authentication required' });
       },
     });
-    expect((await server.inject('/docs/assets/reader.js')).statusCode).toBe(
+    expect((await server.inject(prefix + '/assets/reader.js')).statusCode).toBe(
       401,
     );
     const response = await server.inject({
-      url: '/docs/guides/introduction/',
+      url: prefix + '/guides/introduction/',
       headers: { authorization: 'Bearer fixture' },
     });
     expect(response.statusCode).toBe(200);
-    expect(response.body).toContain('/docs/assets/reader.js');
+    expect(response.body).toContain(prefix + '/assets/reader.js');
     expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect((await server.inject('/host-owned')).body).toBe('host-owned');
+    for (const path of blocked) {
+      expect((await server.inject(prefix + path)).statusCode).toBe(401);
+      for (const method of ['GET', 'HEAD'] as const) {
+        const rejected = await server.inject({
+          url: prefix + path,
+          method,
+          headers,
+        });
+        expect(rejected.statusCode).toBe(404);
+        expect(rejected.body).not.toContain('unlisted-fixture-content');
+        expect(rejected.body).not.toContain('outside-fixture-content');
+      }
+    }
+    expect(
+      (
+        await server.inject({
+          url: prefix + '/assets/%72eader.js?version=1',
+          headers,
+        })
+      ).statusCode,
+    ).toBe(200);
+    const redirect = await server.inject({
+      url: prefix + '/guides/quickstart?from=fixture',
+      headers,
+    });
+    expect(redirect.statusCode).toBe(301);
+    expect(redirect.headers.location).toBe(
+      prefix + '/guides/quickstart/?from=fixture',
+    );
+    for (const path of [
+      '/assets//private.txt',
+      '/assets/%2e%2e/private.txt',
+      '/assets%2f..%2fprivate.txt',
+      '/private%2etxt',
+      '/private%252etxt',
+      '/assets/%5cprivate.txt',
+    ]) {
+      const rejected = await server.inject({ url: prefix + path, headers });
+      expect(rejected.statusCode).toBeGreaterThanOrEqual(400);
+      expect(rejected.statusCode).toBeLessThan(500);
+      expect(rejected.body).not.toContain('unlisted-fixture-content');
+    }
   });
   it('mounts Express docs behind host middleware and rejects mismatched paths', async () => {
     await expect(
@@ -58,6 +139,7 @@ describe('framework adapters', () => {
         else next();
       },
     });
+    app.get('/host-owned', (_request, response) => response.send('host-owned'));
     app.use(docs.mountPath, docs.router);
     const listener = app.listen(0, '127.0.0.1');
     await new Promise<void>((resolve) => listener.once('listening', resolve));
@@ -66,16 +148,119 @@ describe('framework adapters', () => {
       throw new Error('No TCP listener');
     const base = `http://127.0.0.1:${address.port}`;
     try {
-      expect((await fetch(base + '/docs/search.json')).status).toBe(401);
-      const page = await fetch(base + '/docs/guides/quickstart/', {
+      expect((await fetch(base + prefix + '/search.json')).status).toBe(401);
+      const page = await fetch(base + prefix + '/guides/quickstart/', {
         headers: { authorization: 'Bearer fixture' },
       });
       expect(page.status).toBe(200);
       expect(await page.text()).toContain('Quickstart');
+      expect(await (await fetch(base + '/host-owned')).text()).toBe(
+        'host-owned',
+      );
+      for (const path of blocked) {
+        expect((await fetch(base + prefix + path)).status).toBe(401);
+        for (const method of ['GET', 'HEAD']) {
+          const rejected = await fetch(base + prefix + path, {
+            headers,
+            method,
+          });
+          expect(rejected.status).toBe(404);
+          const content = await rejected.text();
+          expect(content).not.toContain('unlisted-fixture-content');
+          expect(content).not.toContain('outside-fixture-content');
+        }
+      }
+      expect(
+        (
+          await fetch(base + prefix + '/assets/%72eader.js?version=1', {
+            headers,
+          })
+        ).status,
+      ).toBe(200);
+      const redirect = await fetch(
+        base + prefix + '/guides/quickstart?from=fixture',
+        { headers, redirect: 'manual' },
+      );
+      expect(redirect.status).toBe(301);
+      expect(redirect.headers.get('location')).toBe(
+        prefix + '/guides/quickstart/?from=fixture',
+      );
+      for (const path of [
+        '/assets//private.txt',
+        '/assets%2f..%2fprivate.txt',
+        '/private%2etxt',
+        '/private%252etxt',
+        '/assets/%5cprivate.txt',
+        '/%zz',
+      ]) {
+        const rejected = await fetch(base + prefix + path, { headers });
+        expect(rejected.status).toBeGreaterThanOrEqual(400);
+        expect(rejected.status).toBeLessThan(500);
+        expect(await rejected.text()).not.toContain('unlisted-fixture-content');
+      }
     } finally {
       await new Promise<void>((resolve, reject) =>
         listener.close((error) => (error ? reject(error) : resolve())),
       );
+    }
+  });
+
+  it('rejects publication configuration that is not covered by the manifest', async () => {
+    const filename = join(directory, 'manifest.json');
+    const source = await readFile(filename, 'utf8');
+    const manifest = JSON.parse(source) as ArtifactManifest;
+    delete manifest.files['site.json'];
+    manifest.artifactDigest = artifactIdentity(manifest);
+    await writeFile(filename, JSON.stringify(manifest));
+    const probe = Fastify();
+    try {
+      await expect(createExpressDocs({ directory })).rejects.toThrow(
+        /configuration must be listed/,
+      );
+      await expect(
+        probe.register(apiDocsPlugin, { directory }).ready(),
+      ).rejects.toThrow(/configuration must be listed/);
+    } finally {
+      await probe.close();
+      await writeFile(filename, source);
+    }
+  });
+  it('does not serve an unlisted custom error page or recurse through the not-found handler', async () => {
+    const filename = join(directory, 'manifest.json');
+    const source = await readFile(filename, 'utf8');
+    const manifest = JSON.parse(source) as ArtifactManifest;
+    delete manifest.files['404.html'];
+    manifest.artifactDigest = artifactIdentity(manifest);
+    await writeFile(filename, JSON.stringify(manifest));
+    const probe = Fastify();
+    let listener: ReturnType<ReturnType<typeof express>['listen']> | undefined;
+    try {
+      await probe.register(apiDocsPlugin, { directory });
+      const fastifyResult = await probe.inject(prefix + '/404.html');
+      expect(fastifyResult.statusCode).toBe(404);
+      expect(fastifyResult.body).toBe('Not found');
+      const app = express();
+      const docs = await createExpressDocs({ directory });
+      app.use(docs.mountPath, docs.router);
+      listener = app.listen(0, '127.0.0.1');
+      await new Promise<void>((resolve) =>
+        listener!.once('listening', resolve),
+      );
+      const address = listener.address();
+      if (!address || typeof address === 'string')
+        throw new Error('No listener');
+      const response = await fetch(
+        `http://127.0.0.1:${address.port}${prefix}/404.html`,
+      );
+      expect(response.status).toBe(404);
+      expect(await response.text()).toBe('Not found');
+    } finally {
+      await probe.close();
+      if (listener)
+        await new Promise<void>((resolve, reject) =>
+          listener!.close((error) => (error ? reject(error) : resolve())),
+        );
+      await writeFile(filename, source);
     }
   });
 });

@@ -10,7 +10,7 @@ export const apiDocsPlugin: FastifyPluginAsync<FastifyDocsOptions> = async (
   app,
   options,
 ) => {
-  const { root, basePath } = await prepare(
+  const { root, basePath, allowsPath, hasNotFoundPage } = await prepare(
     options.directory,
     options.mountPath,
   );
@@ -26,8 +26,12 @@ export const apiDocsPlugin: FastifyPluginAsync<FastifyDocsOptions> = async (
     dotfiles: 'deny',
     maxAge: 0,
     redirect: true,
+    allowedPath: (pathname) => allowsPath(pathname),
   });
-  app.setNotFoundHandler((_request, reply) =>
-    reply.code(404).sendFile('404.html'),
-  );
+  app.setNotFoundHandler((_request, reply) => {
+    reply.code(404);
+    return hasNotFoundPage
+      ? reply.sendFile('404.html')
+      : reply.type('text/plain').send('Not found');
+  });
 };

@@ -253,6 +253,16 @@ try {
   await staticServer.close();
 }
 const headers = { authorization: 'Bearer fixture' };
+await writeFile(join(directory, 'private.txt'), 'unlisted-consumer-fixture');
+await writeFile(
+  join(directory, 'assets/private.txt'),
+  'unlisted-consumer-fixture',
+);
+const unlistedPaths = [
+  '/reference/private.txt',
+  '/reference/assets/private.txt',
+  '/reference/manifest.json',
+];
 const paths = [
   '/reference/',
   '/reference/guides/installed/',
@@ -292,6 +302,20 @@ try {
     assert.equal(response.status, 200);
     await response.arrayBuffer();
   }
+  for (const path of unlistedPaths) {
+    assert.equal(
+      (await fetch(`http://127.0.0.1:${address.port}${path}`)).status,
+      401,
+    );
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fetch(`http://127.0.0.1:${address.port}${path}`, {
+        headers,
+        method,
+      });
+      assert.equal(response.status, 404);
+      assert(!(await response.text()).includes('unlisted-consumer-fixture'));
+    }
+  }
 } finally {
   listener.closeAllConnections();
   await new Promise((resolve) => listener.close(resolve));
@@ -308,6 +332,14 @@ try {
   for (const url of paths) {
     assert.equal((await fastify.inject(url)).statusCode, 401);
     assert.equal((await fastify.inject({ url, headers })).statusCode, 200);
+  }
+  for (const url of unlistedPaths) {
+    assert.equal((await fastify.inject(url)).statusCode, 401);
+    for (const method of ['GET', 'HEAD']) {
+      const response = await fastify.inject({ url, headers, method });
+      assert.equal(response.statusCode, 404);
+      assert(!response.body.includes('unlisted-consumer-fixture'));
+    }
   }
 } finally {
   await fastify.close();

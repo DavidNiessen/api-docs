@@ -105,6 +105,7 @@ try {
           'static-server',
           'express-authenticated-subpath',
           'fastify-authenticated-subpath',
+          'node-manifest-allowlist',
           'dependency-audit',
         ],
         namespaceOwnershipVerified: false,

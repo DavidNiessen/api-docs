@@ -19,7 +19,7 @@ app.use(docs.mountPath, docs.router);
 app.listen(8080);
 ```
 
-The optional middleware runs before every documentation request, including search and assets. Use host authentication for private docs; hiding the navigation is insufficient. The adapter verifies the artifact at startup and rejects a mount path that disagrees with the compiled configuration.
+The optional middleware runs before every documentation request, including search and assets. Use host authentication for private docs; hiding the navigation is insufficient. The adapter verifies the artifact at startup and rejects a mount path that disagrees with the compiled configuration. Express and Fastify serve only files listed in that verified manifest; page-directory aliases require a listed `index.html`. Extra files, symlinks and the manifest itself are not automatically public. Keep the publication directory immutable while serving it, and create a new adapter instance for a replacement publication. Startup verification and the file allowlist do not lock or rehash file contents on every request.
 
 ## Fastify
 
