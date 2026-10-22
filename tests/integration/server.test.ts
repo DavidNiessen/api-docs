@@ -16,7 +16,7 @@ if (!database)
   throw new Error(
     'TEST_DATABASE_URL is required: integration tests never silently skip the database',
   );
-const repository = new PostgresRepository(database);
+const repository = new PostgresRepository(database, { migrate: true });
 const rootToken = randomBytes(32).toString('base64url');
 const auth = { authorization: `Bearer ${rootToken}` };
 let server: Awaited<ReturnType<typeof createServer>>;

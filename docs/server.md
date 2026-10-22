@@ -16,7 +16,7 @@ The optional Fastify server uses PostgreSQL for projects, permissions, opaque se
 | `OIDC_ALLOWED_HOSTS`            | Additional operator-approved hostnames for OIDC endpoints                             |
 | `INSECURE_DEVELOPMENT`          | Explicitly allow HTTP on loopback for local testing; never use in production          |
 
-Run `npm run build` followed by `npm run server` with these variables supplied by your deployment system. Do not put production secrets in committed environment files. A template deployment and container distribution will accompany the release hardening work.
+Run `npm run build`, execute `node apps/server/dist/migrate.js` with the schema-owner connection, then run `npm run server` with the runtime connection. `DATABASE_URL_FILE` and `ROOT_TOKEN_FILE` support read-only secret files instead of environment values. Do not put production secrets in committed environment files. See the [container deployment and recovery runbook](deployment.md).
 
 ## Authentication and authorization
 
@@ -38,7 +38,7 @@ Artifacts are trusted executable web content and must be produced by reviewed bu
 
 Back up PostgreSQL and all referenced immutable artifact directories as one recovery set. Retain metadata and artifacts through the rollback window. Restore into a fresh environment, verify artifact checksums, then reconnect the metadata database before exposing traffic. A prior container alone cannot roll back a database schema migration.
 
-The initial migration uses a transaction and advisory lock. Production deployments should separate migration ownership from a least-privileged runtime database role. Never delete referenced artifacts during backup or publication. Multi-replica shared storage, isolated build queues, and a rehearsed automated backup/restore command remain release gates.
+The initial migration uses a transaction and advisory lock. The Compose deployment separates migration ownership from the runtime role and enforces an append-only audit log for that role. Never delete referenced artifacts during backup or publication. The recovery command restores only into a fresh deployment and verifies artifact checksums. Multi-replica shared storage and isolated build queues remain release gates.
 
 ## Integration validation
 

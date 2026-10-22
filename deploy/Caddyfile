@@ -1,0 +1,4 @@
+{$DOCS_HOST} {
+  encode zstd gzip
+  reverse_proxy docs:8080
+}

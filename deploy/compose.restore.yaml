@@ -1,0 +1,8 @@
+# Recovery helper only: the normal reader keeps artifacts mounted read-only.
+services:
+  docs:
+    volumes:
+      - type: volume
+        source: artifacts
+        target: /data/artifacts
+        read_only: false

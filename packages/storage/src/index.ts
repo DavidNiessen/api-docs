@@ -14,7 +14,10 @@ const publicationColumns =
   'id, project_id AS "projectId", artifact_id AS "artifactId", subject, created_at::text AS "createdAt", idempotency_key AS "idempotencyKey"';
 export class PostgresRepository implements Repository {
   private readonly pool: pg.Pool;
-  constructor(connectionString: string) {
+  constructor(
+    connectionString: string,
+    private readonly options: { migrate?: boolean } = {},
+  ) {
     this.pool = new pg.Pool({
       connectionString,
       max: 10,
@@ -26,6 +29,18 @@ export class PostgresRepository implements Repository {
     });
   }
   async initialize(): Promise<void> {
+    if (!this.options.migrate) {
+      const version = (
+        await this.pool.query<{ version: number }>(
+          'SELECT max(version) AS version FROM docs_schema_migrations',
+        )
+      ).rows[0]?.version;
+      if (version !== 1)
+        throw new Error(
+          'Unsupported database schema. Run the migration job before starting the server.',
+        );
+      return;
+    }
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -49,6 +64,16 @@ export class PostgresRepository implements Repository {
     } finally {
       client.release();
     }
+  }
+  async grantRuntimeRole(role: string): Promise<void> {
+    if (!this.options.migrate || !/^[a-z_][a-z0-9_]{0,62}$/.test(role))
+      throw new Error(
+        'A valid runtime role and migration connection are required',
+      );
+    const name = `"${role}"`;
+    await this.pool.query(
+      `GRANT USAGE ON SCHEMA public TO ${name}; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO ${name}; GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO ${name}; REVOKE UPDATE,DELETE ON docs_audit FROM ${name}; REVOKE INSERT,UPDATE,DELETE ON docs_schema_migrations FROM ${name};`,
+    );
   }
   async close() {
     await this.pool.end();

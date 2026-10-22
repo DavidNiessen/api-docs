@@ -79,7 +79,15 @@ export async function createServer(options: ServerOptions) {
   });
   app.decorateRequest('principal', undefined);
   await app.register(cookie);
-  await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
+  await app.register(rateLimit, {
+    max: 300,
+    timeWindow: '1 minute',
+    allowList: (request) =>
+      !request.url.startsWith('/api/') &&
+      !request.url.startsWith('/auth/') &&
+      !request.headers.authorization &&
+      !request.headers.cookie,
+  });
   app.addHook('onRequest', async (request) => {
     const authorization = request.headers.authorization;
     if (authorization) {

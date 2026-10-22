@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { PostgresRepository } from '@api-docs/storage';
 import { createServer } from './index.js';
@@ -6,12 +7,20 @@ const required = (name: string): string => {
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
 };
+async function secret(name: string): Promise<string> {
+  if (process.env[name]) return process.env[name]!;
+  const path = process.env[`${name}_FILE`];
+  if (path) return (await readFile(path, 'utf8')).replace(/\r?\n$/, '');
+  throw new Error(
+    `Missing required credential binding: ${name} or ${name}_FILE`,
+  );
+}
 async function start() {
-  const repository = new PostgresRepository(required('DATABASE_URL'));
+  const repository = new PostgresRepository(await secret('DATABASE_URL'));
   const app = await createServer({
     repository,
     artifactRoot: process.env.ARTIFACT_ROOT ?? '/data/artifacts',
-    rootToken: required('ROOT_TOKEN'),
+    rootToken: await secret('ROOT_TOKEN'),
     publicUrl: required('PUBLIC_URL'),
     insecureDevelopment: process.env.INSECURE_DEVELOPMENT === 'true',
     studioRoot:

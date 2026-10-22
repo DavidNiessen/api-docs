@@ -1,0 +1,77 @@
+name: api-docs
+services:
+  db:
+    image: postgres:17-alpine@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: apidocs
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password, owner_password, runtime_password]
+    volumes:
+      - database:/var/lib/postgresql/data
+      - ./init-database.sh:/docker-entrypoint-initdb.d/10-api-docs.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d apidocs']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+  migrate:
+    image: api-docs:local
+    command: ['node', 'apps/server/dist/migrate.js']
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL_FILE: /run/secrets/migration_url
+      DB_RUNTIME_ROLE: apidocs_runtime
+    secrets: [migration_url]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [backend]
+  docs:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: api-docs:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL_FILE: /run/secrets/database_url
+      ROOT_TOKEN_FILE: /run/secrets/root_token
+      PUBLIC_URL: ${PUBLIC_URL:?Set the external HTTPS origin in PUBLIC_URL}
+      INSECURE_DEVELOPMENT: ${INSECURE_DEVELOPMENT:-false}
+    secrets: [database_url, root_token]
+    ports: ['127.0.0.1:${DOCS_PORT:-8080}:8080']
+    volumes: [artifacts:/data/artifacts:ro]
+    read_only: true
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=64m']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [backend, frontend]
+secrets:
+  db_password:
+    file: ${DOCS_SECRETS_DIR:-.secrets}/db_password
+  owner_password:
+    file: ${DOCS_SECRETS_DIR:-.secrets}/owner_password
+  runtime_password:
+    file: ${DOCS_SECRETS_DIR:-.secrets}/runtime_password
+  migration_url:
+    file: ${DOCS_SECRETS_DIR:-.secrets}/migration_url
+  database_url:
+    file: ${DOCS_SECRETS_DIR:-.secrets}/database_url
+  root_token:
+    file: ${DOCS_SECRETS_DIR:-.secrets}/root_token
+volumes:
+  database:
+  artifacts:
+networks:
+  backend:
+    internal: true
+  frontend:

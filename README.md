@@ -1,8 +1,8 @@
 # api-docs
 
-A planned open source, self-hosted API documentation platform: polished documentation, interactive API references, and framework integrations without a required hosted service.
+An open source, self-hosted API documentation platform: polished documentation, interactive API references, and framework integrations without a required hosted service.
 
-**Status: implementation in progress.** The OpenAPI compiler, static React reader, local search, API explorer, and CLI are runnable. The roadmap includes further server, framework, security, and release work; this is not yet a production release.
+**Status: implementation in progress.** The OpenAPI compiler, React reader, worker-based local search, API explorer, CLI, publication server, Studio, and Java/Spring Boot/Node integrations are runnable. Container deployment and recovery are available. The roadmap still includes substantial customization, extensibility, security and release work; this is not yet a production release.
 
 ## Product direction
 
@@ -60,3 +60,7 @@ Prettier, ESLint, and Markdown linting run on feature branch pushes, pull reques
 The documentation must work without an account with the project maintainers. Deployments own their content, credentials, configuration, and artifacts. Public documentation should remain readable when optional services fail. Accessibility, security, upgrade safety, and performance are release requirements.
 
 The visual direction takes inspiration from Mintlify's layout and interaction quality while using original implementation, branding, assets, and copy.
+
+## Self hosting and project policy
+
+See the [server configuration](docs/server.md), [container deployment and recovery](docs/deployment.md), [framework integrations](docs/integrations.md), and [measured performance](docs/performance.md). Code is licensed under [Apache-2.0](LICENSE); see [NOTICE](NOTICE), [security reporting](SECURITY.md), [governance](GOVERNANCE.md), and the [code of conduct](CODE_OF_CONDUCT.md).
