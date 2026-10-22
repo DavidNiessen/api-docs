@@ -177,8 +177,9 @@ describe('OpenAPI parameter wire serialization', () => {
       ).searchParams.get('color'),
     ).toBe(' a/b & c ');
     expect(
-      request({ allowReserved: true }, 'https://example.test/a?x=1@[]').url,
-    ).toContain('color=https://example.test/a?x=1@[]');
+      request({ allowReserved: true }, 'https://example.test/a?x%3D1@%5B%5D')
+        .url,
+    ).toContain('color=https://example.test/a?x%3D1@%5B%5D');
     expect(() => request({ allowReserved: true }, 'a&injected=true')).toThrow(
       /allowReserved/,
     );

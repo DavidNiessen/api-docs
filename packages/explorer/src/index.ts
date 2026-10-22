@@ -7,10 +7,12 @@ import {
 import { isJsonMediaType } from '@api-docs/contracts';
 import { redactJsonBody } from './redact-body.js';
 import type { BodyRedaction } from './redact-body.js';
+import { encodeFormBody, isFormMediaType } from './form.js';
 export interface RequestInput {
   server: string;
   parameters: Record<string, string>;
   body?: string;
+  bodyFormat?: 'serialized' | 'json';
   contentType?: string;
   accept?: string;
   credentials?: Record<string, string>;
@@ -116,7 +118,31 @@ export function prepareRequest(
       else throw new Error(`Unsupported authentication method: ${name}`);
     }
   }
-  const body = input.body;
+  let body = input.body;
+  if (
+    body &&
+    input.bodyFormat === 'json' &&
+    isFormMediaType(input.contentType ?? '')
+  ) {
+    const declared = operation.requestBody?.content ?? {};
+    const matches = Object.entries(declared).filter(([type]) =>
+      isFormMediaType(type),
+    );
+    const media =
+      declared[input.contentType!] ??
+      (matches.length === 1 ? matches[0]![1] : undefined);
+    if (!media)
+      throw new Error(
+        'The selected form media type is not declared by the operation.',
+      );
+    body = encodeFormBody(body, media, input);
+  } else if (
+    input.bodyFormat === 'json' &&
+    !isJsonMediaType(input.contentType ?? 'application/json')
+  )
+    throw new Error(
+      'Logical JSON body input is supported only for JSON or form-urlencoded content.',
+    );
   if (body && ['get', 'head'].includes(operation.method))
     throw new Error('GET and HEAD requests cannot have a body in the browser');
   if (!body && operation.requestBody?.required)
@@ -208,3 +234,4 @@ export type {
 } from './oauth.js';
 export { redactJsonBody } from './redact-body.js';
 export type { BodyRedaction } from './redact-body.js';
+export { encodeFormBody, isFormMediaType } from './form.js';

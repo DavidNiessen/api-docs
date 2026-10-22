@@ -5,7 +5,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { generateSnippet } from '@api-docs/explorer';
+import { generateSnippet, encodeFormBody } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
 const directory = await mkdtemp(join(tmpdir(), 'api-docs-snippets-'));
@@ -30,6 +30,20 @@ const cases = [
       value: null,
       message: 'quotes " and \\ café 😀',
     }),
+  },
+  {
+    name: 'form-body',
+    status: 200,
+    type: 'application/json',
+    body: '{"encoded":true}',
+    expected: 'encoded',
+    requestType: 'application/x-www-form-urlencoded',
+    requestBody: encodeFormBody(
+      '{"name":"café + space","id":9007199254740993,"colors":["a+b","x&y"],"address":{"zip":"99999+1234"}}',
+      {
+        schema: { type: 'object' },
+      },
+    ),
   },
   {
     name: 'json',
@@ -102,9 +116,10 @@ try {
         headers: {
           Accept: fixture.type,
           'Content-Type':
-            fixture.name === 'json-body'
+            fixture.requestType ??
+            (fixture.name === 'json-body'
               ? 'application/json'
-              : 'text/plain; charset=utf-8',
+              : 'text/plain; charset=utf-8'),
           Authorization: 'Bearer fixture-token',
           'X-Fixture': 'quote" backslash\\',
         },
@@ -181,6 +196,10 @@ try {
         `${language}/${fixture.name}: request bytes changed`,
       );
       assert.equal(actual.headers.accept, input.headers.Accept);
+      assert.equal(
+        actual.headers['content-type'],
+        input.headers['Content-Type'],
+      );
       assert.equal(actual.headers.authorization, input.headers.Authorization);
       assert.equal(actual.headers['x-fixture'], input.headers['X-Fixture']);
       if (!shouldFail && fixture.expected)
@@ -192,7 +211,7 @@ try {
       console.log(`PASS ${language}: ${fixture.name}`);
     }
   }
-  assert.equal(passed, 35);
+  assert.equal(passed, 40);
   console.log(
     `${passed} executable snippet checks passed across ${languages.length} languages.`,
   );

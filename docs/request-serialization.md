@@ -16,7 +16,7 @@ The default style is `simple` for paths/headers and `form` for query parameters.
 
 Data values use RFC 3986 percent encoding independently of style delimiters. For example, an un-exploded query array containing `a,b` and `c` produces `color=a%2Cb,c`. Space and pipe delimiters use `%20` and `%7C` for portable URLs. Numeric tokens in entered collections retain their original text, including large IDs and exponent notation. Appending query API-key authentication preserves that distinction. Browser URL processing must not normalize a path value to `.` or `..`; those values fail before a request is sent.
 
-With `allowReserved: true`, query values retain reserved characters that can remain inside a query value. Raw `&` and `#` are rejected because they could introduce another parameter or a fragment. The browser can still normalize individual characters, such as an apostrophe in an HTTP URL. Prefer encoded query values when the API contract permits them. This is a deliberate browser safety boundary, not support for every ambiguous reserved-character expansion.
+With `allowReserved: true`, query values retain reserved characters that can remain inside a query value, and valid pre-encoded `%HH` triples pass through unchanged. Raw `&`, `#`, `+`, `=`, `[` and `]` require pre-encoding because they could change query/form parsing or produce invalid URI syntax. The browser can still normalize individual characters, such as an apostrophe in an HTTP URL. This is a deliberate safety boundary, not support for ambiguous reserved-character expansion. With `allowReserved` false, percent signs are ordinary data and are encoded too.
 
 ## Content-based parameters
 
@@ -28,6 +28,6 @@ Referenced parameter schemas resolve against the API's schema map, retaining the
 
 Cookie parameters cannot be set manually. Browser-controlled headers, invalid names, control characters and values outside the browser's header character range fail explicitly. OpenAPI header parameters named `Accept`, `Content-Type` or `Authorization` are ignored as required by the format; use media selection and security schemes instead. Header names are handled without case-sensitive duplicates, including API-key authentication.
 
-The API must permit the request through CORS. Requests omit browser cookies and refuse redirects. The reader asks before potentially destructive methods. JSON object bodies support [schema-aware field editing](explorer-bodies.md) with a raw editor for exact control. Multipart file upload, form-url-encoded body generation and streaming remain separate work.
+The API must permit the request through CORS. Requests omit browser cookies and refuse redirects. The reader asks before potentially destructive methods. JSON object bodies support [schema-aware field editing](explorer-bodies.md) with a raw editor for exact control. The SDK also supports [form-urlencoded encoding](form-bodies.md); reader controls, multipart upload and streaming remain separate work.
 
 The parameter suite checks the style/explode combinations, content parameters, referenced schemas, delimiter-sensitive values and error boundaries. A loopback HTTP fixture also verifies the actual URL and header bytes received by a server.

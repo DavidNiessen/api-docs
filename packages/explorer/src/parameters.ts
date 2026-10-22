@@ -138,20 +138,30 @@ export function setRequestHeader(
     writable: true,
   });
 }
-function queryParts(value: Value, parameter: Parameter): QueryPart[] {
+export function queryParts(value: Value, parameter: Parameter): QueryPart[] {
   const style = parameter.style ?? 'form';
   const explode = parameter.explode ?? style === 'form';
   const encode = (part: unknown) => {
-    const encoded = encodeValue(part);
-    if (!parameter.allowReserved) return encoded;
-    if (/[&#]/.test(String(part)))
+    const text = String(part);
+    if (!parameter.allowReserved) return encodeValue(part);
+    if (/[&#+=]|\[|\]/.test(text))
       throw new Error(
-        `${parameter.name}: allowReserved cannot safely preserve & or # in a browser query`,
+        `${parameter.name}: allowReserved requires pre-encoding &, #, +, = and brackets to avoid ambiguous query values`,
       );
-    return encoded.replace(/%([0-9A-F]{2})/g, (match, hex: string) => {
-      const character = String.fromCharCode(parseInt(hex, 16));
-      return ":/?[]@!$'()*+,;=".includes(character) ? character : match;
-    });
+    return text
+      .split(/(%[0-9A-Fa-f]{2})/)
+      .map((piece) =>
+        /^%[0-9A-Fa-f]{2}$/.test(piece)
+          ? piece
+          : encodeValue(piece).replace(
+              /%([0-9A-F]{2})/g,
+              (match, hex: string) => {
+                const character = String.fromCharCode(parseInt(hex, 16));
+                return ":/?@!$'()*,;".includes(character) ? character : match;
+              },
+            ),
+      )
+      .join('');
   };
   const entry = (name: string, text: string): QueryPart => ({
     name,

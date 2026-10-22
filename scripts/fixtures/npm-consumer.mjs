@@ -15,9 +15,15 @@ import {
   serializeJsonValue,
   setJsonProperty,
 } from '@api-docs/contracts';
-import { redactJsonBody } from '@api-docs/explorer';
+import { redactJsonBody, encodeFormBody } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
+assert.equal(
+  encodeFormBody('{"name":"installed + form","id":9007199254740993}', {
+    schema: { type: 'object' },
+  }),
+  'name=installed+%2B+form&id=9007199254740993',
+);
 const parsedBody = parseJsonValue(
   '{"id":9007199254740993,"password":"fixture-only"}',
 );
