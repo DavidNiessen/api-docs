@@ -106,6 +106,8 @@ export interface ProjectConfig {
   plugins: string[];
 }
 export interface SiteData {
+  navigationTotal?: number;
+  navigationTruncated?: boolean;
   pluginVersions?: { name: string; version: string }[];
   schemaVersion: 1;
   config: ProjectConfig;
@@ -168,3 +170,5 @@ export function withBase(base: string, path: string): string {
 }
 
 export { resolveSchema, exampleFor } from './schema.js';
+
+export { createPageData, normalizePagePath } from './page.js';

@@ -19,7 +19,7 @@ import {
   writeManifest,
   verifyArtifact,
 } from '@api-docs/compiler';
-import { guideHref, operationHref } from '@api-docs/contracts';
+import { guideHref, operationHref, createPageData } from '@api-docs/contracts';
 import type { SiteData } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
 import { createSearchIndex } from '@api-docs/search';
@@ -72,7 +72,12 @@ export async function buildSite(
     for (const [path, title] of pages) {
       const destination = join(stage, path, 'index.html');
       await mkdir(dirname(destination), { recursive: true });
-      await writeFile(destination, renderDocument(site, path, { title }));
+      const page = createPageData(site, path);
+      await writeFile(destination, renderDocument(page, path, { title }));
+      await writeFile(
+        join(dirname(destination), 'page-data.json'),
+        JSON.stringify(page),
+      );
     }
     await writeFile(
       join(stage, '404.html'),
@@ -82,9 +87,21 @@ export async function buildSite(
       }),
     );
     await writeFile(join(stage, 'site.json'), JSON.stringify(site));
+    const index = createSearchIndex(site);
+    await writeFile(join(stage, 'search.json'), JSON.stringify(index));
+    await mkdir(join(stage, 'search'), { recursive: true });
+    const shards: string[] = [];
+    for (let offset = 0; offset < index.length; offset += 500) {
+      const file = `search/${offset / 500}.json`;
+      shards.push(file);
+      await writeFile(
+        join(stage, file),
+        JSON.stringify(index.slice(offset, offset + 500)),
+      );
+    }
     await writeFile(
-      join(stage, 'search.json'),
-      JSON.stringify(createSearchIndex(site)),
+      join(stage, 'search-manifest.json'),
+      JSON.stringify({ schemaVersion: 1, records: index.length, shards }),
     );
     for (const [from, to] of Object.entries(site.config.redirects)) {
       if (pages.has(from) || pages.has(`${from}/`))

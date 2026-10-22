@@ -1,16 +1,21 @@
 import { renderToString } from 'react-dom/server';
 import { App } from './components/App.js';
+import { createPageData } from '@api-docs/contracts';
 import type { SiteData } from '@api-docs/contracts';
 export function renderDocument(
   site: SiteData,
   path: string,
   options: { status?: number; title?: string } = {},
 ): string {
-  const encoded = JSON.stringify(site)
-    .replace(/</g, '\\u003c')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
-  const markup = renderToString(<App site={site} initialPath={path} />);
+  const page = createPageData(site, path);
+  const encoded = JSON.stringify(page).replace(
+    /[<\u2028\u2029]/g,
+    (char) =>
+      String.fromCharCode(92) +
+      'u' +
+      char.charCodeAt(0).toString(16).padStart(4, '0'),
+  );
+  const markup = renderToString(<App site={page} initialPath={path} />);
   const escape = (value: string): string =>
     value.replace(
       /[&<>"']/g,

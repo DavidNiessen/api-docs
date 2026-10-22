@@ -10,15 +10,13 @@ export function resolveSchema(
   schemas: Record<string, Schema>,
 ): Schema {
   const ref = text(schema.$ref);
-  if (!ref.startsWith('#/components/schemas/')) return schema;
-  return (
-    schemas[
-      ref
+  const key = ref.startsWith('#/components/schemas/')
+    ? ref
         .slice('#/components/schemas/'.length)
         .replace(/~1/g, '/')
         .replace(/~0/g, '~')
-    ] ?? schema
-  );
+    : ref;
+  return Object.hasOwn(schemas, key) ? schemas[key]! : schema;
 }
 
 export function exampleFor(

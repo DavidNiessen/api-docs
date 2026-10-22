@@ -6,21 +6,41 @@ import {
   guideHref,
   operationHref,
   withBase,
+  normalizePagePath,
 } from '@api-docs/contracts';
-import type { ApiDocument, Operation, SiteData } from '@api-docs/contracts';
+import type {
+  ApiDocument,
+  Operation,
+  SiteData,
+  SearchResult,
+} from '@api-docs/contracts';
 import { Icon } from './Icon.js';
 import { Explorer } from './Explorer.js';
 import { SchemaView } from './SchemaView.js';
 import { CodeBlock } from './CodeBlock.js';
 
 export function App({
-  site,
+  site: initialSite,
   initialPath,
 }: {
   site: SiteData;
   initialPath: string;
 }) {
+  const [site, setSite] = useState(initialSite);
   const [path, setPath] = useState(initialPath);
+  const [loading, setLoading] = useState(false);
+  const [searchIndex, setSearchIndex] = useState(() =>
+    createSearchIndex(initialSite),
+  );
+  const searchLoaded = useRef(false);
+  const searchWorker = useRef<Worker | null>(null);
+  const searchRequest = useRef(0);
+  const [workerFailed, setWorkerFailed] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchKind, setSearchKind] = useState('');
+  const [searchVersion, setSearchVersion] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const navigationId = useRef(0);
   const [mobileNav, setMobileNav] = useState(false);
   const [theme, setTheme] = useState('light');
   const [query, setQuery] = useState('');
@@ -36,9 +56,13 @@ export function App({
         (operation) => operationHref(api, operation) === path,
       ),
     ) ?? site.apis[0];
-  const activeOperation = activeApi?.operations.find(
-    (operation) => operationHref(activeApi!, operation) === path,
-  );
+  const activeOperation =
+    activeApi?.operations.find(
+      (operation) => operationHref(activeApi!, operation) === path,
+    ) ??
+    (path === '/' && !site.guides.length
+      ? activeApi?.operations[0]
+      : undefined);
   const [selectedApi, setSelectedApi] = useState(
     activeApi ? `${activeApi.id}:${activeApi.version}` : '',
   );
@@ -63,12 +87,13 @@ export function App({
     } catch {
       /* Storage can be disabled. */
     }
-    const pop = () =>
-      setPath(window.location.pathname.slice(config.basePath.length) || '/');
+    const pop = () => {
+      void loadPage(new URL(window.location.href), false);
+    };
     const key = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        dialog.current?.showModal();
+        openSearch();
       }
     };
     window.addEventListener('popstate', pop);
@@ -103,17 +128,123 @@ export function App({
       document.getElementById(url.hash.slice(1))?.scrollIntoView();
       return;
     }
-    history.pushState({}, '', url.pathname + url.hash);
-    setPath(url.pathname.slice(config.basePath.length) || '/');
-    setMobileNav(false);
-    dialog.current?.close();
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    if (url.hash)
-      setTimeout(
-        () => document.getElementById(url.hash.slice(1))?.scrollIntoView(),
-        0,
-      );
+    void loadPage(url, true);
   }
+  function openSearch() {
+    dialog.current?.showModal();
+    if (!searchLoaded.current) {
+      searchLoaded.current = true;
+      setSearchLoading(true);
+      if (!searchWorker.current && !workerFailed) {
+        try {
+          const worker = new Worker(
+            new URL('../search.worker.ts', import.meta.url),
+            { type: 'module' },
+          );
+          worker.onmessage = (
+            event: MessageEvent<{ id: number; results: SearchResult[] }>,
+          ) => {
+            if (event.data.id === searchRequest.current)
+              setSearchResults(event.data.results);
+          };
+          worker.onerror = () => {
+            worker.terminate();
+            searchWorker.current = null;
+            setWorkerFailed(true);
+          };
+          searchWorker.current = worker;
+        } catch {
+          setWorkerFailed(true);
+        }
+      }
+      void (async () => {
+        const response = await fetch(href('/search-manifest.json'), {
+          credentials: 'same-origin',
+        });
+        if (!response.ok) throw new Error('Search unavailable');
+        const manifest = (await response.json()) as {
+          schemaVersion: number;
+          shards: string[];
+        };
+        if (
+          manifest.schemaVersion !== 1 ||
+          !Array.isArray(manifest.shards) ||
+          manifest.shards.length > 1000
+        )
+          throw new Error('Invalid search manifest');
+        const index: ReturnType<typeof createSearchIndex> = [];
+        for (let offset = 0; offset < manifest.shards.length; offset += 4) {
+          const batch = await Promise.all(
+            manifest.shards.slice(offset, offset + 4).map(async (file) => {
+              if (!/^search\/\d+\.json$/.test(file))
+                throw new Error('Invalid search shard path');
+              const response = await fetch(href('/' + file), {
+                credentials: 'same-origin',
+              });
+              if (!response.ok) throw new Error('Search unavailable');
+              return (await response.json()) as ReturnType<
+                typeof createSearchIndex
+              >;
+            }),
+          );
+          for (const shard of batch) index.push(...shard);
+        }
+        searchWorker.current?.postMessage({ kind: 'load', index });
+        setSearchIndex(index);
+      })()
+        .catch(() => {
+          searchLoaded.current = false;
+        })
+        .finally(() => setSearchLoading(false));
+    }
+  }
+  useEffect(() => {
+    const id = ++searchRequest.current;
+    const filter = {
+      ...(searchKind ? { kind: searchKind } : {}),
+      ...(searchVersion ? { version: searchVersion } : {}),
+    };
+    if (searchWorker.current && !workerFailed)
+      searchWorker.current.postMessage({ kind: 'query', id, query, filter });
+    else setSearchResults(search(searchIndex, query, filter));
+  }, [query, searchIndex, searchKind, searchVersion, workerFailed]);
+  useEffect(() => () => searchWorker.current?.terminate(), []);
+  async function loadPage(url: URL, push: boolean) {
+    const id = ++navigationId.current;
+    const nextPath = normalizePagePath(
+      url.pathname.slice(config.basePath.length) || '/',
+    );
+    setLoading(true);
+    try {
+      const response = await fetch(
+        href(
+          `${nextPath.endsWith('/') ? nextPath : `${nextPath}/`}page-data.json`,
+        ),
+        { credentials: 'same-origin' },
+      );
+      if (!response.ok) throw new Error('Page data unavailable');
+      const next = (await response.json()) as SiteData;
+      if (next.schemaVersion !== 1 || !next.config || !Array.isArray(next.apis))
+        throw new Error('Invalid page data');
+      if (id !== navigationId.current) return;
+      if (push) history.pushState({}, '', url.pathname + url.hash);
+      setSite(next);
+      setPath(nextPath);
+      setMobileNav(false);
+      dialog.current?.close();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      if (url.hash)
+        setTimeout(
+          () => document.getElementById(url.hash.slice(1))?.scrollIntoView(),
+          0,
+        );
+    } catch {
+      if (id === navigationId.current) window.location.assign(url.href);
+    } finally {
+      if (id === navigationId.current) setLoading(false);
+    }
+  }
+
   const groups = [...new Set(site.guides.map((guide) => guide.group))];
   const tags = [
     ...new Set(
@@ -122,7 +253,7 @@ export function App({
       ) ?? [],
     ),
   ];
-  const results = search(createSearchIndex(site), query);
+  const results = searchResults;
   return (
     <div
       className={`docs-shell density-${config.theme.density} font-${config.theme.font}`}
@@ -134,6 +265,11 @@ export function App({
       }
       onClick={navigate}
     >
+      {loading && (
+        <div className="page-loading" role="status">
+          Loading documentation…
+        </div>
+      )}
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
@@ -149,7 +285,7 @@ export function App({
           <button
             className="search-trigger"
             type="button"
-            onClick={() => dialog.current?.showModal()}
+            onClick={() => openSearch()}
           >
             <Icon name="search" size={17} />
             <span>Search documentation…</span>
@@ -237,8 +373,10 @@ export function App({
                   );
                   if (api?.operations[0]) {
                     const target = operationHref(api, api.operations[0]);
-                    history.pushState({}, '', href(target));
-                    setPath(target);
+                    void loadPage(
+                      new URL(href(target), window.location.origin),
+                      true,
+                    );
                   }
                 }}
               >
@@ -328,6 +466,16 @@ export function App({
                   ))}
               </nav>
             ))}
+          {site.navigationTruncated && (
+            <button
+              type="button"
+              className="nav-search-more"
+              onClick={openSearch}
+            >
+              <Icon name="search" size={14} />
+              Search all {site.navigationTotal} pages
+            </button>
+          )}
           <div className="sidebar-bottom">
             <span className="brand-mark small">
               <Icon name="spark" size={14} />
@@ -496,6 +644,38 @@ export function App({
           >
             <kbd>Esc</kbd>
           </button>
+        </div>
+        <div className="search-filters">
+          <label>
+            Content
+            <select
+              aria-label="Search content type"
+              value={searchKind}
+              onChange={(event) => setSearchKind(event.target.value)}
+            >
+              <option value="">All content</option>
+              <option value="guide">Guides</option>
+              <option value="operation">API endpoints</option>
+            </select>
+          </label>
+          <label>
+            API version
+            <select
+              aria-label="Search API version"
+              value={searchVersion}
+              onChange={(event) => setSearchVersion(event.target.value)}
+            >
+              <option value="">All versions</option>
+              {[
+                ...new Set(
+                  searchIndex.map((entry) => entry.version).filter(Boolean),
+                ),
+              ].map((version) => (
+                <option key={version}>{version}</option>
+              ))}
+            </select>
+          </label>
+          {searchLoading && <small role="status">Loading search…</small>}
         </div>
         <div className="search-results">
           {query ? (

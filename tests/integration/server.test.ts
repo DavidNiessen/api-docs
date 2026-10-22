@@ -164,6 +164,7 @@ describe('self-hosted publication and authorization', () => {
     for (const path of [
       '',
       'site.json',
+      'page-data.json',
       'search.json',
       'assets/reader.js',
       'guides/introduction/',

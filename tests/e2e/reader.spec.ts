@@ -44,6 +44,25 @@ test('reader, local search and live API playground work end to end', async ({
   ).toBeVisible();
   await page.getByRole('button', { name: 'Switch to dark theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.goBack();
+  await expect(
+    page.getByRole('heading', { name: 'Introduction', exact: true }),
+  ).toBeVisible();
+  await page.goForward();
+  await expect(
+    page.getByRole('heading', { name: 'Create a project', exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('link', { name: 'Quickstart', exact: true })
+    .first()
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Make your first request', exact: true }),
+  ).toBeVisible();
+  await page.goto('/index.html');
+  await expect(
+    page.getByRole('heading', { name: 'Introduction', exact: true }),
+  ).toBeVisible();
   expect(errors).toEqual([]);
 });
 test('core guide is accessible and readable without JavaScript', async ({
