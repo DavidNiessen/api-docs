@@ -133,6 +133,15 @@ const schema = z
               .nonnegative()
               .max(2 * 1024 * 1024)
               .optional(),
+            links: z
+              .array(
+                z
+                  .object({ url: text, kind: z.enum(['link', 'image']) })
+                  .strict(),
+              )
+              .max(10_000)
+              .optional(),
+            anchors: z.array(name).max(10_000).optional(),
             order: z.number().finite(),
             slug: z.string().regex(/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/),
             title: name,

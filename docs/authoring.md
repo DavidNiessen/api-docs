@@ -58,3 +58,7 @@ Tabs support click, Left/Right, Home/End and standard tab focus. Every panel rem
   Confirm the API key's permissions.
 </Callout>
 ```
+
+## Portable guide links
+
+Link to another guide with `[Authentication](authentication.md#heading-authentication)` or a nested relative `.md`/`.mdx` path. Compilation rewrites it to the generated URL under `basePath`. Use the actual generated heading id, which begins with `heading-`. Root-relative links and `/media/` image paths receive the publication prefix once. Run [doctor](doctor.md) to check local destinations, fragments, images and explicit exceptions without network requests.

@@ -81,6 +81,8 @@ export interface ApiDocument {
   servers: string[];
 }
 export interface Guide {
+  links?: { url: string; kind: 'link' | 'image' }[];
+  anchors?: string[];
   sourceBytes?: number;
   order: number;
   slug: string;
@@ -114,6 +116,10 @@ export interface Theme {
   density: 'comfortable' | 'compact';
 }
 export interface ProjectConfig {
+  doctor?: {
+    rules: Record<string, 'off' | 'warning' | 'error'>;
+    suppressions: { code: string; source: string; reason: string }[];
+  };
   schemaVersion: 1;
   name: string;
   description: string;

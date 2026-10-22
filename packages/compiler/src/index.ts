@@ -19,6 +19,7 @@ import { loadGuides, renderMarkdown } from '@api-docs/content';
 import { runPluginFiles } from '@api-docs/plugin-sdk';
 import { loadPublicAssets } from './assets.js';
 export { loadPublicAssets } from './assets.js';
+export { auditDocumentation } from './doctor.js';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 
 export const digest = (source: string | Buffer): string =>
@@ -81,6 +82,8 @@ export async function compileProject(
       guide.html = safe.html;
       guide.text = safe.text;
       guide.headings = safe.headings;
+      guide.links = safe.links;
+      guide.anchors = safe.anchors;
     }
     site.pluginVersions = execution.plugins;
   }

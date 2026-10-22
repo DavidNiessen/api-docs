@@ -4,8 +4,8 @@ import { Command } from 'commander';
 import { mkdir, writeFile, access } from 'node:fs/promises';
 import { resolve, join, dirname, basename } from 'node:path';
 import { watch } from 'node:fs';
-import { compileProject } from '@api-docs/compiler';
-import { loadSpec, diffApi, parseConfig, checkExamples } from '@api-docs/spec';
+import { compileProject, auditDocumentation } from '@api-docs/compiler';
+import { loadSpec, diffApi, parseConfig } from '@api-docs/spec';
 import { checkPluginConformance } from '@api-docs/plugin-sdk';
 import {
   buildSite,
@@ -86,8 +86,7 @@ for (const mode of ['validate', 'doctor'] as const)
           options,
         );
         if (mode === 'doctor')
-          for (const api of site.apis)
-            site.diagnostics.push(...(await checkExamples(api)));
+          site.diagnostics = await auditDocumentation(site);
         console.log(
           options.json
             ? JSON.stringify(site.diagnostics)

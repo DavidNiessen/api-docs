@@ -28,6 +28,16 @@ import { SchemaView } from './SchemaView.js';
 import { CodeBlock } from './CodeBlock.js';
 
 const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
+function scrollFragment(hash: string) {
+  if (!hash) return;
+  try {
+    document
+      .getElementById(decodeURIComponent(hash.slice(1)).split(':~:text=')[0]!)
+      ?.scrollIntoView();
+  } catch {
+    /* A malformed fragment cannot identify a local element. */
+  }
+}
 function activateGuideTab(button: HTMLButtonElement) {
   const list = button.closest('[role="tablist"]');
   for (const tab of list?.querySelectorAll<HTMLButtonElement>(
@@ -205,6 +215,9 @@ export function App({
     ))
       activateGuideTab(tab);
   }, [activeGuide?.html]);
+  useEffect(() => {
+    scrollFragment(window.location.hash);
+  }, [site, path]);
   function navigate(event: MouseEvent<HTMLDivElement>) {
     const tab = (event.target as Element).closest<HTMLButtonElement>(
       '[data-guide-tab]',
@@ -227,8 +240,13 @@ export function App({
       return;
     event.preventDefault();
     const url = new URL(target.href);
-    if (url.pathname === window.location.pathname && url.hash) {
-      document.getElementById(url.hash.slice(1))?.scrollIntoView();
+    if (
+      url.pathname === window.location.pathname &&
+      url.search === window.location.search &&
+      url.hash
+    ) {
+      history.pushState({}, '', url.pathname + url.search + url.hash);
+      scrollFragment(url.hash);
       return;
     }
     void loadPage(url, true);
@@ -330,17 +348,12 @@ export function App({
       if (next.schemaVersion !== 1 || !next.config || !Array.isArray(next.apis))
         throw new Error('Invalid page data');
       if (id !== navigationId.current) return;
-      if (push) history.pushState({}, '', url.pathname + url.hash);
+      if (push) history.pushState({}, '', url.pathname + url.search + url.hash);
       setSite(next);
       setPath(nextPath);
       setMobileNav(false);
       dialog.current?.close();
       window.scrollTo({ top: 0, behavior: 'instant' });
-      if (url.hash)
-        setTimeout(
-          () => document.getElementById(url.hash.slice(1))?.scrollIntoView(),
-          0,
-        );
     } catch {
       if (id === navigationId.current) window.location.assign(url.href);
     } finally {

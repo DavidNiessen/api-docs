@@ -39,7 +39,7 @@ describe('incremental development builds', () => {
     await writeFile(
       guide,
       (await readFile(guide, 'utf8')) +
-        '\n\n## Updated section\n\nNew incremental body text.\n',
+        '\n\n## Updated section\n\nNew incremental body text.\n\n[Authentication](authentication.md)\n',
     );
     const changed = await builder.build(['guides/introduction.md']);
     expect(changed.mode).toBe('incremental');

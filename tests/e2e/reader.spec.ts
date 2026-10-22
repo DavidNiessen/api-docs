@@ -115,3 +115,48 @@ test('mobile navigation and unknown routes behave correctly', async ({
     page.getByRole('heading', { name: 'Page not found' }),
   ).toBeVisible();
 });
+
+test('authored guide links preserve queries, fragments and same-page history', async ({
+  page,
+}) => {
+  await page.goto('/guides/introduction/');
+  const quickstart = page.getByRole('link', {
+    name: 'quickstart',
+    exact: true,
+  });
+  await quickstart.evaluate((element) => {
+    const link = element as HTMLAnchorElement,
+      url = new URL(link.href);
+    url.searchParams.set('ref', 'introduction');
+    link.href = url.href;
+  });
+  await quickstart.click();
+  await expect(page).toHaveURL(
+    /\/guides\/quickstart\/\?ref=introduction#heading-make-your-first-request$/,
+  );
+  await expect(
+    page.locator('#heading-make-your-first-request'),
+  ).toBeInViewport();
+  await page
+    .locator('.page-toc')
+    .getByRole('link', { name: 'Build your integration', exact: true })
+    .click();
+  await expect(page).toHaveURL(/#heading-build-your-integration$/);
+  const repeat = page.getByRole('link', {
+    name: 'Return to your first request',
+    exact: true,
+  });
+  await repeat.evaluate((element) => {
+    const link = element as HTMLAnchorElement,
+      url = new URL(link.href);
+    url.search = location.search;
+    link.href = url.href;
+  });
+  await repeat.click();
+  await expect(page).toHaveURL(
+    /\?ref=introduction#heading-make-your-first-request$/,
+  );
+  await expect(
+    page.locator('#heading-make-your-first-request'),
+  ).toBeInViewport();
+});

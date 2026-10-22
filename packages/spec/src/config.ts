@@ -141,6 +141,29 @@ export const configSchema = z
       .default(['en']),
     defaultLocale: z.string().default('en'),
     plugins: z.array(safePath).default([]),
+    doctor: z
+      .object({
+        rules: z
+          .record(
+            z.string().regex(/^[a-z][a-z0-9-]*$/),
+            z.enum(['off', 'warning', 'error']),
+          )
+          .prefault({}),
+        suppressions: z
+          .array(
+            z
+              .object({
+                code: z.string().regex(/^[a-z][a-z0-9-]*$/),
+                source: z.string().min(1).max(2000),
+                reason: z.string().trim().min(8).max(500),
+              })
+              .strict(),
+          )
+          .max(200)
+          .default([]),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((config, context) => {

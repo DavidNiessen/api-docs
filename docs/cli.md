@@ -2,16 +2,16 @@
 
 Build the repository with `npm ci && npm run build`. Commands below use `node packages/cli/dist/main.js`; the packaged executable is named `api-docs`.
 
-| Command                 | Purpose                                                    |
-| ----------------------- | ---------------------------------------------------------- |
-| `init [directory]`      | Create a project without overwriting existing files        |
-| `build [project]`       | Compile and verify a static publication                    |
-| `export [project]`      | Alias for build; output is portable static files           |
-| `dev [project]`         | Build, serve and watch inputs; refresh after rebuilding    |
-| `serve <directory>`     | Serve an existing publication with security headers        |
-| `validate [project]`    | Check configuration, specs and guides                      |
-| `doctor [project]`      | Structural checks plus offline authored-example validation |
-| `diff <before> <after>` | Classify breaking and uncertain API contract changes       |
+| Command                 | Purpose                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `init [directory]`      | Create a project without overwriting existing files     |
+| `build [project]`       | Compile and verify a static publication                 |
+| `export [project]`      | Alias for build; output is portable static files        |
+| `dev [project]`         | Build, serve and watch inputs; refresh after rebuilding |
+| `serve <directory>`     | Serve an existing publication with security headers     |
+| `validate [project]`    | Check configuration, specs and guides                   |
+| `doctor [project]`      | Offline examples, links, fragments and coverage policy  |
+| `diff <before> <after>` | Classify breaking and uncertain API contract changes    |
 
 `build` and `dev` accept `--config`, `--output`, and `--trust-plugins`. Output must stay inside the project's `.api-docs` directory to protect source files. `serve` and `dev` accept `--port` and `--host`; the default interface is loopback.
 
@@ -45,7 +45,7 @@ Plugins execute trusted local code and require `--trust-plugins`. File-based bui
 
 ## Verification and diagnostics
 
-Every build writes `manifest.json` with SHA-256 output digests and verifies it before replacing the previous output. Failed builds leave the prior publication available. Doctor additionally validates authored examples offline; warnings can be made fatal with `--strict`. See the [doctor reference](doctor.md) for coverage and resource limits. Contract diff checks schema, authentication, serialization and operation changes, with failing review findings for uncertain compatibility. See the [classification coverage and CI exit codes](contract-diff.md).
+Every build writes `manifest.json` with SHA-256 output digests and verifies it before replacing the previous output. Failed builds leave the prior publication available. Doctor additionally checks authored examples, local links/fragments and documentation coverage offline; warnings can be made fatal with `--strict`. See the [doctor reference](doctor.md) for coverage and resource limits. Contract diff checks schema, authentication, serialization and operation changes, with failing review findings for uncertain compatibility. See the [classification coverage and CI exit codes](contract-diff.md).
 
 ## Self-hosted publication protocol
 

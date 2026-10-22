@@ -2,7 +2,7 @@ import { readdir } from 'node:fs/promises';
 import { z } from 'zod';
 import rehypeParse from 'rehype-parse';
 import { renderTrustedMdx } from './mdx.js';
-import { relative, resolve } from 'node:path';
+import { relative, resolve, dirname, sep } from 'node:path';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
@@ -12,7 +12,7 @@ import rehypeStringify from 'rehype-stringify';
 import { visit } from 'unist-util-visit';
 import type { Element, Root } from 'hast';
 import { confinedPath, parseSource, readTextFile } from '@api-docs/spec';
-import { slugify } from '@api-docs/contracts';
+import { slugify, withBase } from '@api-docs/contracts';
 import type { Guide } from '@api-docs/contracts';
 
 const nodeText = (node: {
@@ -28,7 +28,14 @@ const nodeText = (node: {
 export async function renderMarkdown(
   source: string,
   html = false,
-): Promise<{ html: string; headings: Guide['headings']; text: string }> {
+  options: { rewriteLink?: (url: string) => string } = {},
+): Promise<{
+  html: string;
+  headings: Guide['headings'];
+  text: string;
+  links: NonNullable<Guide['links']>;
+  anchors: string[];
+}> {
   const headings: Guide['headings'] = [];
   const used = new Set<string>();
   let tree: Root;
@@ -43,6 +50,18 @@ export async function renderMarkdown(
   const processor = unified()
     .use(() => (tree: Root) => {
       visit(tree, 'element', (node: Element) => {
+        if (
+          node.tagName === 'a' &&
+          typeof node.properties.href === 'string' &&
+          options.rewriteLink
+        )
+          node.properties.href = options.rewriteLink(node.properties.href);
+        if (
+          node.tagName === 'img' &&
+          typeof node.properties.src === 'string' &&
+          options.rewriteLink
+        )
+          node.properties.src = options.rewriteLink(node.properties.src);
         if (/^h[1-6]$/.test(node.tagName)) {
           const text = nodeText(node);
           let id = `heading-${slugify(text)}`;
@@ -97,12 +116,29 @@ export async function renderMarkdown(
     .use(rehypeStringify);
   const result = await processor.run(tree);
   const parts: string[] = [];
+  const links: NonNullable<Guide['links']> = [],
+    anchors: string[] = [];
+  visit(result, 'element', (node: Element) => {
+    if (typeof node.properties.id === 'string')
+      anchors.push(node.properties.id);
+    if (node.tagName === 'a' && typeof node.properties.href === 'string') {
+      links.push({ kind: 'link', url: node.properties.href });
+      if (options.rewriteLink && /^\/(?!\/)/.test(node.properties.href))
+        node.properties.dataDocRoute = true;
+    }
+    if (node.tagName === 'img' && typeof node.properties.src === 'string')
+      links.push({ kind: 'image', url: node.properties.src });
+  });
+  if (links.length > 10_000 || anchors.length > 10_000)
+    throw new Error('Guide link/anchor count exceeds 10,000');
   visit(result, 'text', (node) => {
     parts.push(node.value);
   });
   return {
     html: processor.stringify(result),
     headings,
+    links,
+    anchors,
     text: parts.join(' ').replace(/\s+/g, ' ').trim(),
   };
 }
@@ -176,6 +212,45 @@ export async function loadGuides(
           ? await renderTrustedMdx(source, file, options.basePath ?? '')
           : source,
         mdx,
+        {
+          rewriteLink: (url) => {
+            if (/^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|\/\/|#)/.test(url)) return url;
+            if (url.startsWith('/')) {
+              const base = options.basePath ?? '';
+              if (base && (url === base || url.startsWith(`${base}/`)))
+                return url;
+              return withBase(base, url);
+            }
+            const index = url.search(/[?#]/),
+              path = index < 0 ? url : url.slice(0, index);
+            if (!/\.mdx?$/.test(path)) return url;
+            let decoded: string;
+            try {
+              decoded = decodeURIComponent(path);
+            } catch {
+              return url;
+            }
+            const target = relative(
+              directoryPath,
+              resolve(dirname(file), decoded),
+            );
+            if (
+              target === '..' ||
+              target.startsWith(`..${sep}`) ||
+              target.startsWith(sep)
+            )
+              return url;
+            const route = target
+              .replace(/\.mdx?$/, '')
+              .split(/[\\/]/)
+              .map(slugify)
+              .join('/');
+            return (
+              withBase(options.basePath ?? '', `/guides/${route}/`) +
+              (index < 0 ? '' : url.slice(index))
+            );
+          },
+        },
       );
       guides.push({
         order: meta.order,
@@ -190,6 +265,8 @@ export async function loadGuides(
         group: meta.group,
         html: rendered.html,
         headings: rendered.headings,
+        links: rendered.links,
+        anchors: rendered.anchors,
         text: rendered.text,
         source: relative(root, file),
         sourceBytes: Buffer.byteLength(raw),

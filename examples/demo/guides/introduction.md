@@ -40,4 +40,4 @@ http://127.0.0.1:4010/v1
 
 ## What's next?
 
-Start with the quickstart, learn how authentication works, or go straight to the API reference. You can try every example directly from your browser.
+Start with the [quickstart](quickstart.md#heading-make-your-first-request), learn how authentication works, or go straight to the API reference. You can try every example directly from your browser.

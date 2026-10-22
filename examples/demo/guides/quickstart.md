@@ -32,3 +32,5 @@ curl --request POST http://127.0.0.1:4010/v1/projects \
 ## Build your integration
 
 Use the API reference to inspect request schemas, copy code snippets, and send requests. Configure the server field to point at your own API when you import your specification.
+
+Need to repeat the check? [Return to your first request](quickstart.md#heading-make-your-first-request).
