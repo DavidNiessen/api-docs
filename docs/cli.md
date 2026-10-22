@@ -62,3 +62,7 @@ Publish again with the same key and artifact to safely retry. A stale expected p
 Use `api-docs stage <directory> --store <artifact-root>` to verify and atomically stage a build; retries are idempotent. Then set `DOCS_PUBLISH_TOKEN` securely and use `api-docs publish <artifact-id> --server <https-origin> --project <slug-or-id>`. For loopback testing only, add `--insecure-development`. An optional `DOCS_IDEMPOTENCY_KEY` makes CI retries reuse the same publication request.
 
 The protocol stages through operator-controlled storage rather than accepting arbitrary archives from the browser. Isolated upload/build workers are further roadmap work.
+
+## Trusted guide execution
+
+Build, export, validate and dev accept `--trust-content` for reviewed MDX. It is separate from `--trust-plugins`. Markdown needs neither flag. See the [authoring and component reference](authoring.md) for execution boundaries, frontmatter, reusable components and source limits.

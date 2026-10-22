@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties, MouseEvent } from 'react';
+import type {
+  CSSProperties,
+  MouseEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { createSearchIndex, search } from '@api-docs/search';
 import {
   exampleFor,
@@ -7,6 +11,7 @@ import {
   operationHref,
   withBase,
   normalizePagePath,
+  readableAccent,
 } from '@api-docs/contracts';
 import type {
   ApiDocument,
@@ -19,6 +24,50 @@ import { Explorer } from './Explorer.js';
 import { SchemaView } from './SchemaView.js';
 import { CodeBlock } from './CodeBlock.js';
 
+function activateGuideTab(button: HTMLButtonElement) {
+  const list = button.closest('[role="tablist"]');
+  for (const tab of list?.querySelectorAll<HTMLButtonElement>(
+    '[data-guide-tab]',
+  ) ?? []) {
+    const selected = tab === button;
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    const panel = document.getElementById(
+      tab.getAttribute('aria-controls') ?? '',
+    );
+    if (panel) panel.hidden = !selected;
+  }
+}
+function guideTabKey(event: ReactKeyboardEvent<HTMLDivElement>) {
+  const target = (event.target as Element).closest<HTMLButtonElement>(
+    '[data-guide-tab]',
+  );
+  if (
+    !target ||
+    !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
+  )
+    return;
+  const tabs = [
+    ...target
+      .closest('[role="tablist"]')!
+      .querySelectorAll<HTMLButtonElement>('[data-guide-tab]'),
+  ];
+  const index =
+    event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? tabs.length - 1
+        : (tabs.indexOf(target) +
+            (event.key === 'ArrowRight' ? 1 : -1) +
+            tabs.length) %
+          tabs.length;
+  event.preventDefault();
+  const next = tabs[index];
+  if (next) {
+    activateGuideTab(next);
+    next.focus();
+  }
+}
 export function App({
   site: initialSite,
   initialPath,
@@ -109,7 +158,20 @@ export function App({
   useEffect(() => {
     document.title = `${title} · ${config.name}`;
   }, [title, config.name]);
+  useEffect(() => {
+    for (const tab of document.querySelectorAll<HTMLButtonElement>(
+      '.guide-content [data-guide-tab][aria-selected="true"]',
+    ))
+      activateGuideTab(tab);
+  }, [activeGuide?.html]);
   function navigate(event: MouseEvent<HTMLDivElement>) {
+    const tab = (event.target as Element).closest<HTMLButtonElement>(
+      '[data-guide-tab]',
+    );
+    if (tab) {
+      activateGuideTab(tab);
+      return;
+    }
     const target = (event.target as Element).closest<HTMLAnchorElement>(
       'a[data-doc-route]',
     );
@@ -260,10 +322,13 @@ export function App({
       style={
         {
           '--accent': config.theme.accent,
+          '--accent-text-light': readableAccent(config.theme.accent, 'light'),
+          '--accent-text-dark': readableAccent(config.theme.accent, 'dark'),
           '--radius': `${config.theme.radius}px`,
         } as CSSProperties
       }
       onClick={navigate}
+      onKeyDown={guideTabKey}
     >
       {loading && (
         <div className="page-loading" role="status">

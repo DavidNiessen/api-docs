@@ -1,0 +1,56 @@
+---
+title: Build your integration
+description: Portable guides with reusable components and working code examples.
+group: Getting started
+---
+
+## Before you begin
+
+<Callout title="Use a test workspace" type="tip">
+  Start with a disposable API key while exploring the integration.
+</Callout>
+
+## Choose your runtime
+
+<Tabs>
+  <Tab title="JavaScript">
+    JavaScript runs this example with the built-in fetch API.
+
+    ```js
+    const response = await fetch('https://api.example.com/health');
+    console.log(await response.json());
+    ```
+
+  </Tab>
+  <Tab title="Java">
+    Java runs this example with the standard HTTP client.
+
+    ```java
+    var client = java.net.http.HttpClient.newHttpClient();
+    ```
+
+  </Tab>
+</Tabs>
+
+## Connect your application
+
+<Steps>
+  <Step title="Create a key">
+    Store the key in your application's secret manager.
+  </Step>
+  <Step title="Send a request">
+    Check the response before enabling production traffic.
+  </Step>
+</Steps>
+
+<Accordion title="Troubleshooting">
+  Verify the configured base URL and the permissions assigned to your API key.
+</Accordion>
+
+<CardGroup>
+  <Card title="API reference" href="/api/gallery/v1/health/">
+    Explore the health endpoint and its response contract.
+  </Card>
+</CardGroup>
+
+<ApiLink href="/api/gallery/v1/health/">Open the health endpoint</ApiLink>

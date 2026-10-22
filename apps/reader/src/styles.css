@@ -1515,10 +1515,10 @@ h3 {
 }
 
 .docs-shell {
-  --accent-text: color-mix(in srgb, var(--accent) 80%, #111b27);
+  --accent-text: var(--accent-text-light, #0f6f57);
 }
 :root[data-theme='dark'] .docs-shell {
-  --accent-text: color-mix(in srgb, var(--accent) 60%, #fff);
+  --accent-text: var(--accent-text-dark, #77d5b7);
 }
 .button-primary {
   background: color-mix(in srgb, var(--accent) 80%, #111b27);
@@ -1581,4 +1581,94 @@ h3 {
     flex-wrap: wrap;
     gap: 10px;
   }
+}
+
+/* Reusable authored guide components; content is readable before hydration. */
+.content-tabs {
+  margin: 24px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.content-tabs [role='tablist'] {
+  display: flex;
+  overflow-x: auto;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.content-tabs [role='tab'] {
+  padding: 12px 18px;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+}
+.content-tabs [role='tab'][aria-selected='true'] {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent-text);
+}
+.content-tabs [role='tabpanel'] {
+  padding: 4px 18px 16px;
+}
+.guide-content [hidden] {
+  display: none;
+}
+.content-callout {
+  display: block;
+  margin: 24px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-text);
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+.content-callout.warning {
+  border-left-color: #c58a22;
+}
+.content-callout.danger {
+  border-left-color: #c94242;
+}
+.content-callout > strong {
+  color: var(--heading);
+}
+.content-steps {
+  counter-reset: steps;
+  padding-left: 24px;
+}
+.content-steps > li {
+  padding: 8px 0 20px 12px;
+}
+.content-accordion {
+  margin: 16px 0;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.content-accordion > summary {
+  cursor: pointer;
+  color: var(--heading);
+  font-weight: 600;
+}
+.content-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 14px;
+  margin: 24px 0;
+}
+.content-card {
+  display: block;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 150ms;
+}
+.content-card:hover {
+  border-color: var(--accent-text);
+}
+.content-card > strong {
+  display: block;
+  color: var(--heading);
+}
+.content-code-group,
+.content-schema {
+  margin: 20px 0;
 }

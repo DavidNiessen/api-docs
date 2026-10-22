@@ -14,6 +14,7 @@ import {
   parseConfig,
   parseSource,
   confinedPath,
+  readTextFile,
 } from '@api-docs/spec';
 import { loadGuides } from '@api-docs/content';
 import { applyPlugins } from '@api-docs/plugin-sdk';
@@ -25,11 +26,11 @@ export const digest = (source: string | Buffer): string =>
 export async function compileProject(
   root: string,
   configFile = 'docs.config.yaml',
-  options: { trustPlugins?: boolean } = {},
+  options: { trustPlugins?: boolean; trustContent?: boolean } = {},
 ): Promise<SiteData> {
   const file = await confinedPath(root, configFile);
   const config = parseConfig(
-    parseSource(await readFile(file, 'utf8'), configFile),
+    parseSource(await readTextFile(file, 1024 * 1024), configFile),
   );
   const apis = [];
   for (const spec of config.specs) apis.push(await loadSpec(root, spec));
@@ -45,7 +46,10 @@ export async function compileProject(
     schemaVersion: 1,
     config,
     apis,
-    guides: await loadGuides(root, config.guides),
+    guides: await loadGuides(root, config.guides, {
+      trustContent: options.trustContent ?? false,
+      basePath: config.basePath,
+    }),
     diagnostics: apis.flatMap((api) => api.diagnostics),
   };
   if (config.plugins.length) {

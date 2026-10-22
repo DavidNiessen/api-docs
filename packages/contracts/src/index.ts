@@ -178,3 +178,5 @@ export function withBase(base: string, path: string): string {
 export { resolveSchema, exampleFor } from './schema.js';
 
 export { createPageData, normalizePagePath } from './page.js';
+
+export { contrastRatio, readableAccent } from './theme.js';

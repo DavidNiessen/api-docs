@@ -28,6 +28,7 @@ export interface BuildOptions {
   config?: string;
   output?: string;
   trustPlugins?: boolean;
+  trustContent?: boolean;
 }
 export async function buildSite(
   root: string,
@@ -37,7 +38,10 @@ export async function buildSite(
   const site = await compileProject(
     project,
     options.config ?? 'docs.config.yaml',
-    { trustPlugins: options.trustPlugins ?? false },
+    {
+      trustPlugins: options.trustPlugins ?? false,
+      trustContent: options.trustContent ?? false,
+    },
   );
   const directory = await safeOutput(
     project,

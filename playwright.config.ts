@@ -19,6 +19,12 @@ export default defineConfig({
   webServer: [
     {
       command:
+        'node packages/cli/dist/main.js dev examples/components --trust-content --port 4174',
+      url: 'http://127.0.0.1:4174/health/ready',
+      reuseExistingServer: false,
+    },
+    {
+      command:
         'node packages/cli/dist/main.js serve examples/demo/.api-docs/site --port 4173',
       url: 'http://127.0.0.1:4173/health/ready',
       reuseExistingServer: false,

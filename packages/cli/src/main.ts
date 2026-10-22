@@ -21,7 +21,11 @@ const buildOptions = (command: Command): Command =>
       'output directory inside the project .api-docs folder',
       '.api-docs/site',
     )
-    .option('--trust-plugins', 'allow reviewed local build plugins to execute');
+    .option('--trust-plugins', 'allow reviewed local build plugins to execute')
+    .option(
+      '--trust-content',
+      'allow reviewed MDX content to execute in bounded workers',
+    );
 buildOptions(
   program
     .command('build [project]')
@@ -30,7 +34,12 @@ buildOptions(
 ).action(
   async (
     project = '.',
-    options: { config: string; output: string; trustPlugins?: boolean },
+    options: {
+      config: string;
+      output: string;
+      trustPlugins?: boolean;
+      trustContent?: boolean;
+    },
   ) => {
     const result = await buildSite(project, options);
     for (const diagnostic of result.site.diagnostics)
@@ -50,6 +59,10 @@ program
   .option('--strict', 'fail on warnings')
   .option('--json', 'machine-readable output')
   .option('--trust-plugins', 'allow reviewed local plugins')
+  .option(
+    '--trust-content',
+    'allow reviewed MDX content to execute in bounded workers',
+  )
   .action(
     async (
       project = '.',
@@ -58,6 +71,7 @@ program
         strict?: boolean;
         json?: boolean;
         trustPlugins?: boolean;
+        trustContent?: boolean;
       },
     ) => {
       const site = await compileProject(
@@ -116,6 +130,7 @@ buildOptions(
         config: string;
         output: string;
         trustPlugins?: boolean;
+        trustContent?: boolean;
         port: string;
         host: string;
       },
