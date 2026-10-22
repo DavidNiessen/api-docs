@@ -24,6 +24,7 @@ Validation for this increment:
 - Formatting/lint, type checking, 68 tooling tests and all 380 compiler/component tests pass; actionlint accepts both changed workflows.
 - The same baseline core/starter JARs pass 12 isolated installed consumers across JDK 17/21/25 × Boot 3.5.16/4.1.1 × MVC/WebFlux: 24 current tests, no skips, and fresh offline compilation for every consumer.
 - The source Java matrix passes all six combinations: 60 current manifest/host tests, no skips.
+- A temporary clone from `1db4ed0` passed the exact release-preparation action, a production build and both installed consumers on Java 21 / Boot 4.1.1 with canonical `0.2.0` metadata: four current tests and two offline compilations. Evidence is retained; the clone was removed, and nothing was published or tagged.
 - Runtime JARs include canonical license/notice files and matching Maven coordinates/POMs. Local candidates record source/dirty state and remain unsigned, unpublished development artifacts; Maven namespace ownership remains unverified.
 
 See [Java runtime and installed-consumer validation](../java-validation.md). GitHub-hosted execution remains blocked by account billing and has not been verified.
