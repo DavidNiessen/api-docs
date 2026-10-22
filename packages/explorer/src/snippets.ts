@@ -7,6 +7,8 @@ export function generateSnippet(
   request: PreparedRequest,
   language: SnippetLanguage,
 ): string {
+  if (request.multipart)
+    throw new Error('Multipart snippet generation is not implemented yet.');
   if (language === 'cURL')
     return [
       `curl --silent --show-error --fail-with-body --max-time 30 --request ${request.method}`,

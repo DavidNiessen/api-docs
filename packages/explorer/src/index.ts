@@ -8,11 +8,18 @@ import { isJsonMediaType } from '@api-docs/contracts';
 import { redactJsonBody } from './redact-body.js';
 import type { BodyRedaction } from './redact-body.js';
 import { encodeFormBody, isFormMediaType } from './form.js';
+import {
+  createMultipartParts,
+  isMultipartMediaType,
+  multipartBody,
+} from './multipart.js';
+import type { MultipartFiles, MultipartPart } from './multipart.js';
 export interface RequestInput {
   server: string;
   parameters: Record<string, string>;
   body?: string;
   bodyFormat?: 'serialized' | 'json';
+  files?: MultipartFiles;
   contentType?: string;
   accept?: string;
   credentials?: Record<string, string>;
@@ -24,6 +31,7 @@ export interface PreparedRequest {
   method: string;
   headers: Record<string, string>;
   body?: string;
+  multipart?: MultipartPart[];
 }
 const base64 = (value: string): string =>
   btoa(
@@ -119,8 +127,45 @@ export function prepareRequest(
     }
   }
   let body = input.body;
+  let multipart: MultipartPart[] | undefined;
+  if (isMultipartMediaType(input.contentType ?? '')) {
+    if (input.bodyFormat !== 'json')
+      throw new Error(
+        'Multipart bodies require logical JSON text values and separate selected files.',
+      );
+    if (input.contentType!.includes(';'))
+      throw new Error(
+        'Multipart boundaries are generated when sending; do not supply media-type parameters.',
+      );
+    const declared = operation.requestBody?.content ?? {};
+    const matches = Object.entries(declared).filter(([type]) =>
+      isMultipartMediaType(type),
+    );
+    const media =
+      declared[input.contentType!] ??
+      (matches.length === 1 ? matches[0]![1] : undefined);
+    if (!media)
+      throw new Error(
+        'The selected multipart media type is not declared by the operation.',
+      );
+    multipart = createMultipartParts(
+      body || '{}',
+      input.files ?? {},
+      media,
+      input,
+    );
+    body = undefined;
+    for (const key of Object.keys(headers))
+      if (key.toLowerCase() === 'content-type') delete headers[key];
+  } else if (
+    input.files &&
+    Object.values(input.files).some((files) => files.length)
+  ) {
+    throw new Error('Selected files require a multipart/form-data body.');
+  }
   if (
     body &&
+    !multipart &&
     input.bodyFormat === 'json' &&
     isFormMediaType(input.contentType ?? '')
   ) {
@@ -137,15 +182,19 @@ export function prepareRequest(
       );
     body = encodeFormBody(body, media, input);
   } else if (
+    !multipart &&
     input.bodyFormat === 'json' &&
     !isJsonMediaType(input.contentType ?? 'application/json')
   )
     throw new Error(
       'Logical JSON body input is supported only for JSON or form-urlencoded content.',
     );
-  if (body && ['get', 'head'].includes(operation.method))
+  if (
+    (body || multipart !== undefined) &&
+    ['get', 'head'].includes(operation.method)
+  )
     throw new Error('GET and HEAD requests cannot have a body in the browser');
-  if (!body && operation.requestBody?.required)
+  if (!body && !multipart?.length && operation.requestBody?.required)
     throw new Error('Request body is required');
   if (body) {
     const contentType = input.contentType ?? 'application/json';
@@ -156,9 +205,9 @@ export function prepareRequest(
         throw new Error('Request body must be valid JSON');
       }
     }
-    if (contentType.startsWith('multipart/'))
+    if (contentType.toLowerCase().startsWith('multipart/'))
       throw new Error(
-        'Multipart file uploads are not yet supported by this explorer',
+        'Only logical multipart/form-data uploads are supported; other multipart media need a custom client.',
       );
     setRequestHeader(headers, 'Content-Type', contentType);
   }
@@ -170,6 +219,7 @@ export function prepareRequest(
     method: operation.method.toUpperCase(),
     headers,
     ...(body ? { body } : {}),
+    ...(multipart ? { multipart } : {}),
   };
 }
 export function redactRequest(
@@ -207,6 +257,25 @@ export function redactRequest(
         scrub(value),
       ]),
     ),
+    ...(request.multipart
+      ? {
+          multipart: request.multipart.map((part): MultipartPart =>
+            part.kind === 'file'
+              ? {
+                  name: scrub(part.name),
+                  kind: 'file',
+                  contentType: part.contentType,
+                  file: { filename: 'upload.bin', data: new Blob([]) },
+                }
+              : {
+                  name: scrub(part.name),
+                  kind: 'text',
+                  contentType: part.contentType,
+                  value: 'YOUR_PART_VALUE',
+                },
+          ),
+        }
+      : {}),
     ...(request.body === undefined
       ? {}
       : {
@@ -216,6 +285,30 @@ export function redactRequest(
               : request.body,
           ),
         }),
+  };
+}
+/** Materialize an actual fetch body. Multipart boundaries are fresh per invocation, never preview metadata. */
+export function toFetchRequest(request: PreparedRequest): {
+  method: string;
+  headers: Record<string, string>;
+  body?: string | Blob;
+} {
+  const headers = { ...request.headers };
+  if (request.multipart) {
+    if (request.body !== undefined)
+      throw new Error(
+        'A request cannot have both a literal and multipart body.',
+      );
+    const { body, contentType } = multipartBody(request.multipart);
+    for (const key of Object.keys(headers))
+      if (key.toLowerCase() === 'content-type') delete headers[key];
+    setRequestHeader(headers, 'Content-Type', contentType);
+    return { method: request.method, headers, body };
+  }
+  return {
+    method: request.method,
+    headers,
+    ...(request.body === undefined ? {} : { body: request.body }),
   };
 }
 export { generateSnippet } from './snippets.js';
@@ -235,3 +328,13 @@ export type {
 export { redactJsonBody } from './redact-body.js';
 export type { BodyRedaction } from './redact-body.js';
 export { encodeFormBody, isFormMediaType } from './form.js';
+export {
+  createMultipartParts,
+  isMultipartMediaType,
+  MULTIPART_LIMITS,
+} from './multipart.js';
+export type {
+  MultipartFile,
+  MultipartFiles,
+  MultipartPart,
+} from './multipart.js';

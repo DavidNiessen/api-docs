@@ -15,9 +15,44 @@ import {
   serializeJsonValue,
   setJsonProperty,
 } from '@api-docs/contracts';
-import { redactJsonBody, encodeFormBody } from '@api-docs/explorer';
+import {
+  redactJsonBody,
+  encodeFormBody,
+  createMultipartParts,
+  toFetchRequest,
+} from '@api-docs/explorer';
 
 const exec = promisify(execFile);
+const multipart = toFetchRequest({
+  url: 'https://api.example.test/upload',
+  method: 'POST',
+  headers: {},
+  multipart: createMultipartParts(
+    '{"id":9007199254740993}',
+    {
+      attachment: [
+        {
+          filename: 'installed.bin',
+          data: new Blob([Uint8Array.from([0, 255, 128])]),
+        },
+      ],
+    },
+    {
+      schema: {
+        type: 'object',
+        properties: { attachment: { type: 'string', format: 'binary' } },
+      },
+    },
+  ),
+});
+const uploaded = await new Response(multipart.body, {
+  headers: multipart.headers,
+}).formData();
+assert.equal(uploaded.get('id'), '9007199254740993');
+assert.deepEqual(
+  new Uint8Array(await uploaded.get('attachment').arrayBuffer()),
+  Uint8Array.from([0, 255, 128]),
+);
 assert.equal(
   encodeFormBody('{"name":"installed + form","id":9007199254740993}', {
     schema: { type: 'object' },

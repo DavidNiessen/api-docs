@@ -45,4 +45,4 @@ When a property/item type is omitted, the encoder infers JSON versus text from t
 
 Reserved expansion preserves valid pre-encoded `%HH` triples. Raw `&`, `#`, `+`, `=`, `[` and `]` must be pre-encoded when `allowReserved` is true; otherwise they could change the form/query grammar. Ordinary percent signs are encoded. With `allowReserved` false, values are encoded normally, including any percent signs supplied as literal data.
 
-Use a pre-serialized body when the contract requires a different codec or unsupported expansion. No implicit XML, custom content codec or multipart upload is advertised by this encoder.
+See the [multipart SDK codec](multipart-bodies.md) for separate binary file inputs. Use a pre-serialized body when the contract requires a different codec or unsupported expansion. No implicit XML, custom content codec or multipart upload is advertised by this encoder.
