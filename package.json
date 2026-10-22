@@ -15,7 +15,7 @@
     "format:check": "prettier --check .",
     "lint": "npm run lint:js && npm run lint:markdown",
     "lint:js": "eslint . --max-warnings=0",
-    "lint:markdown": "markdownlint-cli2",
+    "lint:markdown": "node scripts/lint-markdown.mjs",
     "check:pr-title": "node scripts/check-pr-title.mjs",
     "build:packages": "tsc -b",
     "typecheck": "tsc -b && tsc -p tsconfig.tests.json",
@@ -45,16 +45,19 @@
     "eslint": "10.13.0",
     "express": "5.3.0",
     "globals": "17.13.0",
-    "markdownlint-cli2": "0.24.0",
     "prettier": "3.9.10",
     "typescript": "5.9.3",
     "typescript-eslint": "8.72.0",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "markdownlint": "0.42.0"
   },
   "workspaces": [
     "packages/*",
     "apps/*",
     "integrations/node"
-  ]
+  ],
+  "overrides": {
+    "katex": "0.18.2"
+  }
 }
