@@ -15,32 +15,16 @@ import {
   recommendReleaseVersion,
   renderReleaseNotes,
 } from '../lib/release-plan.mjs';
-import { BASE_VERSION, fixture } from './helpers/release-fixture.mjs';
+import {
+  BASE_VERSION,
+  fixture,
+  gitFixture as repository,
+  fixtureGit as g,
+} from './helpers/release-fixture.mjs';
 
 const hash = 'a'.repeat(40);
 const commit = (subject, body = '') =>
   parseReleaseCommit({ hash, subject, body });
-const g = (root, args) =>
-  git(root, [
-    '-c',
-    'user.name=Release Test',
-    '-c',
-    'user.email=release@example.test',
-    '-c',
-    'commit.gpgsign=false',
-    '-c',
-    'tag.gpgsign=false',
-    '-c',
-    'core.hooksPath=/dev/null',
-    ...args,
-  ]);
-async function repository(t) {
-  const root = await fixture(t);
-  await g(root, ['init', '--initial-branch=main']);
-  await g(root, ['add', '.']);
-  await g(root, ['commit', '-m', 'chore: initialize distribution metadata']);
-  return root;
-}
 const addCommit = (root, subject, body) =>
   g(root, [
     'commit',

@@ -100,23 +100,7 @@ export async function auditReleaseVersions(root, { release = false } = {}) {
     declarations.length === 1 && declarations[0][2] === version,
     'Runtime distribution version drift.',
   );
-  const parent = await readRepositoryFile(root, 'integrations/java/pom.xml');
-  const modules = [...parent.matchAll(/<module>([^<]+)<\/module>/g)].map(
-    (match) => match[1],
-  );
-  assert(
-    modules.length > 0 &&
-      modules.length <= 100 &&
-      new Set(modules).size === modules.length &&
-      modules.every((module) =>
-        /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(module),
-      ),
-    'Invalid Java reactor module paths.',
-  );
-  const javaPaths = [
-    'integrations/java/pom.xml',
-    ...modules.map((module) => `integrations/java/${module}/pom.xml`),
-  ];
+  const javaPaths = await readJavaVersionPaths(root);
   const javaVersions = [];
   for (const path of javaPaths) {
     const pom = await readRepositoryFile(root, path);
@@ -154,4 +138,24 @@ export async function auditReleaseVersions(root, { release = false } = {}) {
     javaVersion,
     javaPoms: javaPaths.length,
   };
+}
+
+export async function readJavaVersionPaths(root) {
+  const parent = await readRepositoryFile(root, 'integrations/java/pom.xml');
+  const modules = [...parent.matchAll(/<module>([^<]+)<\/module>/g)].map(
+    (match) => match[1],
+  );
+  assert(
+    modules.length > 0 &&
+      modules.length <= 100 &&
+      new Set(modules).size === modules.length &&
+      modules.every((module) =>
+        /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(module),
+      ),
+    'Invalid Java reactor module paths.',
+  );
+  return [
+    'integrations/java/pom.xml',
+    ...modules.map((module) => `integrations/java/${module}/pom.xml`),
+  ];
 }

@@ -356,5 +356,10 @@ export async function createReleasePlan(
     commits,
     unclassified,
   };
-  return { ...result, notes: renderReleaseNotes(result) };
+  const report = { ...result, notes: renderReleaseNotes(result) };
+  assert(
+    Buffer.byteLength(JSON.stringify(report)) <= 16 * 1024 * 1024,
+    'The release plan exceeds 16 MiB; narrow the baseline.',
+  );
+  return report;
 }

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readWorkspacePackages } from '../../lib/workspaces.mjs';
+import { git } from '../../lib/release-plan.mjs';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 export const BASE_VERSION = JSON.parse(
@@ -39,5 +40,31 @@ export async function fixture(t) {
       ),
     );
   }
+  return root;
+}
+
+export const fixtureGit = (root, args) =>
+  git(root, [
+    '-c',
+    'user.name=Release Test',
+    '-c',
+    'user.email=release@example.test',
+    '-c',
+    'commit.gpgsign=false',
+    '-c',
+    'tag.gpgsign=false',
+    '-c',
+    'core.hooksPath=/dev/null',
+    ...args,
+  ]);
+export async function gitFixture(t) {
+  const root = await fixture(t);
+  await fixtureGit(root, ['init', '--initial-branch=main']);
+  await fixtureGit(root, ['add', '.']);
+  await fixtureGit(root, [
+    'commit',
+    '-m',
+    'chore: initialize distribution metadata',
+  ]);
   return root;
 }
