@@ -235,6 +235,7 @@ export function withBase(base: string, path: string): string {
 export { resolveSchema, exampleFor } from './schema.js';
 
 export { createPageData, normalizePagePath } from './page.js';
+export { toolVersion } from './version.js';
 export { lifecycleContext, lifecycleRoutes } from './lifecycle-pages.js';
 export type {
   LifecycleContext,

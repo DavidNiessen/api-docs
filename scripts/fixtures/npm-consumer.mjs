@@ -14,6 +14,7 @@ import {
   parseJsonValue,
   serializeJsonValue,
   setJsonProperty,
+  toolVersion,
 } from '@api-docs/contracts';
 import {
   redactJsonBody,
@@ -155,6 +156,7 @@ const cli = fileURLToPath(import.meta.resolve('@api-docs/cli')).replace(
 const version = JSON.parse(
   await readFile('node_modules/@api-docs/cli/package.json', 'utf8'),
 ).version;
+assert.equal(toolVersion, version);
 assert.equal(
   (
     await exec(join(root, 'node_modules/.bin/api-docs'), ['--version'])
@@ -202,6 +204,12 @@ await exec(process.execPath, [
 ]);
 const directory = join(root, 'docs/.api-docs/site');
 const manifest = await verifyArtifact(directory);
+assert.equal(manifest.compilerVersion, version);
+assert(
+  (await readFile(join(directory, 'index.html'), 'utf8')).includes(
+    `content="api-docs ${version}"`,
+  ),
+);
 const lifecycle = JSON.parse(
   (
     await exec(process.execPath, [

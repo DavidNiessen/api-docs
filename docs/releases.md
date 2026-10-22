@@ -4,6 +4,8 @@ The project is in development. There is no approved stable release, registry own
 
 ## Pack and verify npm components
 
+First run the [distribution version audit](versioning.md), which also participates in `npm run check`. The current checkout permits development Maven snapshots; release-mode alignment is a later gate.
+
 Use the pinned Node/npm versions and a clean checkout for reviewable candidates:
 
 ```sh

@@ -7,7 +7,11 @@ import { watch } from 'node:fs';
 import { compileProject, auditDocumentation } from '@api-docs/compiler';
 import { loadSpec, diffApi, parseConfig } from '@api-docs/spec';
 import { checkPluginConformance } from '@api-docs/plugin-sdk';
-import { lifecycleReport, isCalendarDate } from '@api-docs/contracts';
+import {
+  lifecycleReport,
+  isCalendarDate,
+  toolVersion,
+} from '@api-docs/contracts';
 import {
   buildSite,
   createStaticServer,
@@ -19,7 +23,7 @@ const program = new Command()
   .description(
     'Self-hosted API documentation: build, validate, preview and publish.',
   )
-  .version('0.1.0');
+  .version(toolVersion);
 const buildOptions = (command: Command): Command =>
   command
     .option('-c, --config <file>', 'project config file', 'docs.config.yaml')

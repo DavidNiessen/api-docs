@@ -1,23 +1,18 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  cp,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  writeFile,
-} from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { readWorkspacePackages } from './lib/workspaces.mjs';
+import { auditReleaseVersions } from './lib/release-versions.mjs';
 
 const exec = promisify(execFile);
 export const repository = fileURLToPath(new URL('../', import.meta.url));
 export async function packNpmCandidates() {
+  const versions = await auditReleaseVersions(repository);
   const commit = (
     await exec('git', ['rev-parse', 'HEAD'], { cwd: repository })
   ).stdout.trim();
@@ -32,14 +27,11 @@ export async function packNpmCandidates() {
   );
   await mkdir(destination, { recursive: true });
   const staging = await mkdtemp(join(tmpdir(), 'api-docs-npm-stage-'));
-  const directories = [
-    ...(await readdir(join(repository, 'packages'))).map(
-      (name) => `packages/${name}`,
-    ),
-    'apps/reader',
-    'integrations/node',
-  ];
+  const directories = (await readWorkspacePackages(repository))
+    .filter((pkg) => pkg.path && pkg.metadata.private !== true)
+    .map((pkg) => pkg.path);
   const packages = [];
+  const filenames = new Set();
   try {
     for (const directory of directories) {
       const root = join(repository, directory);
@@ -48,11 +40,15 @@ export async function packNpmCandidates() {
       );
       assert.notEqual(metadata.private, true, `${metadata.name} is private`);
       assert.equal(metadata.license, 'Apache-2.0');
-      const stage = join(
-        staging,
-        metadata.name.replace('@', '').replace('/', '-'),
+      assert.equal(
+        metadata.version,
+        versions.version,
+        'Package version changed during packing.',
       );
-      await mkdir(stage);
+      const filename = `${metadata.name.replace(/^@/, '').replace('/', '-')}-${metadata.version}.tgz`;
+      assert(!filenames.has(filename), 'Package archive filenames collide.');
+      filenames.add(filename);
+      const stage = await mkdtemp(join(staging, 'component-'));
       await cp(join(root, 'dist'), join(stage, 'dist'), {
         recursive: true,
         dereference: false,
@@ -109,6 +105,7 @@ export async function packNpmCandidates() {
       );
       const [packed] = JSON.parse(stdout);
       assert.equal(packed.name, metadata.name);
+      assert.equal(packed.filename, filename);
       const files = new Set(packed.files.map((file) => file.path));
       for (const required of ['LICENSE', 'NOTICE', 'README.md', 'package.json'])
         assert(files.has(required), `${metadata.name}: missing ${required}`);

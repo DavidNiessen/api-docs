@@ -21,6 +21,7 @@ import { loadPublicAssets } from './assets.js';
 export { loadPublicAssets } from './assets.js';
 export { auditDocumentation } from './doctor.js';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
+import { toolVersion } from '@api-docs/contracts';
 
 export async function compileProject(
   root: string,
@@ -170,7 +171,7 @@ export async function writeManifest(
   await walk(directory);
   const details: Omit<ArtifactManifest, 'artifactDigest'> = {
     schemaVersion: 2,
-    compilerVersion: '0.1.0',
+    compilerVersion: toolVersion,
     inputDigest: digest(JSON.stringify(site)),
     files,
     routes,
