@@ -10,7 +10,7 @@ Semantic checks reject duplicate operation IDs and parameters, ambiguous path te
 
 Local references are bundled within the real project root. Symlinks cannot escape it. Schema aliases, nested JSON Pointers, escaped pointer segments and recursive references retain a finite representation; route payloads include reachable referenced schemas. Validation siblings of `$ref` are preserved as an intersection, rather than overwriting the referenced constraints. HTTP references are currently disabled: vendor them into the project. Configured remote-source importing remains roadmap work.
 
-File reads are bounded before loading the full input: 16 MiB per spec/reference, 128 referenced files, and 64 MiB total source bytes. YAML rejects duplicate keys and limits alias expansion. Binary/non-UTF-8 files are rejected. These limits apply to source parsing; operators must still isolate untrusted builds and bound process memory and time.
+File reads are bounded before loading the full input: 16 MiB per spec/reference, 128 referenced files, and 64 MiB total source bytes. YAML rejects duplicate keys, unsupported tags, non-finite numbers, complex keys and cyclic aliases. Use OpenAPI `$ref` for recursive schemas. Finite numeric mapping keys (such as unquoted response status codes) become strings; keys that collide after conversion fail explicitly. Shared non-cyclic aliases expand to a JSON tree, bounded per source to 128 nesting levels, 1,000,000 expanded value nodes and 64 MiB of serialized JSON. Binary/non-UTF-8 files are rejected. The same parser protects configuration and guide front matter. These limits apply to source parsing; operators must still isolate untrusted builds and bound process memory and time.
 
 ## Generated documentation
 

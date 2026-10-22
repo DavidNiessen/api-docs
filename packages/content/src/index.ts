@@ -191,9 +191,18 @@ export async function loadGuides(
       if (bytes > 64 * 1024 * 1024)
         throw new Error('Guide sources exceed 64 MiB total');
       const match = /^---\r?\n((?:[^\r\n]*\r?\n)*?)---(?:\r?\n|$)/.exec(raw);
-      const metadata = frontmatter.safeParse(
-        match ? (parseSource(match[1] ?? '', file) ?? {}) : {},
-      );
+      let authored: unknown = {};
+      if (match) {
+        try {
+          authored = parseSource(match[1] ?? '', relative(root, file)) ?? {};
+        } catch (error) {
+          throw new Error(
+            `${relative(root, file)}: invalid frontmatter: ${error instanceof Error ? error.message : 'could not parse metadata'}`,
+            { cause: error },
+          );
+        }
+      }
+      const metadata = frontmatter.safeParse(authored);
       if (!metadata.success)
         throw new Error(
           `${relative(root, file)}: invalid frontmatter: ${metadata.error.message}`,
