@@ -280,6 +280,17 @@ export class PostgresRepository implements Repository {
       client.release();
     }
   }
+  async publication(
+    projectId: string,
+    publicationId: string,
+  ): Promise<Publication | undefined> {
+    return (
+      await this.pool.query<Publication>(
+        `SELECT ${publicationColumns} FROM docs_publications WHERE project_id=$1 AND id=$2`,
+        [projectId, publicationId],
+      )
+    ).rows[0];
+  }
   async publications(projectId: string): Promise<Publication[]> {
     return (
       await this.pool.query<Publication>(

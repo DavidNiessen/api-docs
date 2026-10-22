@@ -25,6 +25,29 @@ Pages embed only their active guide/operation and reachable schemas. Navigation 
 
 Static pages remain readable without JavaScript. Assets are served with revalidation rather than an unsafe immutable cache policy on stable filenames. Publication manifests verify every generated file before activation.
 
+## Server delivery benchmark
+
+The server now caches immutable manifest metadata with an LRU limit of 16 publications and 32 MiB of serialized metadata. The cache coalesces concurrent loads and verifies the manifest identity. Its limits describe metadata payloads; JavaScript object overhead consumes additional memory. Authorization, token/session revocation, project visibility and active publication pointers are checked against PostgreSQL on every request. A failed repository read does not serve cached private content.
+
+A 22 October 2026 run used a non-root, read-only application container with an enforced 2-CPU quota and 2 GiB memory limit, PostgreSQL 17 on an internal Docker network, and the fixture's real prerendered guide HTML. The client ran outside the container on the same four-CPU cloud host. PostgreSQL and the load generator shared host resources; this is not an isolated two-CPU VM benchmark. The app image digest was `sha256:06c345cd98fd636ef5bfb1150e19657fdd310345ef99245693e3576564af8d82`.
+
+| Authentication              | Requests | Target / observed rate  | Failures | p50     | p95     |
+| --------------------------- | -------- | ----------------------- | -------- | ------- | ------- |
+| Anonymous public reader     | 3000     | 100 / 100.03 per second | 0        | 2.42 ms | 3.40 ms |
+| Scoped private viewer token | 3000     | 100 / 100.02 per second | 0        | 2.61 ms | 3.52 ms |
+
+Each run warmed 20 requests, scheduled arrivals over 30 seconds, consumed full HTML bodies and enforced a five-second request timeout. Private access was checked to deny anonymous requests before the run; the viewer token was revoked and verified unusable afterward. Latency includes the response body. The p95 budget is 100 ms. API/OIDC management throughput, cold manifest loading, large artifacts, WAN/mobile performance and sustained production load are separate scenarios.
+
+Reproduce against a controlled local deployment:
+
+```sh
+node scripts/benchmark-server.mjs http://127.0.0.1:8080/docs/your-public-project/
+# For private documentation, supply a secret file containing a scoped viewer token.
+BENCHMARK_TOKEN_FILE=/secure/viewer-token node scripts/benchmark-server.mjs http://127.0.0.1:8080/docs/your-private-project/
+```
+
+The script accepts only loopback HTTP targets without embedded credentials, query strings or fragments. It fails on response errors, p95 above 100 ms or achieved rate below 95 requests/second. Reports stay under ignored `.api-docs` paths. Set equivalent CPU/memory constraints and record the storage/database/network conditions when comparing runs. Do not use production API credentials for a load fixture.
+
 ## Remaining performance gates
 
-The initial full-build/search budgets pass on the recorded fixture. Incremental guide rebuild timing, controlled browser LCP/CLS/interaction runs, and the documented server concurrency/latency scenario still require dedicated evidence before a production release claim. Avoid extrapolating these results to different hardware, content sizes, plugin behavior, or private-network APIs.
+The full-build, memory, warm search and tested server delivery budgets pass on the recorded fixtures. Incremental guide rebuild timing and controlled browser LCP/CLS/interaction runs still require dedicated evidence before a production release claim. Avoid extrapolating these results to different hardware, content sizes, plugin behavior, or private-network APIs.

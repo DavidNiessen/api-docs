@@ -13,6 +13,7 @@ import type { Principal, Project, Repository, Role } from '@api-docs/domain';
 import type { SiteData } from '@api-docs/contracts';
 import { equalSecret, registerOidc, tokenHash } from './oidc.js';
 import type { OidcOptions } from './oidc.js';
+import { PublicationManifestCache } from './artifacts.js';
 declare module 'fastify' {
   interface FastifyRequest {
     principal: Principal | undefined;
@@ -63,6 +64,7 @@ export async function createServer(options: ServerOptions) {
       'PUBLIC_URL must be an HTTPS origin; explicit insecure development only permits loopback HTTP',
     );
   const repository = options.repository;
+  const manifests = new PublicationManifestCache(options.artifactRoot);
   await repository.initialize();
   await mkdir(options.artifactRoot, { recursive: true });
   const app = Fastify({
@@ -80,7 +82,9 @@ export async function createServer(options: ServerOptions) {
   app.decorateRequest('principal', undefined);
   await app.register(cookie);
   await app.register(rateLimit, {
-    max: 300,
+    max: (request) => (request.url.startsWith('/docs/') ? 12000 : 300),
+    keyGenerator: (request) =>
+      `${request.ip}:${request.url.startsWith('/docs/') ? 'reader' : 'management'}`,
     timeWindow: '1 minute',
     allowList: (request) =>
       !request.url.startsWith('/api/') &&
@@ -110,12 +114,14 @@ export async function createServer(options: ServerOptions) {
       const subject = await repository.session(
         tokenHash(request.cookies.docs_session),
       );
-      if (
-        subject?.startsWith('$root:') &&
-        equalSecret(subject.slice(6), tokenHash(options.rootToken))
-      )
-        request.principal = { subject: 'root', root: true };
-      else if (subject?.startsWith('$token:')) {
+      if (subject?.startsWith('$root:')) {
+        if (equalSecret(subject.slice(6), tokenHash(options.rootToken)))
+          request.principal = { subject: 'root', root: true };
+        else
+          await repository.deleteSession(
+            tokenHash(request.cookies.docs_session),
+          );
+      } else if (subject?.startsWith('$token:')) {
         const token = await repository.token(subject.slice(7));
         if (token)
           request.principal = {
@@ -171,9 +177,12 @@ export async function createServer(options: ServerOptions) {
   ): Promise<Project> => {
     const project = await repository.project(projectId);
     if (!project) fail(404, 'Project not found');
-    const assigned = request.principal
-      ? await repository.role(project.id, request.principal.subject)
-      : undefined;
+    const assigned =
+      request.principal &&
+      !request.principal.root &&
+      !request.principal.tokenProjectId
+        ? await repository.role(project.id, request.principal.subject)
+        : undefined;
     if (!can(request.principal, project, assigned, role))
       fail(request.principal ? 403 : 401, 'Project access denied');
     return project;
@@ -480,22 +489,19 @@ export async function createServer(options: ServerOptions) {
   ) => {
     const project = await needProject(request, request.params.slug, 'viewer');
     if (!project.activePublicationId) fail(404, 'No publication is available');
-    const publications = await repository.publications(project.id);
-    const active = publications.find(
-      (publication) => publication.id === project.activePublicationId,
+    const active = await repository.publication(
+      project.id,
+      project.activePublicationId,
     );
     if (!active) fail(503, 'Publication is unavailable');
-    const directory = await confinedPath(
-      options.artifactRoot,
-      active.artifactId,
-    );
     let path = request.params['*'] || 'index.html';
     if (path.endsWith('/')) path += 'index.html';
     else if (!extname(path)) {
       return reply.redirect(`/docs/${project.slug}/${path}/`);
     }
-    const manifest = await verifyManifest(directory);
-    if (!Object.hasOwn(manifest.files, path)) fail(404, 'Page not found');
+    const manifest = await manifests.get(active.artifactId);
+    const directory = manifest.directory;
+    if (!manifest.hasFile(path)) fail(404, 'Page not found');
     const target = await confinedPath(directory, path);
     if (project.visibility === 'private')
       reply
@@ -531,14 +537,4 @@ export async function createServer(options: ServerOptions) {
         ),
     );
   return app;
-}
-async function verifyManifest(
-  directory: string,
-): Promise<{ files: Record<string, string> }> {
-  const manifest = JSON.parse(
-    await readFile(join(directory, 'manifest.json'), 'utf8'),
-  ) as { schemaVersion: number; files: Record<string, string> };
-  if (manifest.schemaVersion !== 1 || !manifest.files)
-    throw new Error('Invalid publication manifest');
-  return manifest;
 }

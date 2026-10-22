@@ -25,6 +25,8 @@ let artifactId: string;
 let publication: Publication;
 let viewer: { id: string; token: string };
 const slug = `test-${randomUUID().slice(0, 8)}`;
+let artifactRoot = '';
+let testSource = '';
 let provider: FastifyInstance;
 let issuer = '';
 let nonce = '';
@@ -32,6 +34,8 @@ beforeAll(async () => {
   const root = await mkdtemp(join(tmpdir(), 'api-docs-server-'));
   const source = join(root, 'source');
   const store = join(root, 'artifacts');
+  artifactRoot = store;
+  testSource = source;
   await cp(resolve('examples/demo'), source, {
     recursive: true,
     filter: (path) => !path.includes('.api-docs'),
@@ -314,5 +318,142 @@ describe('self-hosted publication and authorization', () => {
         })
       ).statusCode,
     ).toBe(400);
+  });
+  it('fully invalidates operator sessions after root-token rotation', async () => {
+    const exchange = await server.inject({
+      method: 'POST',
+      url: '/auth/token',
+      headers: auth,
+    });
+    const session = exchange.cookies.find(
+      (value) => value.name === 'docs_session',
+    )!;
+    const cookies = { docs_session: session.value };
+    expect(
+      (await server.inject({ url: '/api/me', cookies })).json().operator,
+    ).toBe(true);
+    const rotated = await createServer({
+      repository,
+      artifactRoot,
+      rootToken: randomBytes(32).toString('base64url'),
+      publicUrl: 'http://127.0.0.1:8080',
+      insecureDevelopment: true,
+    });
+    try {
+      expect(
+        (await rotated.inject({ url: '/api/me', cookies })).json(),
+      ).toMatchObject({ subject: null, operator: false });
+      expect(
+        (await rotated.inject({ url: `/docs/${slug}/search.json`, cookies }))
+          .statusCode,
+      ).toBe(401);
+    } finally {
+      await rotated.close();
+    }
+  });
+  it('keeps reader traffic out of the management rate-limit bucket', async () => {
+    for (let batch = 0; batch < 35; batch++) {
+      const requests = await Promise.all(
+        Array.from({ length: 10 }, () =>
+          server.inject({ url: `/docs/${slug}/`, headers: auth }),
+        ),
+      );
+      expect(requests.every((request) => request.statusCode === 200)).toBe(
+        true,
+      );
+    }
+    expect(
+      (await server.inject({ url: '/api/projects', headers: auth })).statusCode,
+    ).toBe(200);
+  });
+  it('uses fresh publication pointers when activating and rolling back cached artifacts', async () => {
+    const path = join(testSource, 'guides/introduction.md');
+    await writeFile(
+      path,
+      (await readFile(path, 'utf8')) + '\n\nNew publication marker.\n',
+    );
+    const build = await buildSite(testSource);
+    const next = (await verifyArtifact(build.directory)).artifactDigest;
+    await cp(build.directory, join(artifactRoot, next), { recursive: true });
+    expect(
+      (
+        await server.inject({
+          method: 'POST',
+          url: `/api/projects/${project.id}/artifacts`,
+          headers: auth,
+          payload: { artifactId: next },
+        })
+      ).statusCode,
+    ).toBe(200);
+    const current = (await repository.project(project.id))!;
+    const activated = await server.inject({
+      method: 'POST',
+      url: `/api/projects/${project.id}/publications`,
+      headers: auth,
+      payload: {
+        artifactId: next,
+        expectedPublicationId: current.activePublicationId,
+        idempotencyKey: 'cache-next',
+      },
+    });
+    expect(activated.statusCode).toBe(201);
+    expect(
+      (await server.inject({ url: `/docs/${slug}/`, headers: auth })).body,
+    ).toContain('New publication marker.');
+    expect(
+      (
+        await server.inject({
+          method: 'POST',
+          url: `/api/projects/${project.id}/publications`,
+          headers: auth,
+          payload: {
+            artifactId,
+            expectedPublicationId: activated.json<Publication>().id,
+            idempotencyKey: 'cache-rollback',
+          },
+        })
+      ).statusCode,
+    ).toBe(201);
+    expect(
+      (await server.inject({ url: `/docs/${slug}/`, headers: auth })).body,
+    ).not.toContain('New publication marker.');
+  });
+  it('fails closed for private cached content when repository reads fail', async () => {
+    let unavailable = false;
+    const faulted = new Proxy(repository, {
+      get(target, key) {
+        if (key === 'healthy') return async () => !unavailable;
+        if (key === 'project' && unavailable)
+          return async () => {
+            throw new Error('Injected database outage');
+          };
+        const value = Reflect.get(target, key);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    const probe = await createServer({
+      repository: faulted,
+      artifactRoot,
+      rootToken,
+      publicUrl: 'http://127.0.0.1:8080',
+      insecureDevelopment: true,
+    });
+    try {
+      expect(
+        (await probe.inject({ url: `/docs/${slug}/`, headers: auth }))
+          .statusCode,
+      ).toBe(200);
+      unavailable = true;
+      expect((await probe.inject('/health/ready')).statusCode).toBe(503);
+      const denied = await probe.inject({
+        url: `/docs/${slug}/`,
+        headers: auth,
+      });
+      expect(denied.statusCode).toBe(500);
+      expect(denied.body).not.toContain('Introduction');
+      expect(denied.body).not.toContain('Injected database outage');
+    } finally {
+      await probe.close();
+    }
   });
 });

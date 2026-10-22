@@ -63,6 +63,10 @@ export interface Repository {
     key: string,
     subject: string,
   ): Promise<Publication>;
+  publication(
+    projectId: string,
+    publicationId: string,
+  ): Promise<Publication | undefined>;
   publications(projectId: string): Promise<Publication[]>;
   audit(projectId: string): Promise<Record<string, unknown>[]>;
   createToken(

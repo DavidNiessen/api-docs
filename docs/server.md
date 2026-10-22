@@ -28,7 +28,7 @@ Session cookies are opaque, HttpOnly, Secure on HTTPS, SameSite=Lax, and backed 
 
 ## Deployment boundary
 
-Terminate TLS at a trusted reverse proxy. The server does not blindly trust forwarded client addresses. Rate limits use the directly connected address; configure the proxy's limits as well. Keep the management API private when practical and grant publishers only access to the projects they maintain.
+Terminate TLS at a trusted reverse proxy. The server does not blindly trust forwarded client addresses. Rate limits use the directly connected address; configure the proxy's limits as well. Management/authentication traffic has a separate 300-request/minute bucket; credential-bearing reader traffic has a 12,000-request/minute bucket. Anonymous static traffic does not consume those buckets. Keep the management API private when practical and grant publishers only access to the projects they maintain.
 
 Artifacts are trusted executable web content and must be produced by reviewed builds. Operators control staging directories and keep them immutable. Do not grant untrusted authors write access to published artifacts or execute their plugins/MDX in a privileged process. Custom reader code has page-origin privileges; isolate documentation and administrative origins when supporting untrusted publishers.
 
@@ -43,3 +43,7 @@ The initial migration uses a transaction and advisory lock. The Compose deployme
 ## Integration validation
 
 `TEST_DATABASE_URL` must point at a disposable PostgreSQL database. Run `npm run build && npm run test:integration`. Tests use a real database and a local signed OIDC provider, including private artifact access, token revocation, CSRF, state/nonce/PKCE, concurrent publication and audit records. Missing database configuration fails the suite rather than skipping it.
+
+## Immutable metadata cache
+
+The reader caches only manifest file allowlists, with bounded LRU storage and coalesced loads. Permissions and active publication pointers remain fresh database reads. Changing a publication or revoking a token/role takes effect on the next request. Root-token rotation deletes stale operator sessions rather than turning their internal markers into ordinary user identities. Fault-injection tests verify readiness returns 503 and cached private content stays unavailable when repository reads fail. See the [server delivery measurements](performance.md).
