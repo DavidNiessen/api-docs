@@ -63,4 +63,4 @@ The visual direction takes inspiration from Mintlify's layout and interaction qu
 
 ## Self hosting and project policy
 
-See the [server configuration](docs/server.md), [container deployment and recovery](docs/deployment.md), [framework integrations](docs/integrations.md), [trusted build plugins](docs/plugins.md), and [measured performance](docs/performance.md). Code is licensed under [Apache-2.0](LICENSE); see [NOTICE](NOTICE), [security reporting](SECURITY.md), [governance](GOVERNANCE.md), and the [code of conduct](CODE_OF_CONDUCT.md).
+See the [server configuration](docs/server.md), [container deployment and recovery](docs/deployment.md), [framework integrations](docs/integrations.md), [trusted build plugins](docs/plugins.md), [candidate packaging](docs/releases.md), and [measured performance](docs/performance.md). Code is licensed under [Apache-2.0](LICENSE); see [NOTICE](NOTICE), [security reporting](SECURITY.md), [governance](GOVERNANCE.md), and the [code of conduct](CODE_OF_CONDUCT.md).

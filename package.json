@@ -26,6 +26,8 @@
     "demo:serve": "node packages/cli/dist/main.js serve examples/demo/.api-docs/site --port 3000",
     "test:e2e": "playwright test",
     "test:snippets": "node scripts/test-snippets.mjs",
+    "release:pack": "node scripts/pack-npm.mjs",
+    "test:packages": "node scripts/test-packages.mjs",
     "demo:api": "node scripts/mock-api.mjs",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "server": "node apps/server/dist/main.js",

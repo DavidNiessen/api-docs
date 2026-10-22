@@ -1,0 +1,199 @@
+import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { lstat, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
+import express from 'express';
+import Fastify from 'fastify';
+import { createStaticServer } from '@api-docs/cli';
+import { verifyArtifact } from '@api-docs/compiler';
+import { createExpressDocs } from '@api-docs/node/express';
+import { apiDocsPlugin } from '@api-docs/node/fastify';
+
+const exec = promisify(execFile);
+const root = process.cwd();
+const metadata = JSON.parse(await readFile('package.json', 'utf8'));
+const typeImports = [];
+for (const name of Object.keys(metadata.dependencies).filter((name) =>
+  name.startsWith('@api-docs/'),
+)) {
+  const entry =
+    name === '@api-docs/reader'
+      ? `${name}/render`
+      : name === '@api-docs/node'
+        ? `${name}/express`
+        : name;
+  assert(
+    fileURLToPath(import.meta.resolve(entry)).startsWith(
+      join(root, 'node_modules') + '/',
+    ),
+  );
+  assert.equal(
+    (await lstat(join(root, 'node_modules', name))).isSymbolicLink(),
+    false,
+    `${name}: workspace symlink bypasses package verification`,
+  );
+  typeImports.push(
+    `import * as Component${typeImports.length} from ${JSON.stringify(entry)};\nvoid Component${typeImports.length};`,
+  );
+}
+await writeFile(
+  'types.mts',
+  typeImports.join('\n') +
+    `\nimport { definePlugin } from '@api-docs/plugin-sdk';\nimport type { SiteData } from '@api-docs/contracts';\nimport { createExpressDocs } from '@api-docs/node/express';\nimport { apiDocsPlugin } from '@api-docs/node/fastify';\nimport { buildSite } from '@api-docs/cli';\nconst plugin = definePlugin({ name: 'installed-types', version: '1.0.0', pluginApi: '1', transform: (site: SiteData) => site });\nvoid [plugin, createExpressDocs, apiDocsPlugin, buildSite];\n`,
+);
+await exec(process.execPath, [
+  'node_modules/typescript/bin/tsc',
+  '--noEmit',
+  '--strict',
+  '--module',
+  'NodeNext',
+  '--moduleResolution',
+  'NodeNext',
+  '--target',
+  'ES2023',
+  '--skipLibCheck',
+  'false',
+  '--types',
+  'node',
+  'types.mts',
+]);
+const cli = fileURLToPath(import.meta.resolve('@api-docs/cli')).replace(
+  /index\.js$/,
+  'main.js',
+);
+const version = JSON.parse(
+  await readFile('node_modules/@api-docs/cli/package.json', 'utf8'),
+).version;
+assert.equal(
+  (
+    await exec(join(root, 'node_modules/.bin/api-docs'), ['--version'])
+  ).stdout.trim(),
+  version,
+);
+await exec(process.execPath, [cli, 'init', 'docs']);
+await exec(process.execPath, [cli, 'doctor', 'docs', '--strict']);
+const config = join(root, 'docs/docs.config.yaml');
+await writeFile(
+  config,
+  (await readFile(config, 'utf8')) +
+    '\nbasePath: /reference\nplugins:\n  - plugin.mjs\n',
+);
+await writeFile(
+  'docs/plugin.mjs',
+  `import { definePlugin } from '@api-docs/plugin-sdk';\nexport default definePlugin({ name: 'installed-consumer', version: '1.0.0', pluginApi: '1', capabilities: ['transform'], transform: (site) => ({ ...site, config: { ...site.config, name: 'Packaged consumer' } }) });\n`,
+);
+await writeFile(
+  'docs/guides/installed.mdx',
+  '---\ntitle: Installed consumer\n---\n\n<Callout>Packaged MDX works.</Callout>\n',
+);
+await exec(process.execPath, [
+  cli,
+  'plugin-check',
+  'plugin.mjs',
+  'docs',
+  '--trust-plugins',
+  '--trust-content',
+]);
+await exec(process.execPath, [
+  cli,
+  'build',
+  'docs',
+  '--trust-plugins',
+  '--trust-content',
+]);
+await exec(process.execPath, [
+  cli,
+  'doctor',
+  'docs',
+  '--strict',
+  '--trust-plugins',
+  '--trust-content',
+]);
+const directory = join(root, 'docs/.api-docs/site');
+const manifest = await verifyArtifact(directory);
+assert(Object.keys(manifest.files).some((file) => file === 'assets/reader.js'));
+assert(
+  (
+    await readFile(join(directory, 'guides/installed/index.html'), 'utf8')
+  ).includes('Packaged MDX works.'),
+);
+const staticServer = await createStaticServer(directory);
+try {
+  const response = await staticServer.inject('/reference/');
+  assert.equal(response.statusCode, 200);
+  assert(response.body.includes('Packaged consumer'));
+  assert.equal(
+    (await staticServer.inject('/reference/assets/reader.js')).statusCode,
+    200,
+  );
+  const notices = await staticServer.inject(
+    '/reference/assets/THIRD_PARTY_NOTICES.txt',
+  );
+  assert.equal(notices.statusCode, 200);
+  assert(
+    notices.body.includes('MIT License') && notices.body.includes('react-dom@'),
+  );
+} finally {
+  await staticServer.close();
+}
+const headers = { authorization: 'Bearer fixture' };
+const paths = [
+  '/reference/',
+  '/reference/guides/installed/',
+  '/reference/assets/reader.js',
+  '/reference/search.json',
+  '/reference/site.json',
+];
+const app = express();
+const docs = await createExpressDocs({
+  directory,
+  authenticate: (request, response, next) =>
+    request.headers.authorization === headers.authorization
+      ? next()
+      : response.sendStatus(401),
+});
+app.use(docs.mountPath, docs.router);
+const listener = app.listen(0, '127.0.0.1');
+await new Promise((resolve, reject) => {
+  listener.once('error', reject);
+  listener.once('listening', resolve);
+});
+try {
+  const address = listener.address();
+  assert(address && typeof address !== 'string');
+  for (const path of paths) {
+    assert.equal(
+      (await fetch(`http://127.0.0.1:${address.port}${path}`)).status,
+      401,
+    );
+    const response = await fetch(`http://127.0.0.1:${address.port}${path}`, {
+      headers,
+    });
+    assert.equal(response.status, 200);
+    await response.arrayBuffer();
+  }
+} finally {
+  listener.closeAllConnections();
+  await new Promise((resolve) => listener.close(resolve));
+}
+const fastify = Fastify();
+try {
+  await fastify.register(apiDocsPlugin, {
+    directory,
+    authenticate: async (request, reply) => {
+      if (request.headers.authorization !== headers.authorization)
+        return reply.code(401).send();
+    },
+  });
+  for (const url of paths) {
+    assert.equal((await fastify.inject(url)).statusCode, 401);
+    assert.equal((await fastify.inject({ url, headers })).statusCode, 200);
+  }
+} finally {
+  await fastify.close();
+}
+console.log(
+  'Installed types, CLI, MDX/plugin workers, doctor, artifact checks and authenticated Express/Fastify subpaths passed.',
+);

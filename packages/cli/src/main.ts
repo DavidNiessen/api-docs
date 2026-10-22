@@ -213,7 +213,7 @@ program
       'docs.config.yaml':
         'schemaVersion: 1\nname: My API\nspecs:\n  - id: api\n    path: openapi.yaml\n',
       'openapi.yaml':
-        'openapi: 3.1.0\ninfo:\n  title: My API\n  version: v1\nservers:\n  - url: https://api.example.com\npaths:\n  /health:\n    get:\n      operationId: getHealth\n      summary: Get health\n      description: Check whether the API is available.\n      responses:\n        "200":\n          description: Healthy\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  status:\n                    type: string\n                    example: ok\n',
+        'openapi: 3.1.0\ninfo:\n  title: My API\n  version: v1\nservers:\n  - url: https://api.example.com\npaths:\n  /health:\n    get:\n      operationId: getHealth\n      summary: Get health\n      tags: [Health]\n      description: Check whether the API is available.\n      responses:\n        "200":\n          description: Healthy\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  status:\n                    type: string\n                    example: ok\n        "503":\n          description: Temporarily unavailable\n',
       'guides/introduction.md':
         '---\ntitle: Introduction\ndescription: Welcome to your API documentation.\n---\n\n## Get started\n\nConfigure your OpenAPI source in `docs.config.yaml`, then build and serve your documentation.\n',
     };

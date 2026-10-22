@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:client": "vite build"
+    "build:client": "vite build && node ../../scripts/write-browser-notices.mjs dist/client"
   },
   "dependencies": {
     "react": "19.3.1",
