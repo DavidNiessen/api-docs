@@ -10,8 +10,28 @@ import { createStaticServer } from '@api-docs/cli';
 import { verifyArtifact } from '@api-docs/compiler';
 import { createExpressDocs } from '@api-docs/node/express';
 import { apiDocsPlugin } from '@api-docs/node/fastify';
+import {
+  parseJsonValue,
+  serializeJsonValue,
+  setJsonProperty,
+} from '@api-docs/contracts';
+import { redactJsonBody } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
+const parsedBody = parseJsonValue(
+  '{"id":9007199254740993,"password":"fixture-only"}',
+);
+assert.equal(parsedBody.kind, 'object');
+const editedBody = serializeJsonValue(
+  setJsonProperty(parsedBody, 'name', { kind: 'string', value: 'installed' }),
+);
+assert(editedBody.includes('9007199254740993'));
+assert(
+  !redactJsonBody(editedBody, {
+    schema: { properties: { password: { writeOnly: true } } },
+    schemas: {},
+  }).includes('fixture-only'),
+);
 const root = process.cwd();
 const metadata = JSON.parse(await readFile('package.json', 'utf8'));
 const typeImports = [];

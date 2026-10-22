@@ -3,6 +3,7 @@ import {
   exampleChoices,
   formatExample,
   hasExternalExamples,
+  isJsonMediaType,
 } from '@api-docs/contracts';
 import type { ApiDocument, Operation } from '@api-docs/contracts';
 import {
@@ -14,6 +15,7 @@ import type { PreparedRequest, SnippetLanguage } from '@api-docs/explorer';
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
 import { AuthField } from './AuthField.js';
+import { BodyEditor } from './BodyEditor.js';
 export function Explorer({
   api,
   operation,
@@ -79,6 +81,7 @@ export function Explorer({
       ? formatExample(initialChoices[0]!.value, mediaTypes[0]!)
       : '',
   );
+  const [bodyFormError, setBodyFormError] = useState('');
   const requestMedia = operation.requestBody?.content[contentType];
   const requestChoices = requestMedia
     ? exampleChoices(requestMedia, api.schemas)
@@ -106,6 +109,7 @@ export function Explorer({
   ];
   const preview = useMemo(() => {
     try {
+      if (bodyFormError) throw new Error(bodyFormError);
       const placeholderCredentials = Object.fromEntries(
         authNames.map((name) => [name, 'YOUR_CREDENTIAL']),
       );
@@ -136,10 +140,15 @@ export function Explorer({
     body,
     contentType,
     accept,
+    bodyFormError,
     authNames.join(','),
   ]);
   async function execute() {
     setError('');
+    if (bodyFormError) {
+      setError(bodyFormError);
+      return;
+    }
     let request: PreparedRequest;
     try {
       request = prepareRequest(operation, api.securitySchemes, {
@@ -395,19 +404,34 @@ export function Explorer({
                     here.
                   </p>
                 )}
-                <label>
-                  Request body
-                  <textarea
-                    aria-label="Request body"
-                    value={body}
-                    spellCheck={false}
-                    rows={8}
-                    onChange={(event) => {
+                {isJsonMediaType(contentType) ? (
+                  <BodyEditor
+                    key={contentType}
+                    body={body}
+                    schema={requestMedia?.schema ?? {}}
+                    schemas={api.schemas}
+                    legacy={api.openapiVersion?.startsWith('3.0') ?? false}
+                    onError={setBodyFormError}
+                    onChange={(value) => {
                       setRequestExample('');
-                      setBody(event.target.value);
+                      setBody(value);
                     }}
                   />
-                </label>
+                ) : (
+                  <label>
+                    Request body
+                    <textarea
+                      aria-label="Request body"
+                      value={body}
+                      spellCheck={false}
+                      rows={8}
+                      onChange={(event) => {
+                        setRequestExample('');
+                        setBody(event.target.value);
+                      }}
+                    />
+                  </label>
+                )}
               </>
             )}
             {responseTypes.length > 1 && (
@@ -443,7 +467,17 @@ export function Explorer({
           {preview.request ? (
             <CodeBlock
               code={generateSnippet(
-                redactRequest(preview.request, credentials),
+                redactRequest(
+                  preview.request,
+                  credentials,
+                  isJsonMediaType(contentType) && requestMedia
+                    ? {
+                        schema: requestMedia.schema,
+                        schemas: api.schemas,
+                        openapiVersion: api.openapiVersion,
+                      }
+                    : undefined,
+                ),
                 language,
               )}
               language={language}
@@ -493,7 +527,7 @@ export function Explorer({
         <button
           type="button"
           className="button-primary"
-          disabled={busy}
+          disabled={busy || !!bodyFormError}
           onClick={() => {
             void execute();
           }}

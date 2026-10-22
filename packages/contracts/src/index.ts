@@ -234,3 +234,5 @@ export {
   hasExternalExamples,
 } from './examples.js';
 export type { ExampleChoice } from './examples.js';
+export { parseJsonValue, serializeJsonValue, setJsonProperty } from './json.js';
+export type { JsonValueNode } from './json.js';

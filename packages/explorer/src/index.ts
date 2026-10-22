@@ -5,6 +5,8 @@ import {
   setRequestHeader,
 } from './parameters.js';
 import { isJsonMediaType } from '@api-docs/contracts';
+import { redactJsonBody } from './redact-body.js';
+import type { BodyRedaction } from './redact-body.js';
 export interface RequestInput {
   server: string;
   parameters: Record<string, string>;
@@ -147,6 +149,7 @@ export function prepareRequest(
 export function redactRequest(
   request: PreparedRequest,
   credentials: Record<string, string>,
+  bodyContext?: BodyRedaction,
 ): PreparedRequest {
   const sensitive = Object.values(credentials)
     .filter(Boolean)
@@ -161,6 +164,7 @@ export function redactRequest(
         secret,
         encodeURIComponent(secret),
         encodeValue(secret),
+        JSON.stringify(secret).slice(1, -1),
         encodedForm,
         base64(secret),
       ])
@@ -177,7 +181,15 @@ export function redactRequest(
         scrub(value),
       ]),
     ),
-    ...(request.body === undefined ? {} : { body: scrub(request.body) }),
+    ...(request.body === undefined
+      ? {}
+      : {
+          body: scrub(
+            bodyContext
+              ? redactJsonBody(request.body, bodyContext, sensitive)
+              : request.body,
+          ),
+        }),
   };
 }
 export { generateSnippet } from './snippets.js';
@@ -194,3 +206,5 @@ export type {
   PkceTransaction,
   OAuthAccessToken,
 } from './oauth.js';
+export { redactJsonBody } from './redact-body.js';
+export type { BodyRedaction } from './redact-body.js';

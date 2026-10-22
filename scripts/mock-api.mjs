@@ -41,7 +41,8 @@ const server = createServer(async (request, response) => {
   }
   const url = new URL(request.url ?? '/', 'http://127.0.0.1');
   const id = url.pathname.split('/')[3];
-  let body = {};
+  let body = {},
+    rawBody = '';
   try {
     let size = 0;
     const chunks = [];
@@ -53,12 +54,17 @@ const server = createServer(async (request, response) => {
       }
       chunks.push(chunk);
     }
-    if (chunks.length) body = JSON.parse(Buffer.concat(chunks).toString());
+    if (chunks.length) {
+      rawBody = Buffer.concat(chunks).toString();
+      body = JSON.parse(rawBody);
+    }
   } catch {
     send(400, { error: 'invalid_json' });
     return;
   }
-  if (
+  if (url.pathname === '/v1/body-editor' && request.method === 'POST') {
+    send(200, { received: rawBody });
+  } else if (
     url.pathname.startsWith('/v1/serialization/') &&
     request.method === 'GET'
   ) {

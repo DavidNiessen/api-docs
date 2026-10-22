@@ -118,6 +118,40 @@ paths:
                     default: false
         '400':
           description: Invalid request
+  /body-editor:
+    post:
+      operationId: editRequestFields
+      summary: Edit request fields
+      description: Edit object fields while retaining exact numeric values and redacting sensitive examples.
+      tags: [Examples]
+      servers:
+        - url: http://127.0.0.1:4010/v1
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BodyInput'
+            example:
+              name: fixture
+              enabled: false
+              count: 0
+              id: 1
+              mode: auto
+              note: hello
+              options: [cat]
+              metadata: { owner: team }
+              password: fixture-body-password
+              responseOnly: retained-read-only-value
+              fixed: fixed
+      responses:
+        '200':
+          description: Received request text
+          content:
+            application/json:
+              schema: { type: object }
   /serialization/{color}:
     get:
       operationId: serializeParameters
@@ -183,6 +217,22 @@ paths:
           description: Authentication required
 components:
   schemas:
+    BodyInput:
+      type: object
+      required: [name, enabled, count, id]
+      properties:
+        name: { type: string, description: Display name. }
+        enabled: { type: boolean }
+        count: { type: integer, minimum: 0 }
+        id: { type: integer }
+        mode: { type: string, enum: [auto, manual] }
+        note: { type: [string, 'null'], default: null }
+        options: { type: array, items: { type: string } }
+        metadata: { type: object }
+        password: { type: string, format: password, writeOnly: true }
+        responseOnly: { type: string, readOnly: true }
+        optional: { type: string, default: optional-default }
+        fixed: { type: string, const: fixed }
     Colors:
       type: array
       items: { type: string }

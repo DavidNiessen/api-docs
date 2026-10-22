@@ -1042,6 +1042,82 @@ h3 {
   color: var(--muted);
   margin: 0;
 }
+.body-editor {
+  display: grid;
+  gap: 12px;
+}
+.body-editor-modes {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.body-editor-modes button {
+  padding: 7px 12px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+}
+.body-editor-modes button[aria-pressed='true'] {
+  color: var(--accent-text);
+  border-bottom-color: currentColor;
+}
+.body-editor-modes button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.body-fields {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px;
+  margin: 0;
+}
+.body-fields legend {
+  padding: 0 5px;
+  font-size: 11px;
+  color: var(--heading);
+}
+.body-field,
+.body-value {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.body-field-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.body-field-heading small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.request-fields .body-checkbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.request-fields .body-checkbox input {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--accent-text);
+}
+.body-value p[role='alert'] {
+  color: var(--error-text);
+  font-size: 11px;
+  margin: 0;
+}
+.body-constant {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
 .auth-fields {
   font-size: 11px;
   border: 1px solid var(--border);
