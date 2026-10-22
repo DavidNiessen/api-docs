@@ -134,11 +134,15 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run build
       - run: node scripts/prepare-java-fixture.mjs
+      - name: Clear generated Java test reports
+        run: node scripts/check-java-results.mjs --clear
       - name: Verify Java consumers
         working-directory: integrations/java
         env:
           BOOT_VERSION: ${{ matrix.boot }}
         run: ./mvnw --batch-mode --no-transfer-progress --strict-checksums -Dspring-boot.version="$BOOT_VERSION" verify
+      - name: Require current manifest and host test results
+        run: node scripts/check-java-results.mjs
   quality:
     name: Quality
     if: always()
