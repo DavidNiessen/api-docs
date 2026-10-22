@@ -28,8 +28,16 @@ import {
 } from './helpers/release-fixture.mjs';
 
 const TARGET = inc(BASE_VERSION, 'major');
-const planFor = (root, options = {}) =>
-  createReleasePlan(root, { initial: true, date: '2026-10-22', ...options });
+const planFor = async (root, options = {}) =>
+  JSON.parse(
+    JSON.stringify(
+      await createReleasePlan(root, {
+        initial: true,
+        date: '2026-10-22',
+        ...options,
+      }),
+    ),
+  );
 const clean = async (root) =>
   assert.equal(
     (

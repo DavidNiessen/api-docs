@@ -55,7 +55,7 @@ export function parseReleaseCommit({ hash, subject, body = '' }) {
   return {
     hash,
     type: commit.type.toLowerCase(),
-    scope: commit.scope ?? undefined,
+    ...(commit.scope ? { scope: commit.scope } : {}),
     description: commit.subject,
     breaking: commit.notes.length > 0,
     notes: commit.notes.map((note) => note.text),

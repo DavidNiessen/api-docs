@@ -182,6 +182,7 @@ test('initial plans use real Git history, report unclassified messages and never
     initial: true,
     date: '2026-10-22',
   });
+  assert.deepEqual(JSON.parse(JSON.stringify(plan)), plan);
   assert.equal(plan.currentVersion, BASE_VERSION);
   assert.equal(plan.targetVersion, BASE_VERSION);
   assert.equal(plan.sourceWorkingTreeDirty, false);
