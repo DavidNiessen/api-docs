@@ -14,7 +14,10 @@ A planned open source, self-hosted API documentation platform: polished document
 
 ## Plan
 
-Read the [product specification](docs/planning/01-product.md) first. Architecture, delivery milestones, and executable repository checks will be added in subsequent planning steps.
+1. [Product specification](docs/planning/01-product.md): scope, visual direction, features, and measurable launch requirements.
+2. [Architecture and engineering design](docs/planning/02-architecture.md): stack, package boundaries, plugin contracts, integrations, and security.
+
+Delivery milestones and executable repository checks will be added in subsequent planning steps.
 
 ## Project principles
 
