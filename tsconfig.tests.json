@@ -9,6 +9,7 @@
     "tests/**/*.ts",
     "vitest.config.ts",
     "playwright.config.ts",
-    "apps/reader/vite.config.ts"
+    "apps/reader/vite.config.ts",
+    "vitest.integration.config.ts"
   ]
 }

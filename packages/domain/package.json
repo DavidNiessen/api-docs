@@ -1,0 +1,19 @@
+{
+  "name": "@api-docs/domain",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "private": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@api-docs/contracts": "0.1.0"
+  }
+}

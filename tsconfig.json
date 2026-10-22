@@ -27,6 +27,15 @@
     },
     {
       "path": "packages/cli"
+    },
+    {
+      "path": "packages/domain"
+    },
+    {
+      "path": "packages/storage"
+    },
+    {
+      "path": "apps/server"
     }
   ]
 }

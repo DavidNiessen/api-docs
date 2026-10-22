@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Quality
+  source:
+    name: Source and browser
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -45,3 +45,44 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: npm run check:pr-title
+
+  database:
+    name: Server integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
+        env:
+          POSTGRES_USER: apidocs
+          POSTGRES_DB: apidocs
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U apidocs"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://apidocs:isolated-ci-fixture@127.0.0.1:5432/apidocs
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm run test:integration
+  quality:
+    name: Quality
+    if: always()
+    needs: [source, database]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every validation job to succeed
+        env:
+          SOURCE_RESULT: ${{ needs.source.result }}
+          DATABASE_RESULT: ${{ needs.database.result }}
+        run: test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success

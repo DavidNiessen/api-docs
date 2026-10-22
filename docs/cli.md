@@ -46,3 +46,17 @@ Plugins execute trusted local code and require `--trust-plugins`. A timeout is a
 ## Verification and diagnostics
 
 Every build writes `manifest.json` with SHA-256 output digests and verifies it before replacing the previous output. Failed builds leave the prior publication available. Doctor warnings can be made fatal with `--strict`. The current diff command intentionally reports its limited classification scope; it does not yet detect every breaking schema change.
+
+## Self-hosted publication protocol
+
+The management server consumes immutable artifacts in its configured `ARTIFACT_ROOT`. Build with `basePath: /docs/<project-slug>`. Verify the generated manifest, then copy the complete build directory into `<ARTIFACT_ROOT>/<manifest.inputDigest>` using an operator-controlled deployment process. Keep that directory immutable once registered.
+
+Authenticate management API requests with an operator or project-scoped bearer token. Create a project, register its artifact, and activate it:
+
+1. `POST /api/projects` with `slug`, `name`, and `visibility` (operator only).
+2. `POST /api/projects/<id>/artifacts` with `artifactId` (publisher).
+3. `POST /api/projects/<id>/publications` with `artifactId`, `expectedPublicationId` (null for the first publish), and a unique `idempotencyKey` (publisher).
+
+Publish again with the same key and artifact to safely retry. A stale expected publication returns HTTP 409. Roll back by activating a previously registered artifact with a new key and the current expected publication id. History remains immutable.
+
+The initial protocol intentionally stages artifacts through operator-controlled storage rather than accepting arbitrary archives from the browser. Upload and build workers are further roadmap work.

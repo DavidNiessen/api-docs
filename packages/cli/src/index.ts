@@ -6,6 +6,7 @@ import {
   rename,
   rm,
   stat,
+  open,
 } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -46,6 +47,12 @@ export async function buildSite(
     project,
     `.api-docs/previous-${randomUUID()}`,
   );
+  const lockPath = join(dirname(directory), '.build.lock');
+  const lock = await open(lockPath, 'wx').catch(() => {
+    throw new Error(
+      'Another build is active. If a process crashed, inspect and remove .api-docs/.build.lock before retrying.',
+    );
+  });
   try {
     const assets = fileURLToPath(
       new URL(
@@ -107,8 +114,11 @@ export async function buildSite(
     return { directory, site };
   } catch (error) {
     await rm(stage, { recursive: true, force: true });
-    await rm(previous, { recursive: true, force: true });
+    // Preserve a remaining backup if restoring the prior publication failed.
     throw error;
+  } finally {
+    await lock.close();
+    await rm(lockPath, { force: true });
   }
 }
 export async function createStaticServer(directory: string, basePath?: string) {

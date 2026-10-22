@@ -4,6 +4,7 @@ import {
   writeFile,
   readdir,
   realpath,
+  lstat,
 } from 'node:fs/promises';
 import { join, resolve, relative, sep } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -122,15 +123,25 @@ export async function safeOutput(
 ): Promise<string> {
   const base = await realpath(root);
   const target = resolve(base, output);
-  if (
-    target === base ||
-    (!relative(base, target).startsWith('.api-docs' + sep) &&
-      target !== join(base, '.api-docs'))
-  )
+  const local = relative(base, target);
+  if (!local.startsWith('.api-docs' + sep) || local.split(sep).includes('..'))
     throw new Error(
       'Build output must be inside the project .api-docs directory to protect source files',
     );
-  await mkdir(target, { recursive: true });
+  let current = base;
+  for (const part of local.split(sep)) {
+    current = join(current, part);
+    try {
+      await mkdir(current);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    }
+    const info = await lstat(current);
+    if (info.isSymbolicLink() || !info.isDirectory())
+      throw new Error(
+        'Build output cannot contain symlinks or non-directory components',
+      );
+  }
   await confinedPath(base, target);
   return target;
 }
