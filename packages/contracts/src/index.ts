@@ -24,6 +24,7 @@ export interface Parameter {
 }
 export interface Media {
   schema: Schema;
+  encoding?: Record<string, unknown>;
   example?: unknown;
   examples?: Record<string, unknown>;
 }

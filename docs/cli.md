@@ -11,7 +11,7 @@ Build the repository with `npm ci && npm run build`. Commands below use `node pa
 | `serve <directory>`     | Serve an existing publication with security headers     |
 | `validate [project]`    | Check configuration, specs and guides                   |
 | `doctor [project]`      | Alias for validate; supports `--strict` and `--json`    |
-| `diff <before> <after>` | Detect removed operations and newly required parameters |
+| `diff <before> <after>` | Classify breaking and uncertain API contract changes    |
 
 `build` and `dev` accept `--config`, `--output`, and `--trust-plugins`. Output must stay inside the project's `.api-docs` directory to protect source files. `serve` and `dev` accept `--port` and `--host`; the default interface is loopback.
 
@@ -45,7 +45,7 @@ Plugins execute trusted local code and require `--trust-plugins`. A timeout is a
 
 ## Verification and diagnostics
 
-Every build writes `manifest.json` with SHA-256 output digests and verifies it before replacing the previous output. Failed builds leave the prior publication available. Doctor warnings can be made fatal with `--strict`. The current diff command intentionally reports its limited classification scope; it does not yet detect every breaking schema change.
+Every build writes `manifest.json` with SHA-256 output digests and verifies it before replacing the previous output. Failed builds leave the prior publication available. Doctor warnings can be made fatal with `--strict`. Contract diff checks schema, authentication, serialization and operation changes, with failing review findings for uncertain compatibility. See the [classification coverage and CI exit codes](contract-diff.md).
 
 ## Self-hosted publication protocol
 

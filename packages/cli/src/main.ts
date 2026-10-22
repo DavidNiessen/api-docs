@@ -2,10 +2,10 @@
 import { randomUUID } from 'node:crypto';
 import { Command } from 'commander';
 import { mkdir, writeFile, access } from 'node:fs/promises';
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname, basename } from 'node:path';
 import { watch } from 'node:fs';
 import { compileProject } from '@api-docs/compiler';
-import { loadSpec } from '@api-docs/spec';
+import { loadSpec, diffApi } from '@api-docs/spec';
 import {
   buildSite,
   createStaticServer,
@@ -232,56 +232,43 @@ program
   });
 program
   .command('diff <before> <after>')
-  .description(
-    'Report breaking operation removals and newly required parameters',
-  )
-  .option('--json', 'machine-readable output')
+  .description('Classify API contract changes and flag uncertain compatibility')
+  .option('--json', 'machine-readable change array')
+  .option('--allow-review', 'allow review findings without a failing exit code')
   .action(
-    async (before: string, after: string, options: { json?: boolean }) => {
-      const load = async (file: string) =>
-        loadSpec(resolve(file, '..'), {
+    async (
+      before: string,
+      after: string,
+      options: { json?: boolean; allowReview?: boolean },
+    ) => {
+      const load = async (file: string) => {
+        const absolute = resolve(file);
+        return loadSpec(dirname(absolute), {
           id: 'api',
-          path: file.split('/').pop() ?? file,
+          path: basename(absolute),
         });
+      };
       const [oldApi, newApi] = await Promise.all([load(before), load(after)]);
-      const changes: { severity: string; message: string }[] = [];
-      for (const old of oldApi.operations) {
-        const next = newApi.operations.find(
-          (operation) =>
-            operation.method === old.method && operation.path === old.path,
-        );
-        if (!next)
-          changes.push({
-            severity: 'breaking',
-            message: `Removed ${old.method.toUpperCase()} ${old.path}`,
-          });
-        else
-          for (const parameter of next.parameters.filter(
-            (parameter) =>
-              parameter.required &&
-              !old.parameters.some(
-                (existing) =>
-                  existing.in === parameter.in &&
-                  existing.name === parameter.name &&
-                  existing.required,
-              ),
-          ))
-            changes.push({
-              severity: 'breaking',
-              message: `${next.id}: newly required ${parameter.in} parameter ${parameter.name}`,
-            });
-      }
+      const changes = diffApi(oldApi, newApi);
       console.log(
         options.json
           ? JSON.stringify(changes)
           : changes.length
             ? changes
-                .map((change) => `${change.severity}: ${change.message}`)
+                .map(
+                  (change) =>
+                    `${change.severity} [${change.code}] ${change.operation} ${change.location}: ${change.message}${change.referenceUrl ? ` See ${change.referenceUrl}` : ''}`,
+                )
                 .join('\n')
-            : 'No operation removals or newly required parameters detected. This check does not yet classify all schema changes.',
+            : 'No classified contract changes detected. See the documented compatibility coverage.',
       );
       if (changes.some((change) => change.severity === 'breaking'))
         process.exitCode = 1;
+      else if (
+        !options.allowReview &&
+        changes.some((change) => change.severity === 'review')
+      )
+        process.exitCode = 2;
     },
   );
 program

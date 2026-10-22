@@ -30,6 +30,9 @@ function content(document: unknown, input: unknown): Record<string, Media> {
             typeof media.schema === 'boolean'
               ? { 'x-api-docs-boolean-schema': media.schema }
               : record(media.schema),
+          ...(media.encoding === undefined
+            ? {}
+            : { encoding: record(media.encoding) }),
           ...(media.example === undefined ? {} : { example: media.example }),
           ...(media.examples === undefined
             ? {}
