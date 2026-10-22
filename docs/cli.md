@@ -1,5 +1,7 @@
 # CLI reference
 
+Use the [lifecycle inventory](lifecycle.md) to report deprecations, resolve migration targets and enforce explicit deadline policies in CI.
+
 Build the repository with `npm ci && npm run build`. Commands below use `node packages/cli/dist/main.js`; the packaged executable is named `api-docs`.
 
 | Command                 | Purpose                                                 |

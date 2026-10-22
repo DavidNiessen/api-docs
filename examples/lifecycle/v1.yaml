@@ -1,0 +1,42 @@
+openapi: 3.1.0
+info: { title: Catalog API, version: v1 }
+paths:
+  /widgets:
+    get:
+      operationId: listWidgets
+      summary: List widgets in version 1
+      description: Migrate this request to the version 2 catalog before its sunset.
+      tags: [Widgets]
+      deprecated: true
+      x-api-docs-lifecycle:
+        deprecatedOn: '2026-01-01'
+        sunsetOn: '2027-06-01'
+        message: Version 1 is being retired.
+        migrationUrl: /guides/migration/#heading-update-your-client
+        replacement: { version: v2, operationId: listWidgets }
+      responses:
+        '200': { description: Widget list }
+        '400': { description: Invalid query }
+  /legacy:
+    get:
+      operationId: legacyWidgets
+      summary: Legacy widgets without a removal date
+      description: A deprecated operation can be inventoried without a published deadline.
+      tags: [Widgets]
+      deprecated: true
+      responses:
+        '200': { description: Widget list }
+        '400': { description: Invalid query }
+  /ancient:
+    get:
+      operationId: ancientWidgets
+      summary: Widgets past their announced removal date
+      description: This deliberately overdue example demonstrates the CI deadline gate.
+      tags: [Widgets]
+      deprecated: true
+      x-api-docs-lifecycle:
+        sunsetOn: '2026-01-01'
+        replacement: { version: v2, operationId: listWidgets }
+      responses:
+        '200': { description: Historical response }
+        '400': { description: Invalid query }

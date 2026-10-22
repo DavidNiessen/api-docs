@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import type { SiteData } from '@api-docs/contracts';
+import { lifecycleIssues } from '@api-docs/contracts';
+import type { OperationLifecycle } from '@api-docs/contracts';
 const text = z.string().max(2 * 1024 * 1024);
 const name = z.string().min(1).max(1024);
 const object = z.record(z.string(), z.unknown());
@@ -56,6 +58,11 @@ const operation = z
     description: text,
     tags: z.array(name).max(1000),
     deprecated: z.boolean(),
+    lifecycle: z
+      .custom<OperationLifecycle>(
+        (value) => lifecycleIssues(value).length === 0,
+      )
+      .optional(),
     parameters: z.array(parameter).max(1000),
     requestBody: z
       .object({ required: z.boolean(), description: text, content })

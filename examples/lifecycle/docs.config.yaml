@@ -1,0 +1,10 @@
+name: Lifecycle example
+basePath: /reference
+specs:
+  - id: catalog
+    path: v1.yaml
+    version: v1
+  - id: catalog
+    path: v2.yaml
+    version: v2
+guides: guides

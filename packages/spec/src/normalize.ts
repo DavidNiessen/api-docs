@@ -1,4 +1,4 @@
-import { methods, slugify } from '@api-docs/contracts';
+import { methods, slugify, parseOperationLifecycle } from '@api-docs/contracts';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 const schemaValidator = new Ajv2020({ strict: false, validateFormats: false });
 import type {
@@ -142,6 +142,19 @@ export function normalizeSpec(
     for (const method of methods) {
       if (!item[method]) continue;
       const operation = record(item[method]);
+      let lifecycle: Operation['lifecycle'];
+      if (operation['x-api-docs-lifecycle'] !== undefined) {
+        try {
+          lifecycle = parseOperationLifecycle(
+            operation['x-api-docs-lifecycle'],
+          );
+        } catch (error) {
+          throw new Error(
+            `${source}/${method}/x-api-docs-lifecycle: ${error instanceof Error ? error.message : 'Invalid lifecycle metadata'}`,
+            { cause: error },
+          );
+        }
+      }
       const declaredId = text(operation.operationId);
       if (declaredId && kind !== 'callback') {
         if (declaredIds.has(declaredId))
@@ -244,6 +257,7 @@ export function normalizeSpec(
           (tag): tag is string => typeof tag === 'string',
         ),
         deprecated: operation.deprecated === true,
+        ...(lifecycle ? { lifecycle } : {}),
         parameters: [...byKey.values()],
         ...(operation.requestBody
           ? {

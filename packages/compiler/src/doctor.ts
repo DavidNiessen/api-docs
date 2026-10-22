@@ -5,6 +5,7 @@ import {
   operationHref,
   withBase,
   resolveSchema,
+  lifecycleReport,
 } from '@api-docs/contracts';
 import type {
   Diagnostic,
@@ -31,6 +32,7 @@ const codes = new Set([
   'redirect-collision',
   'doctor-unused-suppression',
   'doctor-unknown-rule',
+  'lifecycle-replacement',
 ]);
 const normalize = (path: string) => {
   const value = decodeURIComponent(path).replace(/\/index\.html$/, '/');
@@ -207,6 +209,10 @@ export async function auditDocumentation(
   for (const asset of site.assetMetadata ?? [])
     routes.set(normalize(withBase(base, `/media/${asset.path}`)), undefined);
   routes.set(normalize(withBase(base, '/robots.txt')), undefined);
+  routes.set(
+    normalize(withBase(base, '/oauth/callback/')),
+    new Set(['main-content']),
+  );
   if (site.config.siteUrl && site.config.seo?.index !== false)
     routes.set(normalize(withBase(base, '/sitemap.xml')), undefined);
   for (const [from, to] of Object.entries(site.config.redirects)) {
@@ -228,20 +234,53 @@ export async function auditDocumentation(
       );
     else routes.set(source, routes.get(target));
   }
-  for (const guide of site.guides) {
-    const links = guideMetadata.get(guide.slug)!.links;
+  const linkGroups: {
+    href: string;
+    source: string;
+    exactSource?: boolean;
+    links: { url: string; kind: 'link' | 'image' }[];
+  }[] = site.guides.map((guide) => ({
+    href: withBase(base, guideHref(guide)),
+    source: guide.source,
+    links: guideMetadata.get(guide.slug)!.links,
+  }));
+  // Replacement and link checks are independent of today's date.
+  const lifecycle = lifecycleReport(site, { asOf: '1970-01-01' });
+  for (const entry of lifecycle.entries) {
+    if (entry.replacementIssue)
+      add(
+        'lifecycle-replacement',
+        `${entry.source}/x-api-docs-lifecycle/replacement`,
+        `Replacement target is ${entry.replacementIssue}; use an unambiguous published operation or a migration URL.`,
+      );
+    if (entry.lifecycle.migrationUrl)
+      linkGroups.push({
+        href: withBase(base, entry.href),
+        source: `${entry.source}/x-api-docs-lifecycle/migrationUrl`,
+        exactSource: true,
+        links: [
+          {
+            kind: 'link',
+            url: entry.lifecycle.migrationUrl.startsWith('/')
+              ? withBase(base, entry.lifecycle.migrationUrl)
+              : entry.lifecycle.migrationUrl,
+          },
+        ],
+      });
+  }
+  for (const group of linkGroups) {
+    const links = group.links;
     for (let index = 0; index < links.length; index++) {
       if (++linkNodes > 100_000)
         throw new Error('Doctor exceeds 100,000 links; split the project');
       const link = links[index]!,
-        source = `${guide.source}#links/${index}`;
+        source = group.exactSource
+          ? group.source
+          : `${group.source}#links/${index}`;
       if (/^(?:mailto:|tel:|data:)/i.test(link.url)) continue;
       let target: URL, path: string;
       try {
-        target = new URL(
-          link.url,
-          new URL(withBase(base, guideHref(guide)), origin),
-        );
+        target = new URL(link.url, new URL(group.href, origin));
         if (target.origin !== origin) continue;
         path = normalize(target.pathname);
       } catch {

@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated: 2026-10-22. **Approximately 70% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-22. **Approximately 71% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
 ## Current milestone status
 
@@ -12,19 +12,19 @@ Updated: 2026-10-22. **Approximately 70% complete; pre-release.** This is an eng
 | M3 — Consumer experience | Authored examples/media selection, five executable snippet generators, local search, branding, flat parameter styles, content parameters, OAuth PKCE and object-body field editing/redaction and form-urlencoded reader/SDK inputs | Recursive/composed form controls, multipart bodies, remaining serialization boundaries, shared safe authentication state, navigation/i18n lifecycle work  |
 | M4 — Extensibility       | Bounded graph-transform plugins with conformance checks; Node, Java and Spring adapters with portable manifest verification and optional digest pins                                                                               | Source/snippet/theme hooks and examples; validate installed-JAR consumers and external integration journeys                                               |
 | M5 — Self hosting        | PostgreSQL publication, role-based access, sessions/OIDC, publish tokens, audit, Studio, containers and tested restore/rollback procedures                                                                                         | Harden isolated build execution, implement the explicitly configured relay, complete outage/fault/upgrade and supported-topology rehearsals               |
-| M6 — Release engineering | Doctor, conservative contract diff, offline static artifacts, npm candidate packaging, installed consumers and candidate SBOM                                                                                                      | Deprecation center, semantic version/changelog tooling, signed npm/Maven/container publication and provenance verification                                |
+| M6 — Release engineering | Doctor, conservative contract diff, offline static artifacts, npm candidate packaging, installed consumers, candidate SBOM and lifecycle metadata/CLI policies                                                                     | Reader deprecation center, semantic version/changelog tooling, signed npm/Maven/container publication and provenance verification                         |
 | M7 — Launch              | Local automated validation and documented performance experiments                                                                                                                                                                  | Independent pilots, security/accessibility review, complete license/distribution audit, protected release approval and registry installation verification |
 
 ## Latest completed increment
 
-The complete declared Java runtime matrix now passes locally: JDK 17/21/25 with both Boot lines, using checksum- and signature-verified Temurin distributions. A reusable local runner reads the CI matrix, creates a fresh publication and rejects stale, absent, failed or skipped JUnit results. CI uses the same result checker after Maven. See [versions, archive digests and validation boundaries](../java-validation.md).
+Lifecycle metadata now supports real calendar dates, cross-version replacement targets and migration guides. The new `lifecycle` CLI inventories deprecated and planned retirements at an explicit date, supports deadline gates, and separately checks unresolved replacements or missing migration guidance. Source normalization and plugins share validation; doctor checks local migration routes/anchors, and contract diff flags accelerated retirement dates for review. See the [lifecycle contract and CLI](../lifecycle.md). The reader center remains pending.
 
 Validation for this increment:
 
-- All six Java/Boot combinations passed, each with 8 core manifest tests and 2 servlet/reactive host tests: 60 executions, no skips.
-- A negative run with Maven tests deliberately skipped failed the result gate after generated reports were cleared; stale reports could not satisfy it.
-- Formatting, ESLint, Markdown lint and workflow actionlint passed. Production TypeScript and application code are unchanged in this increment.
-- Local reports retain expected/completed combination counts, source/dirty metadata and fixture identity. This closes the local runtime check; packaged external applications, independent pilots and remote GitHub-hosted execution remain separate gates.
+- The full local check passed: formatting, ESLint, Markdown lint, TypeScript and 320 unit/component tests.
+- All 16 browser journeys passed, including live requests and accessibility checks on the existing reader.
+- All 12 packed components installed outside the workspace; the installed CLI and plugin SDK preserved lifecycle metadata and produced the expected inventory.
+- Lifecycle coverage includes YAML/JSON parity, invalid dates and URLs, missing/ambiguous/self replacements, guide anchors, date boundaries and positive/negative CLI policies.
 
 These results apply to the tested local candidate. They do not establish a complete platform matrix, independent review or installation from published registries.
 

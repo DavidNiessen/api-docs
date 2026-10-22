@@ -108,7 +108,7 @@ await writeFile(
 );
 await writeFile(
   'docs/plugin.mjs',
-  `import { definePlugin } from '@api-docs/plugin-sdk';\nexport default definePlugin({ name: 'installed-consumer', version: '1.0.0', pluginApi: '1', capabilities: ['transform'], transform: (site) => ({ ...site, config: { ...site.config, name: 'Packaged consumer' } }) });\n`,
+  `import { definePlugin } from '@api-docs/plugin-sdk';\nexport default definePlugin({ name: 'installed-consumer', version: '1.0.0', pluginApi: '1', capabilities: ['transform'], transform: (site) => ({ ...site, config: { ...site.config, name: 'Packaged consumer' }, apis: site.apis.map((api, i) => i ? api : { ...api, operations: api.operations.map((op, j) => j ? op : { ...op, lifecycle: { sunsetOn: '2028-01-01', message: 'Packaged lifecycle metadata' } }) }) }) });\n`,
 );
 await writeFile(
   'docs/guides/installed.mdx',
@@ -139,6 +139,23 @@ await exec(process.execPath, [
 ]);
 const directory = join(root, 'docs/.api-docs/site');
 const manifest = await verifyArtifact(directory);
+const lifecycle = JSON.parse(
+  (
+    await exec(process.execPath, [
+      cli,
+      'lifecycle',
+      'docs',
+      '--as-of',
+      '2027-05-15',
+      '--json',
+      '--trust-plugins',
+      '--trust-content',
+    ])
+  ).stdout,
+);
+assert.equal(lifecycle.total, 1);
+assert.equal(lifecycle.entries[0].lifecycle.sunsetOn, '2028-01-01');
+assert.equal(lifecycle.entries[0].status, 'planned');
 assert(Object.keys(manifest.files).some((file) => file === 'assets/reader.js'));
 assert(
   (

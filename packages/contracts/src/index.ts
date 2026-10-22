@@ -35,8 +35,22 @@ export interface ApiResponse {
   content: Record<string, Media>;
   headers: Record<string, unknown>;
 }
+export type OperationKind = 'endpoint' | 'webhook' | 'callback';
+export interface OperationLifecycle {
+  deprecatedOn?: string;
+  sunsetOn?: string;
+  migrationUrl?: string;
+  message?: string;
+  replacement?: {
+    apiId?: string;
+    version?: string;
+    kind?: OperationKind;
+    operationId: string;
+  };
+}
 export interface Operation {
-  kind?: 'endpoint' | 'webhook' | 'callback';
+  kind?: OperationKind;
+  lifecycle?: OperationLifecycle;
   callback?: { operationId: string; name: string; expression: string };
   externalDocs?: { url: string; description?: string };
   id: string;
@@ -236,3 +250,14 @@ export {
 export type { ExampleChoice } from './examples.js';
 export { parseJsonValue, serializeJsonValue, setJsonProperty } from './json.js';
 export type { JsonValueNode } from './json.js';
+export {
+  isCalendarDate,
+  lifecycleIssues,
+  parseOperationLifecycle,
+  lifecycleReport,
+} from './lifecycle.js';
+export type {
+  LifecycleEntry,
+  LifecycleReport,
+  LifecycleStatus,
+} from './lifecycle.js';

@@ -1,5 +1,5 @@
 import { isDeepStrictEqual as equal } from 'node:util';
-import { resolveSchema } from '@api-docs/contracts';
+import { resolveSchema, parseOperationLifecycle } from '@api-docs/contracts';
 import type {
   ApiDocument,
   Operation,
@@ -601,6 +601,29 @@ export function diffApi(
           ? 'Operation is now deprecated; publish a migration guide and removal date.'
           : 'Operation is no longer deprecated.',
       );
+    const previousLifecycle = old.lifecycle
+      ? parseOperationLifecycle(old.lifecycle)
+      : {};
+    const nextLifecycle = next.lifecycle
+      ? parseOperationLifecycle(next.lifecycle)
+      : {};
+    if (!equal(previousLifecycle, nextLifecycle)) {
+      const tighter =
+        (nextLifecycle.sunsetOn &&
+          (!previousLifecycle.sunsetOn ||
+            nextLifecycle.sunsetOn < previousLifecycle.sunsetOn)) ||
+        (nextLifecycle.deprecatedOn &&
+          previousLifecycle.deprecatedOn &&
+          nextLifecycle.deprecatedOn < previousLifecycle.deprecatedOn);
+      add(
+        tighter ? 'review' : 'info',
+        'operation-lifecycle',
+        '/x-api-docs-lifecycle',
+        tighter
+          ? 'A retirement deadline was introduced or brought forward; review the migration timeline.'
+          : 'Lifecycle dates, replacements or migration guidance changed.',
+      );
+    }
     for (const server of old.servers)
       if (!next.servers.includes(server))
         add(

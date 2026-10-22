@@ -7,6 +7,7 @@ import { watch } from 'node:fs';
 import { compileProject, auditDocumentation } from '@api-docs/compiler';
 import { loadSpec, diffApi, parseConfig } from '@api-docs/spec';
 import { checkPluginConformance } from '@api-docs/plugin-sdk';
+import { lifecycleReport, isCalendarDate } from '@api-docs/contracts';
 import {
   buildSite,
   createStaticServer,
@@ -107,6 +108,100 @@ for (const mode of ['validate', 'doctor'] as const)
           process.exitCode = 1;
       },
     );
+program
+  .command('lifecycle [project]')
+  .description(
+    'Report deprecations, replacements and retirement deadlines offline',
+  )
+  .option('-c, --config <file>', 'project config file', 'docs.config.yaml')
+  .option(
+    '--as-of <date>',
+    'UTC calendar date for reproducible deadline checks',
+    new Date().toISOString().slice(0, 10),
+  )
+  .option('--api <id>', 'select an API id')
+  .option('--api-version <version>', 'select a documentation API version')
+  .option(
+    '--fail-within <days>',
+    'fail for reached or upcoming sunset dates within this window',
+  )
+  .option(
+    '--check-replacements',
+    'fail when a declared replacement cannot resolve to a published operation',
+  )
+  .option(
+    '--require-migration',
+    'require a migration URL or resolved replacement for every entry',
+  )
+  .option('--json', 'machine-readable inventory')
+  .option('--trust-plugins', 'allow reviewed local plugins')
+  .option('--trust-content', 'allow reviewed MDX content')
+  .action(
+    async (
+      project = '.',
+      options: {
+        config: string;
+        asOf: string;
+        api?: string;
+        apiVersion?: string;
+        failWithin?: string;
+        checkReplacements?: boolean;
+        requireMigration?: boolean;
+        json?: boolean;
+        trustPlugins?: boolean;
+        trustContent?: boolean;
+      },
+    ) => {
+      if (options.failWithin !== undefined && !/^\d+$/.test(options.failWithin))
+        throw new Error('--fail-within must be an integer number of days.');
+      if (!isCalendarDate(options.asOf))
+        throw new Error('--as-of must be a real YYYY-MM-DD date.');
+      const site = await compileProject(
+        resolve(project),
+        options.config,
+        options,
+      );
+      const report = lifecycleReport(site, {
+        asOf: options.asOf,
+        windowDays:
+          options.failWithin === undefined ? 30 : Number(options.failWithin),
+        apiId: options.api,
+        apiVersion: options.apiVersion,
+      });
+      console.log(
+        options.json
+          ? JSON.stringify(report, null, 2)
+          : [
+              `Lifecycle inventory as of ${report.asOf} (UTC): ${report.total} operations.`,
+              ...report.entries.map(
+                (entry) =>
+                  `${entry.apiId}@${entry.version} ${entry.method} ${JSON.stringify(entry.path)}: ${entry.status}${entry.lifecycle.sunsetOn ? `; sunset ${entry.lifecycle.sunsetOn}` : ''}${entry.replacementHref ? `; replacement ${entry.replacementHref}` : entry.replacementIssue ? `; replacement ${entry.replacementIssue}` : ''}`,
+              ),
+            ].join('\n'),
+      );
+      if (
+        options.failWithin !== undefined &&
+        report.entries.some(
+          (entry) =>
+            entry.daysUntilSunset !== undefined &&
+            entry.daysUntilSunset <= Number(options.failWithin),
+        )
+      )
+        process.exitCode = 1;
+      if (
+        options.checkReplacements &&
+        report.entries.some((entry) => entry.replacementIssue)
+      )
+        process.exitCode = 1;
+      if (
+        options.requireMigration &&
+        report.entries.some(
+          (entry) => !entry.lifecycle.migrationUrl && !entry.replacementHref,
+        )
+      )
+        process.exitCode = 1;
+    },
+  );
 program
   .command('serve <directory>')
   .description('Serve an existing static publication')

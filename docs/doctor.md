@@ -1,5 +1,7 @@
 # Documentation doctor
 
+Lifecycle metadata adds [replacement and internal migration-link checks](lifecycle.md). The stable `lifecycle-replacement` rule diagnoses missing, ambiguous or self-referencing declared targets; date-based CI policies use the lifecycle command.
+
 `validate` checks structural configuration, OpenAPI and content correctness. `doctor` adds offline validation of authored examples, publication links and documentation coverage:
 
 ```sh
