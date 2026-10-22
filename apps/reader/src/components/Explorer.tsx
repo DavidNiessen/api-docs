@@ -10,12 +10,21 @@ import {
   generateSnippet,
   prepareRequest,
   redactRequest,
+  redactJsonBody,
+  encodeFormBody,
+  isFormMediaType,
 } from '@api-docs/explorer';
 import type { PreparedRequest, SnippetLanguage } from '@api-docs/explorer';
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
 import { AuthField } from './AuthField.js';
 import { BodyEditor } from './BodyEditor.js';
+import { FormBodyEditor } from './FormBodyEditor.js';
+const bodyInputFormat = (
+  type: string,
+  value: unknown,
+): 'json' | 'serialized' =>
+  isFormMediaType(type) && typeof value !== 'string' ? 'json' : 'serialized';
 export function Explorer({
   api,
   operation,
@@ -81,6 +90,10 @@ export function Explorer({
       ? formatExample(initialChoices[0]!.value, mediaTypes[0]!)
       : '',
   );
+  const [bodyFormat, setBodyFormat] = useState<'json' | 'serialized'>(() =>
+    bodyInputFormat(mediaTypes[0] ?? '', initialChoices[0]?.value),
+  );
+  const [bodyRevision, setBodyRevision] = useState(0);
   const [bodyFormError, setBodyFormError] = useState('');
   const requestMedia = operation.requestBody?.content[contentType];
   const requestChoices = requestMedia
@@ -113,19 +126,40 @@ export function Explorer({
       const placeholderCredentials = Object.fromEntries(
         authNames.map((name) => [name, 'YOUR_CREDENTIAL']),
       );
-      return {
-        request: prepareRequest(operation, api.securitySchemes, {
-          server,
-          schemas: api.schemas,
-          openapiVersion: api.openapiVersion,
-          parameters,
-          body,
-          contentType,
-          accept,
-          credentials: placeholderCredentials,
-        }),
-        error: '',
-      };
+      const request = prepareRequest(operation, api.securitySchemes, {
+        server,
+        schemas: api.schemas,
+        openapiVersion: api.openapiVersion,
+        parameters,
+        body,
+        bodyFormat,
+        contentType,
+        accept,
+        credentials: placeholderCredentials,
+      });
+      if (isFormMediaType(contentType) && request.body !== undefined) {
+        request.body = 'YOUR_REQUEST_BODY';
+        if (bodyFormat === 'json' && requestMedia) {
+          try {
+            const redacted = redactJsonBody(
+              body,
+              {
+                schema: requestMedia.schema,
+                schemas: api.schemas,
+                openapiVersion: api.openapiVersion,
+              },
+              Object.values(credentials),
+            );
+            request.body = encodeFormBody(redacted, requestMedia, {
+              schemas: api.schemas,
+              openapiVersion: api.openapiVersion,
+            });
+          } catch {
+            /* Keep the placeholder when a structured body cannot be safely redacted. */
+          }
+        }
+      }
+      return { request, error: '' };
     } catch (error) {
       return {
         request: undefined,
@@ -141,6 +175,8 @@ export function Explorer({
     contentType,
     accept,
     bodyFormError,
+    bodyFormat,
+    credentials,
     authNames.join(','),
   ]);
   async function execute() {
@@ -157,6 +193,7 @@ export function Explorer({
         openapiVersion: api.openapiVersion,
         parameters,
         body,
+        bodyFormat,
         contentType,
         accept,
         credentials,
@@ -357,6 +394,11 @@ export function Explorer({
                         ? exampleChoices(media, api.schemas)
                         : [];
                       setRequestExample(choices[0]?.id ?? '');
+                      setBodyFormat(
+                        bodyInputFormat(event.target.value, choices[0]?.value),
+                      );
+                      setBodyRevision((current) => current + 1);
+                      setBodyFormError('');
                       setBody(
                         choices.length
                           ? formatExample(choices[0]!.value, event.target.value)
@@ -383,6 +425,11 @@ export function Explorer({
                           );
                           if (choice) {
                             setRequestExample(choice.id);
+                            setBodyFormat(
+                              bodyInputFormat(contentType, choice.value),
+                            );
+                            setBodyRevision((current) => current + 1);
+                            setBodyFormError('');
                             setBody(formatExample(choice.value, contentType));
                           }
                         }}
@@ -404,9 +451,24 @@ export function Explorer({
                     here.
                   </p>
                 )}
-                {isJsonMediaType(contentType) ? (
+                {isFormMediaType(contentType) && requestMedia ? (
+                  <FormBodyEditor
+                    key={JSON.stringify([contentType, bodyRevision])}
+                    body={body}
+                    format={bodyFormat}
+                    media={requestMedia}
+                    schemas={api.schemas}
+                    openapiVersion={api.openapiVersion}
+                    onError={setBodyFormError}
+                    onChange={(value, format) => {
+                      setRequestExample('');
+                      setBody(value);
+                      setBodyFormat(format);
+                    }}
+                  />
+                ) : isJsonMediaType(contentType) ? (
                   <BodyEditor
-                    key={contentType}
+                    key={JSON.stringify([contentType, bodyRevision])}
                     body={body}
                     schema={requestMedia?.schema ?? {}}
                     schemas={api.schemas}

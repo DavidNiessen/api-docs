@@ -1,6 +1,16 @@
 # Form-urlencoded request bodies
 
-The explorer SDK can encode logical JSON values into `application/x-www-form-urlencoded` bodies. Reader controls for selecting this input mode are a separate pending increment; existing reader bodies remain serialized text.
+The reader and explorer SDK can encode logical JSON values into `application/x-www-form-urlencoded` bodies. The reader also accepts literal encoded text for full control.
+
+## Reader inputs
+
+Choose **Form values** to edit declared fields or their logical JSON object. Numbers retain their exact tokens; arrays, objects and explicit encoding settings become the encoded request shown in the snippet. Password and write-only values are redacted in that snippet, while sending uses the actual values.
+
+Choose **Encoded body** to provide the exact wire text. On its first use after Form values, it starts with the encoded form draft. Each input subsequently keeps its own draft: switching back restores that input's previous text. Encoded edits are not decoded into typed fields; if no form-values draft exists, it starts empty. A selected example or content type starts fresh drafts. Object examples open as form values; serialized string examples open as encoded text.
+
+Literal encoded-body snippets use `YOUR_REQUEST_BODY` because arbitrary encodings cannot be safely reconstructed for schema redaction. Inspect or deliberately copy the actual text in the encoded-body editor when needed. Request/response panel switching retains the drafts; navigation and reload do not persist them. See [JSON field editing](explorer-bodies.md) for syntax limits, incomplete edits and sensitive values.
+
+## SDK
 
 Pass `bodyFormat: 'json'` to `prepareRequest` with a declared form content type, the logical object in `body`, and the API's `schemas` and `openapiVersion`. The returned body is the encoded wire text used by every snippet generator. The default `bodyFormat: 'serialized'` keeps an already encoded body literal.
 

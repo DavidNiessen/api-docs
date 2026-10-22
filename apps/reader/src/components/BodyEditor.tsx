@@ -240,6 +240,7 @@ export function BodyEditor({
   legacy,
   onChange,
   onError,
+  initialMode = 'json',
 }: {
   body: string;
   schema: Schema;
@@ -247,8 +248,9 @@ export function BodyEditor({
   legacy: boolean;
   onChange: (body: string) => void;
   onError: (error: string) => void;
+  initialMode?: 'json' | 'fields';
 }) {
-  const [mode, setMode] = useState<'json' | 'fields'>('json');
+  const [mode, setMode] = useState<'json' | 'fields'>(initialMode);
   const [editorError, setEditorError] = useState('');
   const errors = useRef(new Map<string, string>()),
     report = useRef(onError);
@@ -320,6 +322,7 @@ export function BodyEditor({
     }
   }, [body, schema, schemas, legacy]);
   const available = model.available;
+  const shownMode = available ? mode : 'json';
   useEffect(() => {
     if (!available) setMode('json');
   }, [available]);
@@ -344,21 +347,21 @@ export function BodyEditor({
       >
         <button
           type="button"
-          aria-pressed={mode === 'json'}
+          aria-pressed={shownMode === 'json'}
           onClick={() => setMode('json')}
         >
           JSON
         </button>
         <button
           type="button"
-          aria-pressed={mode === 'fields'}
+          aria-pressed={shownMode === 'fields'}
           disabled={!available}
           onClick={() => setMode('fields')}
         >
           Fields
         </button>
       </div>
-      {mode === 'json' || !available ? (
+      {shownMode === 'json' || !available ? (
         <>
           <label>
             Request body

@@ -56,13 +56,20 @@ const server = createServer(async (request, response) => {
     }
     if (chunks.length) {
       rawBody = Buffer.concat(chunks).toString();
-      body = JSON.parse(rawBody);
+      body = request.headers['content-type']?.startsWith(
+        'application/x-www-form-urlencoded',
+      )
+        ? Object.fromEntries(new URLSearchParams(rawBody))
+        : JSON.parse(rawBody);
     }
   } catch {
     send(400, { error: 'invalid_json' });
     return;
   }
-  if (url.pathname === '/v1/body-editor' && request.method === 'POST') {
+  if (
+    ['/v1/body-editor', '/v1/form-editor'].includes(url.pathname) &&
+    request.method === 'POST'
+  ) {
     send(200, { received: rawBody });
   } else if (
     url.pathname.startsWith('/v1/serialization/') &&

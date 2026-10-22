@@ -18,8 +18,8 @@ For JSON bodies, displayed/copied snippets replace values marked `writeOnly: tru
 
 Invalid, duplicate-key, oversized, excessively complex or unresolved JSON bodies use `YOUR_REQUEST_BODY` in snippets when safe redaction cannot be established. Redaction changes only the displayed example; the actual request uses the body you edited. The raw JSON editor displays the actual values for review. Response bodies are not covered by request redaction.
 
-Annotations and known credentials cannot identify every secret. Mark sensitive schema fields, review copied requests and avoid entering production credentials in demo sites. Non-JSON body formats currently rely on known-credential replacement; schema-aware JSON redaction is not an XML/form-data parser.
+Annotations and known credentials cannot identify every secret. Mark sensitive schema fields, review copied requests and avoid entering production credentials in demo sites. Logical form-urlencoded inputs use schema-aware JSON redaction before encoding; literal encoded-form snippets omit the body. Other non-JSON body formats rely on known-credential replacement. Schema-aware JSON redaction is not an XML/form-data parser.
 
 Programmatic clients can pass `{ schema, schemas, openapiVersion }` as the third argument to `redactRequest`, or call `redactJsonBody` directly. Generic request redaction without that context does not perform schema-aware body traversal. The public `parseJsonValue`, `serializeJsonValue` and `setJsonProperty` helpers in `@api-docs/contracts` preserve number tokens for integrations that build their own editors.
 
-See [request serialization](request-serialization.md), [OAuth authentication](explorer-auth.md) and [generated snippets](snippets.md) for the remaining request behavior. Multipart uploads and schema-driven form-url-encoded bodies remain separate implementation work.
+See [form-urlencoded bodies](form-bodies.md), [request serialization](request-serialization.md), [OAuth authentication](explorer-auth.md) and [generated snippets](snippets.md) for the remaining request behavior. Multipart uploads remain separate implementation work.

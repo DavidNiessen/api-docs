@@ -118,6 +118,53 @@ paths:
                     default: false
         '400':
           description: Invalid request
+  /form-editor:
+    post:
+      operationId: editFormValues
+      summary: Edit form values
+      description: Generate form data or provide a literal encoded body.
+      tags: [Examples]
+      servers:
+        - url: http://127.0.0.1:4010/v1
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                id: { type: integer }
+                enabled: { type: boolean }
+                tags: { type: array, items: { type: string } }
+                address: { type: object, properties: { zip: { type: string } } }
+                filters: { type: object }
+                password: { type: string, format: password, writeOnly: true }
+            encoding:
+              tags: { style: form, explode: true }
+              filters: { style: deepObject, explode: true }
+            examples:
+              values:
+                summary: Logical form values
+                value:
+                  name: Example + team
+                  id: 1
+                  enabled: false
+                  tags: [cat, dog]
+                  address: { zip: '99999+1234' }
+                  filters: { limit: 2, active: false }
+                  password: fixture-form-password
+              encoded:
+                summary: Encoded wire example
+                value: name=wire+example&password=fixture-wire-only
+      responses:
+        '200':
+          description: Received encoded form
+          content:
+            application/json:
+              schema: { type: object }
   /body-editor:
     post:
       operationId: editRequestFields

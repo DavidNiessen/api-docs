@@ -1042,7 +1042,8 @@ h3 {
   color: var(--muted);
   margin: 0;
 }
-.body-editor {
+.body-editor,
+.form-body-editor {
   display: grid;
   gap: 12px;
 }
@@ -1053,6 +1054,8 @@ h3 {
 }
 .body-editor-modes button {
   padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 550;
   color: var(--muted);
   border-bottom: 2px solid transparent;
 }
