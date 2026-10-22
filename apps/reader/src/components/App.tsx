@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import type {
   CSSProperties,
   MouseEvent,
@@ -20,12 +20,14 @@ import type {
   Operation,
   SiteData,
   SearchResult,
+  Theme,
 } from '@api-docs/contracts';
 import { Icon } from './Icon.js';
 import { Explorer } from './Explorer.js';
 import { SchemaView } from './SchemaView.js';
 import { CodeBlock } from './CodeBlock.js';
 
+const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
 function activateGuideTab(button: HTMLButtonElement) {
   const list = button.closest('[role="tablist"]');
   for (const tab of list?.querySelectorAll<HTMLButtonElement>(
@@ -93,10 +95,15 @@ export function App({
   const [searchLoading, setSearchLoading] = useState(false);
   const navigationId = useRef(0);
   const [mobileNav, setMobileNav] = useState(false);
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [themeDraft, setThemeDraft] = useState<Theme | null>(null);
+  const [themeEditorEnabled, setThemeEditorEnabled] = useState(false);
+  const [themeEditorOpen, setThemeEditorOpen] = useState(false);
   const [query, setQuery] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
-  const config = site.config;
+  const config = themeDraft
+    ? { ...site.config, theme: themeDraft }
+    : site.config;
   const palette = resolvePalette(
     config.theme,
     theme === 'dark' ? 'dark' : 'light',
@@ -127,6 +134,9 @@ export function App({
       activeApi;
   const firstApi = activeApi?.operations[0];
   useEffect(() => {
+    setThemeEditorEnabled(
+      new URL(window.location.href).searchParams.get('theme-editor') === '1',
+    );
     try {
       const saved = localStorage.getItem('api-docs-theme');
       setTheme(
@@ -431,6 +441,17 @@ export function App({
                 <Icon name="external" size={13} />
               </a>
             ))}
+            {themeEditorEnabled && (
+              <button
+                type="button"
+                className="theme-editor-trigger"
+                aria-label="Customize appearance"
+                onClick={() => setThemeEditorOpen(true)}
+              >
+                <Icon name="settings" size={16} />
+                <span>Customize</span>
+              </button>
+            )}
             <button
               type="button"
               className="icon-button theme-toggle"
@@ -798,6 +819,20 @@ export function App({
           )}
         </main>
       </div>
+      {themeEditorOpen && (
+        <Suspense
+          fallback={<div role="status">Loading appearance controls…</div>}
+        >
+          <ThemeEditor
+            value={config.theme}
+            mode={theme}
+            onChange={setThemeDraft}
+            onModeChange={setTheme}
+            onClose={() => setThemeEditorOpen(false)}
+            onReset={() => setThemeDraft(null)}
+          />
+        </Suspense>
+      )}
       <dialog
         className="search-dialog"
         ref={dialog}

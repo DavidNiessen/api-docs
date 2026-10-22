@@ -77,3 +77,9 @@ seo:
 When indexing is enabled and `siteUrl` is configured, the builder emits an absolute-URL `sitemap.xml` for real pages and references it in `robots.txt`. Redirects and error pages are excluded. With `seo.index: false`, HTML carries `noindex,nofollow`, robots disallows crawling, and no sitemap is emitted. An omitted `siteUrl` produces no absolute canonical URLs or sitemap, which is useful for local/offline deployments.
 
 Robots directives are hints, not access control. Protect every private artifact with the server or an authentication gateway. When serving docs below a path on a shared host, configure the origin's root `/robots.txt` to reference the appropriate sitemap or exclusions; crawlers do not automatically discover a nested robots file.
+
+## Live appearance editor
+
+Open a documentation page with `?theme-editor=1`, then choose **Customize**. The editor previews presets, typography, density, radius, layout widths, code-block treatment and both palettes. Text contrast problems disable configuration export. The editor's own controls retain a readable palette while you experiment with the page.
+
+**Copy theme configuration** copies only the `theme` section; merge it into the project's YAML or JSON configuration and rebuild. The editor makes no server mutation and does not persist drafts or request credentials. Close it to inspect the preview; reload to return to the published configuration. Reset restores the source theme immediately. The editor loads on demand and is hidden from the normal reading flow. CSS overrides remain your responsibility and can supersede token-based contrast checks.
