@@ -41,7 +41,7 @@ Markdown front matter supports `title`, `description`, `group`, and numeric `ord
 
 ## Trust and credentials
 
-Plugins execute trusted local code and require `--trust-plugins`. A timeout is a cooperative lifecycle limit, not a security sandbox. Do not enable plugins from untrusted repositories. Reader credentials remain in memory; copied request examples use placeholders. The explorer sends browser requests directly, so the target API must permit the reader origin through CORS.
+Plugins execute trusted local code and require `--trust-plugins`. File-based build plugins run in fresh workers with external time and output limits; they retain the build user's filesystem, network and environment access. This is not a security sandbox. See the [SDK and conformance reference](plugins.md). Do not enable plugins from untrusted repositories. Reader credentials remain in memory; copied request examples use placeholders. The explorer sends browser requests directly, so the target API must permit the reader origin through CORS.
 
 ## Verification and diagnostics
 
@@ -70,3 +70,7 @@ Build, export, validate and dev accept `--trust-content` for reviewed MDX. It is
 ## Incremental local preview
 
 After the initial verified build, `dev` reuses its API graph for plain Markdown body edits whose navigation metadata stays unchanged. It updates the affected pages, search data and manifest, then asks you to refresh the browser. Navigation, configuration, spec, assets, plugins and trusted MDX changes use a full rebuild. Do not edit generated preview files manually. Staging and publishing always verify the complete artifact. See the [measured limits and invalidation behavior](performance.md).
+
+## Plugin conformance
+
+`plugin-check <file> [project] --trust-plugins` executes a reviewed plugin twice against the project fixture and fails on invalid metadata/output or nondeterminism. Configured plugins are skipped while preparing that fixture. Use `--trust-content` separately when its guides contain reviewed MDX.

@@ -1,8 +1,11 @@
 import type { Diagnostic, SiteData } from '@api-docs/contracts';
+import { validatePluginSite } from './validation.js';
 export interface BuildPlugin {
   name: string;
   version: string;
   pluginApi: '1';
+  inputs?: string[];
+  capabilities?: ['transform'];
   transform?: (
     site: Readonly<SiteData>,
     context: { signal: AbortSignal; diagnostic: (message: Diagnostic) => void },
@@ -10,13 +13,31 @@ export interface BuildPlugin {
 }
 export function definePlugin(plugin: BuildPlugin): BuildPlugin {
   if (
-    !/^[a-zA-Z0-9@][a-zA-Z0-9@/._-]*$/.test(plugin.name) ||
-    !/^\d+\.\d+\.\d+/.test(plugin.version) ||
-    plugin.pluginApi !== '1'
+    !plugin ||
+    typeof plugin !== 'object' ||
+    !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(plugin.name) ||
+    !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
+      plugin.version,
+    ) ||
+    plugin.pluginApi !== '1' ||
+    (plugin.transform !== undefined &&
+      typeof plugin.transform !== 'function') ||
+    (plugin.inputs !== undefined &&
+      (!Array.isArray(plugin.inputs) ||
+        plugin.inputs.length > 128 ||
+        plugin.inputs.some(
+          (input) => typeof input !== 'string' || !input || input.length > 1024,
+        ))) ||
+    (plugin.capabilities !== undefined &&
+      (!Array.isArray(plugin.capabilities) ||
+        plugin.capabilities.length !== 1 ||
+        plugin.capabilities[0] !== 'transform'))
   )
     throw new Error('Invalid plugin name, version or pluginApi (supported: 1)');
   return Object.freeze(plugin);
 }
+export { runPluginFiles, checkPluginConformance } from './runner.js';
+export type { PluginExecution } from './runner.js';
 export async function applyPlugins(
   site: SiteData,
   plugins: BuildPlugin[],
@@ -55,6 +76,7 @@ export async function applyPlugins(
       )
         throw new Error(`Invalid plugin output: ${plugin.name}`);
       current.diagnostics.push(...diagnostics);
+      current = validatePluginSite(current);
     } finally {
       clearTimeout(timer);
     }

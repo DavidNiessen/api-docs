@@ -8,7 +8,6 @@ import {
 } from 'node:fs/promises';
 import { join, resolve, relative, sep } from 'node:path';
 import { createHash } from 'node:crypto';
-import { pathToFileURL } from 'node:url';
 import {
   loadSpec,
   parseConfig,
@@ -16,11 +15,10 @@ import {
   confinedPath,
   readTextFile,
 } from '@api-docs/spec';
-import { loadGuides } from '@api-docs/content';
-import { applyPlugins } from '@api-docs/plugin-sdk';
+import { loadGuides, renderMarkdown } from '@api-docs/content';
+import { runPluginFiles } from '@api-docs/plugin-sdk';
 import { loadPublicAssets } from './assets.js';
 export { loadPublicAssets } from './assets.js';
-import type { BuildPlugin } from '@api-docs/plugin-sdk';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 
 export const digest = (source: string | Buffer): string =>
@@ -28,7 +26,11 @@ export const digest = (source: string | Buffer): string =>
 export async function compileProject(
   root: string,
   configFile = 'docs.config.yaml',
-  options: { trustPlugins?: boolean; trustContent?: boolean } = {},
+  options: {
+    trustPlugins?: boolean;
+    trustContent?: boolean;
+    skipPlugins?: boolean;
+  } = {},
 ): Promise<SiteData> {
   root = await realpath(root);
   const file = await confinedPath(root, configFile);
@@ -60,23 +62,27 @@ export async function compileProject(
     }),
     diagnostics: apis.flatMap((api) => api.diagnostics),
   };
-  if (config.plugins.length) {
+  if (config.plugins.length && !options.skipPlugins) {
     if (!options.trustPlugins)
       throw new Error(
         'Project requests executable build plugins. Review them and use --trust-plugins to opt in.',
       );
-    const plugins: BuildPlugin[] = [];
-    for (const path of config.plugins) {
-      const imported = (await import(
-        pathToFileURL(await confinedPath(root, path)).href
-      )) as { default: BuildPlugin };
-      plugins.push(imported.default);
+    const execution = await runPluginFiles(root, config.plugins, site);
+    site = execution.site;
+    try {
+      site.config = parseConfig(site.config);
+    } catch {
+      throw new Error(
+        'Invalid plugin project configuration. Review the configuration contract.',
+      );
     }
-    site = await applyPlugins(site, plugins);
-    site.pluginVersions = plugins.map(({ name, version }) => ({
-      name,
-      version,
-    }));
+    for (const guide of site.guides) {
+      const safe = await renderMarkdown(guide.html, true);
+      guide.html = safe.html;
+      guide.text = safe.text;
+      guide.headings = safe.headings;
+    }
+    site.pluginVersions = execution.plugins;
   }
   return site;
 }

@@ -1,0 +1,6 @@
+name: Plugin example
+specs:
+  - id: sample
+    path: openapi.yaml
+plugins:
+  - release-label.mjs

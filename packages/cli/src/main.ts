@@ -5,7 +5,8 @@ import { mkdir, writeFile, access } from 'node:fs/promises';
 import { resolve, join, dirname, basename } from 'node:path';
 import { watch } from 'node:fs';
 import { compileProject } from '@api-docs/compiler';
-import { loadSpec, diffApi } from '@api-docs/spec';
+import { loadSpec, diffApi, parseConfig } from '@api-docs/spec';
+import { checkPluginConformance } from '@api-docs/plugin-sdk';
 import {
   buildSite,
   createStaticServer,
@@ -269,6 +270,39 @@ program
         changes.some((change) => change.severity === 'review')
       )
         process.exitCode = 2;
+    },
+  );
+program
+  .command('plugin-check <file> [project]')
+  .description('Execute a reviewed plugin twice against a project fixture')
+  .requiredOption(
+    '--trust-plugins',
+    'acknowledge execution of reviewed local code',
+  )
+  .option('-c, --config <file>', 'project config file', 'docs.config.yaml')
+  .option('--trust-content', 'allow reviewed MDX in the fixture')
+  .action(
+    async (
+      file: string,
+      project = '.',
+      options: { config: string; trustContent?: boolean },
+    ) => {
+      const root = resolve(project);
+      const site = await compileProject(root, options.config, {
+        skipPlugins: true,
+        trustContent: options.trustContent ?? false,
+      });
+      const result = await checkPluginConformance(root, [file], site);
+      try {
+        parseConfig(result.site.config);
+      } catch {
+        throw new Error(
+          'Invalid plugin project configuration. Review the configuration contract.',
+        );
+      }
+      console.log(
+        `Plugin conformance passed: ${result.plugins[0]!.name}@${result.plugins[0]!.version}. Fresh executions returned identical validated output.`,
+      );
     },
   );
 program

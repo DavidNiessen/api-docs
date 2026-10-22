@@ -135,7 +135,12 @@ export interface SiteData {
   assetMetadata?: { path: string; hash: string }[];
   navigationTotal?: number;
   navigationTruncated?: boolean;
-  pluginVersions?: { name: string; version: string }[];
+  pluginVersions?: {
+    name: string;
+    version: string;
+    sourceDigest?: string;
+    inputs?: { path: string; digest: string }[];
+  }[];
   schemaVersion: 1;
   config: ProjectConfig;
   apis: ApiDocument[];
@@ -164,7 +169,7 @@ export interface ArtifactManifest {
   files: Record<string, string>;
   routes: string[];
   diagnostics: Diagnostic[];
-  plugins: { name: string; version: string }[];
+  plugins: NonNullable<SiteData['pluginVersions']>;
 }
 
 export const methods: HttpMethod[] = [

@@ -6,6 +6,7 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../plugin-sdk" },
     {
       "path": "../compiler"
     },
