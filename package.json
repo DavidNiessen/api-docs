@@ -38,7 +38,8 @@
     "check:versions": "node scripts/check-versions.mjs",
     "test:tooling": "node --test scripts/tests/*.test.mjs",
     "release:plan": "node scripts/release-plan.mjs",
-    "release:prepare": "node scripts/release-prepare.mjs"
+    "release:prepare": "node scripts/release-prepare.mjs",
+    "test:java-consumers": "node scripts/test-java-consumers.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.11.0",

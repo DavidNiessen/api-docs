@@ -186,6 +186,11 @@ jobs:
           baseline: ${{ inputs.baseline }}
       - run: npm run build
       - run: node scripts/prepare-java-fixture.mjs
+      - name: Verify installed baseline JAR consumers
+        id: installed-java
+        env:
+          BOOT_VERSION: ${{ matrix.boot }}
+        run: npm run test:java-consumers -- --boot "$BOOT_VERSION"
       - run: node scripts/check-java-results.mjs --clear
       - name: Verify prepared Java integrations
         working-directory: integrations/java
@@ -200,6 +205,19 @@ jobs:
           name: prepared-java-${{ matrix.java }}-boot-${{ matrix.boot }}-${{ github.run_id }}
           path: integrations/java/**/target/surefire-reports/*.xml
           if-no-files-found: warn
+          retention-days: 14
+      - name: Retain installed Java candidate evidence
+        if: always() && (steps.installed-java.outcome == 'success' || steps.installed-java.outcome == 'failure')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installed-java-${{ matrix.java }}-boot-${{ matrix.boot }}-${{ github.run_id }}
+          path: |
+            .api-docs/java-candidates/**/report.json
+            .api-docs/java-candidates/**/*.jar
+            .api-docs/java-candidates/**/*.pom
+            .api-docs/java-candidates/**/*.log
+          include-hidden-files: true
+          if-no-files-found: error
           retention-days: 14
 
   result:

@@ -59,7 +59,7 @@ api-docs:
   path: /docs
 ```
 
-Auto-configuration supports servlet MVC and reactive WebFlux. It verifies the portable version 2 manifest identity and every file's SHA-256 digest before registering resource handlers. It serves only manifest-listed files and resolves page directories to `index.html`. Root navigation redirects to the index page. The application's Spring Security configuration continues to protect documentation requests.
+Auto-configuration supports servlet MVC and reactive WebFlux. It verifies the portable version 2 manifest identity and every file's SHA-256 digest before registering resource handlers. It serves only manifest-listed files and resolves page directories to `index.html`. Root navigation redirects to the index page without duplicating the application context prefix. The application's Spring Security configuration continues to protect documentation requests.
 
 Optionally set `api-docs.artifact-digest` to an approved digest from your trusted build/release inventory; a mismatch fails startup. Older version 1 publications must be rebuilt before using this Java adapter. See [manifest verification and migration](artifact-manifest.md).
 
@@ -67,7 +67,7 @@ The publication's `basePath` must equal the application context path plus `api-d
 
 Disable the integration with `api-docs.enabled=false`. Configure security rules for the entire `/docs/**` tree, including search JSON and scripts. The starter does not weaken the host security policy.
 
-Spring Boot 3.5.16 and 4.1.1 pass the local Linux matrix on JDK 17, 21 and 25, compiling Java 17 bytecode. Each combination runs manifest and servlet/reactive host tests without skips. GitHub-hosted CI is configured for the same matrix but remains unverified while account billing blocks Actions. See [runtime versions, evidence and the local runner](java-validation.md). This single source baseline currently passes both Boot lines; a compatibility split will be introduced if their APIs diverge.
+Spring Boot 3.5.16 and 4.1.1 pass the local Linux matrix on JDK 17, 21 and 25, compiling Java 17 bytecode. Each combination runs manifest and servlet/reactive host tests without skips. GitHub-hosted CI is configured for the same matrix but remains unverified while account billing blocks Actions. See [runtime versions, evidence and the local runner](java-validation.md). The installed-consumer runner also checks one baseline-built JAR against both Boot lines with isolated MVC-only/WebFlux-only classpaths; a compatibility split will be introduced if their binary APIs diverge.
 
 ## Generic Java
 

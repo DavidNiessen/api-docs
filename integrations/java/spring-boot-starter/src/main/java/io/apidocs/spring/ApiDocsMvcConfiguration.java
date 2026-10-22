@@ -17,8 +17,8 @@ class ApiDocsMvcConfiguration implements WebMvcConfigurer {
   private final ApiDocsProperties properties;
   ApiDocsMvcConfiguration(Publication publication, ApiDocsProperties properties) { this.publication = publication; this.properties = properties; }
   @Override public void addViewControllers(org.springframework.web.servlet.config.annotation.ViewControllerRegistry registry) {
-    registry.addRedirectViewController(properties.getPath(), publication.basePath() + "/index.html");
-    registry.addRedirectViewController(properties.getPath() + "/", publication.basePath() + "/index.html");
+    registry.addRedirectViewController(properties.getPath(), publication.basePath() + "/index.html").setContextRelative(false);
+    registry.addRedirectViewController(properties.getPath() + "/", publication.basePath() + "/index.html").setContextRelative(false);
   }
   @Override public void addResourceHandlers(ResourceHandlerRegistry registry) {
     registry.addResourceHandler(properties.getPath() + "/**")
