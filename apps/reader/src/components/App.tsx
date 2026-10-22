@@ -375,6 +375,8 @@ export function App({
       style={
         {
           '--accent': config.theme.accent,
+          '--success-text': readableAccent('#169965', theme, palette),
+          '--error-text': readableAccent('#b03642', theme, palette),
           '--action-bg': readableAccent(config.theme.accent, 'light'),
           '--accent-text-light': readableAccent(
             config.theme.accent,
@@ -724,6 +726,10 @@ export function App({
                   key={`${activeApi.id}:${activeApi.version}:${activeOperation.slug}`}
                   api={activeApi}
                   operation={activeOperation}
+                  basePath={site.config.basePath}
+                  oauthClients={
+                    site.config.explorer?.oauthClients?.[activeApi.id]
+                  }
                 />
               ) : (
                 <aside

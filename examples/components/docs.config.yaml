@@ -8,6 +8,12 @@ specs:
 
 basePath: /gallery
 siteUrl: https://docs.example.test
+explorer:
+  oauthClients:
+    gallery:
+      oauth:
+        clientId: reader-fixture
+        issuer: http://127.0.0.1:4020
 theme:
   preset: violet
   sidebarWidth: 280

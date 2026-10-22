@@ -267,6 +267,7 @@ export { generateSnippet } from './snippets.js';
 export type { SnippetLanguage } from './snippets.js';
 export {
   oauthUrl,
+  resolveOAuthEndpoint,
   calculatePkceChallenge,
   createPkceTransaction,
   exchangePkceCode,

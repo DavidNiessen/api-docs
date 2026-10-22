@@ -145,6 +145,8 @@ const paths = [
   '/reference/assets/reader.js',
   '/reference/search.json',
   '/reference/site.json',
+  '/reference/oauth/callback/',
+  '/reference/assets/oauth-callback.js',
 ];
 const app = express();
 const docs = await createExpressDocs({

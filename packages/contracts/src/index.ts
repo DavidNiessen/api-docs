@@ -116,6 +116,12 @@ export interface Theme {
   density: 'comfortable' | 'compact';
 }
 export interface ProjectConfig {
+  explorer?: {
+    oauthClients?: Record<
+      string,
+      Record<string, { clientId: string; issuer: string }>
+    >;
+  };
   doctor?: {
     rules: Record<string, 'off' | 'warning' | 'error'>;
     suppressions: { code: string; source: string; reason: string }[];

@@ -1062,6 +1062,32 @@ h3 {
 .auth-fields label {
   margin-top: 10px;
 }
+.auth-field + .auth-field {
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  padding-top: 4px;
+}
+.auth-action {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--accent-text);
+}
+.oauth-settings {
+  margin-top: 12px;
+}
+.oauth-settings summary {
+  color: var(--muted);
+}
+.oauth-callback {
+  margin: 15vh auto;
+  max-width: 560px;
+  padding: 24px;
+  line-height: 1.7;
+}
 .snippet-controls {
   display: flex;
   align-items: center;
@@ -1200,11 +1226,11 @@ h3 {
 }
 .response-success {
   font-size: 10px;
-  color: #169965;
+  color: var(--success-text);
 }
 .response-failed {
   font-size: 10px;
-  color: #b03642;
+  color: var(--error-text);
 }
 .response-content details {
   padding: 14px 16px;

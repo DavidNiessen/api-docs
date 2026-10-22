@@ -32,8 +32,30 @@ function blend(a: string, b: string, weight: number): string {
       .join('')
   );
 }
+const readableAccentCache = new Map<string, string>();
 /** Derive an accessible text color while retaining the configured brand hue. */
 export function readableAccent(
+  accent: string,
+  mode: 'light' | 'dark',
+  colors?: Pick<Palette, 'surface' | 'background'>,
+): string {
+  const key = JSON.stringify([
+    accent,
+    mode,
+    colors?.surface,
+    colors?.background,
+  ]);
+  const cached = readableAccentCache.get(key);
+  if (cached) return cached;
+  const result = computeReadableAccent(accent, mode, colors);
+  if (key.length <= 256) {
+    if (readableAccentCache.size >= 256)
+      readableAccentCache.delete(readableAccentCache.keys().next().value!);
+    readableAccentCache.set(key, result);
+  }
+  return result;
+}
+function computeReadableAccent(
   accent: string,
   mode: 'light' | 'dark',
   colors?: Pick<Palette, 'surface' | 'background'>,

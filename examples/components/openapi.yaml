@@ -118,6 +118,25 @@ paths:
                     default: false
         '400':
           description: Invalid request
+  /projects:
+    get:
+      operationId: oauthProjects
+      summary: Projects with OAuth
+      description: Use a registered public client and PKCE to authorize a request.
+      tags: [Examples]
+      servers:
+        - url: http://127.0.0.1:4010/v1
+      security:
+        - oauth: [projects:read]
+      responses:
+        '200':
+          description: Projects
+          content:
+            application/json:
+              schema: { type: object }
+              example: { data: [] }
+        '401':
+          description: Authentication required
 components:
   schemas:
     Identifier:
@@ -128,6 +147,14 @@ components:
       readOnly: true
       deprecated: true
   securitySchemes:
+    oauth:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: http://127.0.0.1:4020/authorize
+          tokenUrl: http://127.0.0.1:4020/token
+          scopes:
+            projects:read: Read projects
     bearer:
       type: http
       scheme: bearer

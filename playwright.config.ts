@@ -18,6 +18,11 @@ export default defineConfig({
   },
   webServer: [
     {
+      command: 'node scripts/mock-oauth.mjs',
+      url: 'http://127.0.0.1:4020/health',
+      reuseExistingServer: false,
+    },
+    {
       command:
         'node packages/cli/dist/main.js dev examples/components --trust-content --port 4174',
       url: 'http://127.0.0.1:4174/health/ready',

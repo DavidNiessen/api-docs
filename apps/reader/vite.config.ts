@@ -9,10 +9,13 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     rollupOptions: {
-      input: 'src/client.tsx',
+      input: {
+        reader: 'src/client.tsx',
+        'oauth-callback': 'src/oauth-callback.ts',
+      },
       output: {
-        entryFileNames: 'assets/reader.js',
-        assetFileNames: 'assets/reader.[ext]',
+        entryFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
       },
     },
   },

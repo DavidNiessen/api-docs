@@ -90,6 +90,18 @@ export async function buildSite(
     for (const api of site.apis)
       for (const operation of api.operations)
         pages.set(operationHref(api, operation), operation.summary);
+    const callbackRoute = '/oauth/callback/';
+    if (
+      Object.keys(site.config.redirects).some(
+        (route) => route.replace(/\/$/, '') === callbackRoute.slice(0, -1),
+      )
+    )
+      throw new Error('Redirect overwrites the reserved OAuth callback route');
+    await mkdir(join(stage, 'oauth/callback'), { recursive: true });
+    await writeFile(
+      join(stage, 'oauth/callback/index.html'),
+      `<!doctype html><html lang="${site.config.defaultLocale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"><title>Complete authorization</title><link rel="stylesheet" href="${site.config.basePath}/assets/reader.css"></head><body><main id="main-content" class="oauth-callback"><h1>Complete authorization</h1><p id="oauth-result" role="status">Completing authorization…</p></main><script type="module" src="${site.config.basePath}/assets/oauth-callback.js"></script></body></html>`,
+    );
     for (const [path, title] of pages) {
       const destination = join(stage, path, 'index.html');
       await mkdir(dirname(destination), { recursive: true });
@@ -165,7 +177,10 @@ export async function buildSite(
       join(stage, 'robots.txt'),
       `User-agent: *\n${indexed ? 'Allow: /' : 'Disallow: /'}\n${sitemap ? `Sitemap: ${sitemap}\n` : ''}`,
     );
-    const manifest = await writeManifest(stage, site, [...pages.keys()]);
+    const manifest = await writeManifest(stage, site, [
+      ...pages.keys(),
+      callbackRoute,
+    ]);
     await verifyArtifact(stage);
     await rm(previous, { recursive: true });
     await rename(directory, previous);

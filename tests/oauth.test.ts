@@ -4,6 +4,7 @@ import {
   createPkceTransaction,
   exchangePkceCode,
   oauthUrl,
+  resolveOAuthEndpoint,
 } from '@api-docs/explorer';
 import type { OAuthClient, PkceTransaction } from '@api-docs/explorer';
 
@@ -28,6 +29,23 @@ const response = (body: unknown, status = 200, type = 'application/json') =>
   });
 
 describe('public-client OAuth PKCE', () => {
+  it('resolves relative OAuth endpoints against the selected API server', () => {
+    expect(
+      resolveOAuthEndpoint('oauth/authorize', 'https://api.example.test/v1'),
+    ).toBe('https://api.example.test/v1/oauth/authorize');
+    expect(
+      resolveOAuthEndpoint('/oauth/token', 'https://api.example.test/v1'),
+    ).toBe('https://api.example.test/oauth/token');
+    expect(
+      resolveOAuthEndpoint(
+        'https://auth.example.test/token',
+        'https://api.example.test/v1',
+      ),
+    ).toBe('https://auth.example.test/token');
+    expect(() =>
+      resolveOAuthEndpoint('/token', 'https://api.example.test?secret=value'),
+    ).toThrow();
+  });
   it('matches RFC 7636 and creates independent unpredictable transactions', async () => {
     expect(
       await calculatePkceChallenge(

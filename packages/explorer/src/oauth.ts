@@ -49,6 +49,21 @@ export function oauthUrl(value: string, allowLoopbackHttp = false): URL {
     );
   return url;
 }
+export function resolveOAuthEndpoint(endpoint: string, server: string): string {
+  const base = new URL(server);
+  if (
+    !['https:', 'http:'].includes(base.protocol) ||
+    base.username ||
+    base.password ||
+    base.search ||
+    base.hash
+  )
+    throw new Error(
+      'Configure an HTTP(S) API server without credentials, query or fragment.',
+    );
+  if (!base.pathname.endsWith('/')) base.pathname += '/';
+  return new URL(endpoint, base).href;
+}
 export async function calculatePkceChallenge(
   verifier: string,
 ): Promise<string> {

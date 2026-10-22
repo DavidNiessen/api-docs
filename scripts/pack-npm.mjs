@@ -139,6 +139,7 @@ export async function packNpmCandidates() {
         assert(
           files.has('dist/client/assets/reader.js') &&
             files.has('dist/client/assets/reader.css') &&
+            files.has('dist/client/assets/oauth-callback.js') &&
             files.has('dist/client/assets/THIRD_PARTY_NOTICES.txt'),
           'Missing built reader assets',
         );

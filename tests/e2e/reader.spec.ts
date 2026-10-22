@@ -41,6 +41,7 @@ test('reader, local search and live API playground work end to end', async ({
   await expect(
     page
       .getByLabel('API playground')
+      .locator('.response-content')
       .getByText('My first project', { exact: false })
       .first(),
   ).toBeVisible();

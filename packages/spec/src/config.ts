@@ -141,6 +141,45 @@ export const configSchema = z
       .default(['en']),
     defaultLocale: z.string().default('en'),
     plugins: z.array(safePath).default([]),
+    explorer: z
+      .object({
+        oauthClients: z
+          .record(
+            z.string().min(1).max(1024),
+            z.record(
+              z.string().min(1).max(1024),
+              z
+                .object({
+                  clientId: z.string().trim().min(1).max(1024),
+                  issuer: z
+                    .string()
+                    .url()
+                    .refine((value) => {
+                      try {
+                        const url = new URL(value);
+                        return (
+                          !url.username &&
+                          !url.password &&
+                          !url.hash &&
+                          !url.search &&
+                          (url.protocol === 'https:' ||
+                            (url.protocol === 'http:' &&
+                              ['localhost', '127.0.0.1', '[::1]'].includes(
+                                url.hostname,
+                              )))
+                        );
+                      } catch {
+                        return false;
+                      }
+                    }, 'Use an HTTPS issuer or a loopback HTTP development issuer'),
+                })
+                .strict(),
+            ),
+          )
+          .optional(),
+      })
+      .strict()
+      .optional(),
     doctor: z
       .object({
         rules: z

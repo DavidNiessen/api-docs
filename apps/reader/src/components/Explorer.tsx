@@ -13,13 +13,21 @@ import {
 import type { PreparedRequest, SnippetLanguage } from '@api-docs/explorer';
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
+import { AuthField } from './AuthField.js';
 export function Explorer({
   api,
   operation,
+  basePath = '',
+  oauthClients,
 }: {
   api: ApiDocument;
   operation: Operation;
+  basePath?: string;
+  oauthClients?:
+    Record<string, { clientId: string; issuer: string }> | undefined;
 }) {
+  const [origin, setOrigin] = useState('');
+  useEffect(() => setOrigin(location.origin), []);
   const [server, setServer] = useState(
     operation.servers[0] ?? 'https://api.example.com',
   );
@@ -229,7 +237,7 @@ export function Explorer({
           )}
         </button>
       </div>
-      {tab === 'request' ? (
+      <div hidden={tab !== 'request'}>
         <>
           <div className="request-fields">
             <label>
@@ -237,7 +245,10 @@ export function Explorer({
               <input
                 aria-label="API server"
                 value={server}
-                onChange={(event) => setServer(event.target.value)}
+                onChange={(event) => {
+                  setServer(event.target.value);
+                  setCredentials({});
+                }}
                 spellCheck={false}
               />
             </label>
@@ -282,29 +293,31 @@ export function Explorer({
                 </summary>
                 <p>
                   Use one complete authentication alternative. Credentials stay
-                  in memory.
+                  in memory and clear when the API server changes.
                 </p>
                 {authNames.map((name) => (
-                  <label key={name}>
-                    {name}
-                    <input
-                      type="password"
-                      autoComplete="off"
-                      aria-label={`${name} credential`}
-                      value={credentials[name] ?? ''}
-                      onChange={(event) =>
-                        setCredentials({
-                          ...credentials,
-                          [name]: event.target.value,
-                        })
-                      }
-                      placeholder={
-                        api.securitySchemes[name]?.scheme === 'basic'
-                          ? 'username:password'
-                          : 'Enter token or API key'
-                      }
-                    />
-                  </label>
+                  <AuthField
+                    key={JSON.stringify([server, name])}
+                    name={name}
+                    scheme={api.securitySchemes[name]}
+                    credential={credentials[name] ?? ''}
+                    onChange={(value) =>
+                      setCredentials((current) => ({
+                        ...current,
+                        [name]: value,
+                      }))
+                    }
+                    scopes={
+                      operation.security.find((alternative) =>
+                        Object.hasOwn(alternative, name),
+                      )?.[name] ?? []
+                    }
+                    client={oauthClients?.[name]}
+                    server={server}
+                    redirectUri={
+                      origin ? `${origin}${basePath}/oauth/callback/` : ''
+                    }
+                  />
                 ))}
               </details>
             )}
@@ -426,7 +439,8 @@ export function Explorer({
             <p className="preview-error">{preview.error}</p>
           )}
         </>
-      ) : (
+      </div>
+      {tab === 'response' && (
         <div className="response-content">
           {response ? (
             <>
