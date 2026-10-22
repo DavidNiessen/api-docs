@@ -25,6 +25,7 @@ Validation for this increment:
 - All six runtime/source/Javadoc archives pass content, legal-resource and metadata inspections; all five Spring configuration properties have verified descriptions, types and defaults. The baseline SBOM records 20 dependency components and 21 graph nodes.
 - The same baseline runtime JARs pass 12 isolated installed consumers across JDK 17/21/25 × Boot 3.5.16/4.1.1 × MVC/WebFlux: 24 current tests, no skips, and fresh offline compilation for every consumer.
 - The source Java matrix passes all six combinations: 60 current manifest/host tests, no skips.
+- A fresh clone at `f75e9ef` passed the exact preparation action, production build and complete distribution gate with canonical `0.2.0` metadata, plus both Java 21 / Boot 4.1.1 consumers and offline compilations. Evidence was retained, the clone removed, and nothing tagged or published.
 
 See [Java runtime, distribution and installed-consumer validation](../java-validation.md). Local candidates record source/dirty state and remain unsigned, unpublished development artifacts. Maven namespace ownership and the release-wide license/distribution review remain unverified. GitHub-hosted execution remains blocked by account billing and has not been verified.
 

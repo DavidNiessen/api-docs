@@ -44,6 +44,8 @@ The installed-JAR run on the same date built one baseline candidate against Boot
 
 A separate prepared-version rehearsal from source `1db4ed0` installed npm tooling offline in a temporary clone, executed the exact release-preparation composite action to apply canonical `0.2.0` metadata, built the product and passed both installed consumers on Java 21 / Boot 4.1.1. Four current tests and both offline compilations passed using inspected `0.2.0` JAR/POM coordinates. Evidence is retained locally under `.api-docs/release-rehearsals/1db4ed0c1aa4-installed-java-0.2.0-1792706749010/`; the temporary clone was removed. This targeted canonical-version check is separate from the development-version full matrix and the earlier full release rehearsal. Nothing was tagged or published.
 
+The complete distribution follow-up at source `f75e9ef` repeated the exact composite preparation action and production build with canonical `0.2.0` metadata in a fresh temporary clone. Both runtime JARs, four source/Javadoc archives, five IDE properties and the bound Java SBOM passed the gate. Both Java 21 / Boot 4.1.1 consumers passed four current tests without skips and two offline compilations. Evidence is retained under `.api-docs/release-rehearsals/f75e9ef8af38-installed-java-0.2.0-1792708722136/`; the clone was removed. No release was tagged or published.
+
 The JDK downloads matched both the Adoptium API metadata and release checksum files, and their detached signatures verified against the pinned Adoptium key `3B04D753C9050D9A5D343F39843C48A565F8F04B`. Recorded archive SHA-256 digests:
 
 | Runtime           | Archive SHA-256                                                    |

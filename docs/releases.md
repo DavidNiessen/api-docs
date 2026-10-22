@@ -49,6 +49,8 @@ A full temporary clone at source `6f21ce4` was installed from the existing npm c
 
 That rehearsal caught and corrected saved-plan optional-field mismatches and package JSON formatting before the final successful run. Its candidate remains development evidence from a prepared working tree; it is not a published or approved stable release. The shared CI preparation action was separately exercised in read-only/apply modes against a clean temporary clone, and workflow linting/matrix-output checks passed locally. The action's input-boundary and early-rejection tests also participate in the normal tooling suite.
 
+The targeted Java distribution follow-up at `f75e9ef` also passed the exact preparation action and production build in a fresh `0.2.0` clone. It verified both runtime JARs, four source/Javadoc archives, all five Spring IDE properties, the bound baseline dependency SBOM and both installed Java 21 / Boot 4.1.1 consumers (four tests, no skips, two offline compilations). See [recorded Java validation](java-validation.md#recorded-linux-validation). The temporary clone was removed after retaining unpublished evidence; the main checkout remains on its development version.
+
 ## Pack and verify npm components
 
 First run the [distribution version audit](versioning.md), which also participates in `npm run check`. The current checkout permits development Maven snapshots; release-mode alignment is a later gate.
