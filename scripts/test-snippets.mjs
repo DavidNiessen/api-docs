@@ -5,11 +5,36 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { generateSnippet, encodeFormBody } from '@api-docs/explorer';
+import {
+  generateSnippet,
+  encodeFormBody,
+  createMultipartParts,
+} from '@api-docs/explorer';
 
 const exec = promisify(execFile);
 const directory = await mkdtemp(join(tmpdir(), 'api-docs-snippets-'));
 const languages = ['cURL', 'JavaScript', 'TypeScript', 'Python', 'Java'];
+const uploadBytes = Uint8Array.from([0, 255, 128, 13, 10, 34, 1, 254]);
+const multipartMedia = {
+  schema: {
+    type: 'object',
+    properties: {
+      metadata: { type: 'object' },
+      tags: { type: 'array', items: { type: 'string' } },
+      documents: { type: 'array', items: { type: 'string', format: 'binary' } },
+    },
+  },
+};
+const uploadParts = createMultipartParts(
+  '{"metadata":{"id":9007199254740993},"tags":["a","b"]}',
+  {
+    documents: [
+      { filename: 'private-fixture-name.bin', data: new Blob([uploadBytes]) },
+      { filename: 'private-empty.bin', data: new Blob([]) },
+    ],
+  },
+  multipartMedia,
+);
 const cases = [
   {
     name: 'get',
@@ -44,6 +69,46 @@ const cases = [
         schema: { type: 'object' },
       },
     ),
+  },
+  {
+    name: 'multipart-text',
+    status: 200,
+    type: 'application/json',
+    body: '{"multipart":true}',
+    expected: 'multipart',
+    multipart: createMultipartParts(
+      JSON.stringify({
+        title: 'café 😀 "quotes" \\ and \u0000 NUL\r\nsecond line',
+        tags: ['a', 'b'],
+        clé: 'Unicode name',
+      }).slice(0, -1) + ',"metadata":{"id":9007199254740993}}',
+      {},
+      multipartMedia,
+    ),
+  },
+  {
+    name: 'multipart-files',
+    status: 200,
+    type: 'application/json',
+    body: '{"uploaded":true}',
+    expected: 'uploaded',
+    multipart: uploadParts,
+  },
+  {
+    name: 'multipart-error',
+    status: 418,
+    type: 'text/plain',
+    body: 'upload rejected',
+    fails: true,
+    multipart: uploadParts,
+  },
+  {
+    name: 'multipart-redirect',
+    status: 302,
+    type: 'text/plain',
+    body: 'redirect',
+    expected: 'redirect',
+    multipart: uploadParts,
   },
   {
     name: 'json',
@@ -86,17 +151,20 @@ const server = createServer(async (request, response) => {
   }
   const parts = [];
   for await (const part of request) parts.push(part);
-  const body = Buffer.concat(parts).toString('utf8');
+  const bytes = Buffer.concat(parts);
+  const body = bytes.toString('utf8');
   received.push({
     url: request.url,
     method: request.method,
     headers: request.headers,
+    rawHeaders: [...request.rawHeaders],
     body,
+    bytes,
   });
   response
     .writeHead(match.status, {
       'Content-Type': match.type,
-      ...(match.name === 'redirect' ? { Location: '/forbidden-follow' } : {}),
+      ...(match.status === 302 ? { Location: '/forbidden-follow' } : {}),
     })
     .end(match.body);
 });
@@ -123,14 +191,29 @@ try {
           Authorization: 'Bearer fixture-token',
           'X-Fixture': 'quote" backslash\\',
         },
-        ...(fixture.method === 'GET'
-          ? {}
-          : {
-              body:
-                fixture.requestBody ??
-                '@not-a-file\n  quotes "double" and \'single\' \\ café 😀  ',
-            }),
+        ...(fixture.multipart
+          ? { multipart: fixture.multipart }
+          : fixture.method === 'GET'
+            ? {}
+            : {
+                body:
+                  fixture.requestBody ??
+                  '@not-a-file\n  quotes "double" and \'single\' \\ café 😀  ',
+              }),
       };
+      Object.defineProperty(input.headers, '__proto__', {
+        value: 'own-header-fixture',
+        enumerable: true,
+      });
+      if (fixture.multipart) {
+        let fileIndex = 0;
+        for (const part of fixture.multipart)
+          if (part.kind === 'file')
+            await writeFile(
+              join(directory, `YOUR_FILE_${++fileIndex}`),
+              new Uint8Array(await part.file.data.arrayBuffer()),
+            );
+      }
       const extension = {
         cURL: 'sh',
         JavaScript: 'mjs',
@@ -175,7 +258,7 @@ try {
       }
       // cURL reports 3xx without following; other clients reject redirects.
       const shouldFail = Boolean(
-        fixture.fails || (fixture.name === 'redirect' && language !== 'cURL'),
+        fixture.fails || (fixture.status === 302 && language !== 'cURL'),
       );
       assert.equal(
         failed,
@@ -190,18 +273,73 @@ try {
       const actual = received.at(-1);
       assert.equal(actual.url, `/${fixture.name}?q=a%26b`);
       assert.equal(actual.method, input.method);
-      assert.equal(
-        actual.body,
-        input.body ?? '',
-        `${language}/${fixture.name}: request bytes changed`,
-      );
-      assert.equal(actual.headers.accept, input.headers.Accept);
-      assert.equal(
-        actual.headers['content-type'],
-        input.headers['Content-Type'],
-      );
+      if (fixture.multipart) {
+        assert.match(
+          actual.headers['content-type'],
+          /^multipart\/form-data; boundary=api-docs-[a-f0-9]+$/,
+        );
+        const form = await new Response(actual.bytes, {
+          headers: { 'Content-Type': actual.headers['content-type'] },
+        }).formData();
+        const values = [...form.entries()];
+        assert.equal(
+          values.length,
+          fixture.multipart.length,
+          `${language}/${fixture.name}: wrong part count`,
+        );
+        let fileIndex = 0;
+        for (let index = 0; index < fixture.multipart.length; index++) {
+          const expected = fixture.multipart[index];
+          const [name, value] = values[index];
+          assert.equal(name, expected.name);
+          assert(
+            actual.bytes.includes(
+              Buffer.from(`\r\nContent-Type: ${expected.contentType}\r\n`),
+            ),
+            `${language}/${fixture.name}: part content type missing`,
+          );
+          if (expected.kind === 'file') {
+            assert.equal(value.name, `upload-${++fileIndex}.bin`);
+            assert.equal(value.type, expected.contentType);
+            assert.deepEqual(
+              new Uint8Array(await value.arrayBuffer()),
+              new Uint8Array(await expected.file.data.arrayBuffer()),
+              `${language}/${fixture.name}: uploaded bytes changed`,
+            );
+          } else
+            assert.equal(
+              value,
+              new TextDecoder().decode(
+                new TextEncoder().encode(expected.value),
+              ),
+              `${language}/${fixture.name}: text part changed`,
+            );
+        }
+      } else {
+        assert.equal(
+          actual.body,
+          input.body ?? '',
+          `${language}/${fixture.name}: request bytes changed`,
+        );
+        assert.equal(actual.headers.accept, input.headers.Accept);
+        assert.equal(
+          actual.headers['content-type'],
+          input.headers['Content-Type'],
+        );
+      }
       assert.equal(actual.headers.authorization, input.headers.Authorization);
       assert.equal(actual.headers['x-fixture'], input.headers['X-Fixture']);
+      const wireHeaders = new Map(
+        Array.from({ length: actual.rawHeaders.length / 2 }, (_, index) => [
+          actual.rawHeaders[index * 2].toLowerCase(),
+          actual.rawHeaders[index * 2 + 1],
+        ]),
+      );
+      assert.equal(
+        wireHeaders.get('__proto__'),
+        'own-header-fixture',
+        `${language}/${fixture.name}: own header missing`,
+      );
       if (!shouldFail && fixture.expected)
         assert(
           output.includes(fixture.expected),
@@ -211,7 +349,7 @@ try {
       console.log(`PASS ${language}: ${fixture.name}`);
     }
   }
-  assert.equal(passed, 40);
+  assert.equal(passed, 60);
   console.log(
     `${passed} executable snippet checks passed across ${languages.length} languages.`,
   );

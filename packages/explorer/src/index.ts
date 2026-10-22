@@ -3,6 +3,7 @@ import {
   encodeValue,
   serializeParameters,
   setRequestHeader,
+  fetchHeaderEntries,
 } from './parameters.js';
 import { isJsonMediaType } from '@api-docs/contracts';
 import { redactJsonBody } from './redact-body.js';
@@ -264,14 +265,16 @@ export function redactRequest(
               ? {
                   name: scrub(part.name),
                   kind: 'file',
-                  contentType: part.contentType,
+                  contentType: scrub(part.contentType),
                   file: { filename: 'upload.bin', data: new Blob([]) },
                 }
               : {
                   name: scrub(part.name),
                   kind: 'text',
-                  contentType: part.contentType,
-                  value: 'YOUR_PART_VALUE',
+                  contentType: scrub(part.contentType),
+                  value: isJsonMediaType(part.contentType)
+                    ? JSON.stringify('YOUR_PART_VALUE')
+                    : 'YOUR_PART_VALUE',
                 },
           ),
         }
@@ -290,19 +293,17 @@ export function redactRequest(
 /** Materialize an actual fetch body. Multipart boundaries are fresh per invocation, never preview metadata. */
 export function toFetchRequest(request: PreparedRequest): {
   method: string;
-  headers: Record<string, string>;
+  headers: Headers;
   body?: string | Blob;
 } {
-  const headers = { ...request.headers };
+  const headers = new Headers(fetchHeaderEntries(request.headers));
   if (request.multipart) {
     if (request.body !== undefined)
       throw new Error(
         'A request cannot have both a literal and multipart body.',
       );
     const { body, contentType } = multipartBody(request.multipart);
-    for (const key of Object.keys(headers))
-      if (key.toLowerCase() === 'content-type') delete headers[key];
-    setRequestHeader(headers, 'Content-Type', contentType);
+    headers.set('Content-Type', contentType);
     return { method: request.method, headers, body };
   }
   return {

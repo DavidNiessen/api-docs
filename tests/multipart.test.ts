@@ -137,13 +137,15 @@ describe('binary-safe multipart requests', () => {
     expect(form.getAll('documents')).toHaveLength(2);
   });
   it('sends genuine binary multipart bytes and per-part JSON content types over HTTP', async () => {
-    let received: { type: string; body: Buffer } | undefined;
+    let received:
+      { type: string; body: Buffer; rawHeaders: string[] } | undefined;
     const server = createServer(async (request, response) => {
       const buffers: Buffer[] = [];
       for await (const chunk of request) buffers.push(chunk);
       received = {
         type: String(request.headers['content-type']),
         body: Buffer.concat(buffers),
+        rawHeaders: [...request.rawHeaders],
       };
       response
         .writeHead(200, { 'Content-Type': 'application/json' })
@@ -156,11 +158,22 @@ describe('binary-safe multipart requests', () => {
       const request = prepare('{"metadata":{"n":9007199254740993}}', {
         attachment: [file],
       });
+      Object.defineProperty(request.headers, '__proto__', {
+        value: 'own-header-fixture',
+        enumerable: true,
+      });
       const response = await fetch(
         `http://127.0.0.1:${address.port}/upload`,
         toFetchRequest(request),
       );
       expect(await response.json()).toEqual({ ok: true });
+      const headers = new Map(
+        Array.from({ length: received!.rawHeaders.length / 2 }, (_, index) => [
+          received!.rawHeaders[index * 2]!.toLowerCase(),
+          received!.rawHeaders[index * 2 + 1],
+        ]),
+      );
+      expect(headers.get('__proto__')).toBe('own-header-fixture');
       expect(received?.type).toMatch(
         /^multipart\/form-data; boundary=api-docs-[a-f0-9]{48}$/,
       );
@@ -180,8 +193,8 @@ describe('binary-safe multipart requests', () => {
   it('uses a fresh unpredictable boundary on every send while previews remain deterministic', () => {
     const request = prepare('{"title":"a"}');
     expect(prepare('{"title":"a"}')).toEqual(request);
-    expect(toFetchRequest(request).headers['Content-Type']).not.toBe(
-      toFetchRequest(request).headers['Content-Type'],
+    expect(toFetchRequest(request).headers.get('Content-Type')).not.toBe(
+      toFetchRequest(request).headers.get('Content-Type'),
     );
     expect(request.headers['Content-Type']).toBeUndefined();
     const custom = toFetchRequest({
@@ -193,10 +206,8 @@ describe('binary-safe multipart requests', () => {
       },
     });
     expect(
-      Object.keys(custom.headers).filter(
-        (key) => key.toLowerCase() === 'content-type',
-      ),
-    ).toEqual(['Content-Type']);
+      [...custom.headers.keys()].filter((key) => key === 'content-type'),
+    ).toEqual(['content-type']);
   });
   it('selects explicit JSON/text/file codecs and resolves root/property/item references', () => {
     const result = createMultipartParts(
@@ -425,6 +436,21 @@ describe('binary-safe multipart requests', () => {
     );
     expect(JSON.stringify(redacted)).not.toContain('private');
     expect(request.multipart?.[0]).toMatchObject({ value: 'private title' });
-    expect(() => generateSnippet(redacted, 'cURL')).toThrow(/not implemented/);
+    for (const language of [
+      'cURL',
+      'JavaScript',
+      'TypeScript',
+      'Python',
+      'Java',
+    ] as const) {
+      const code = generateSnippet(redacted, language);
+      expect(code).toContain('YOUR_FILE_1');
+      expect(code).not.toContain('private');
+      expect(code).not.toContain('secret');
+      expect(code).toContain('YOUR_PART_VALUE');
+      const unredacted = generateSnippet(request, language);
+      expect(unredacted).not.toContain('private-client.bin');
+      expect(unredacted).not.toContain('private file bytes');
+    }
   });
 });

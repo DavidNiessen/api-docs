@@ -111,6 +111,15 @@ function pathValue(value: Value, parameter: Parameter): string {
 }
 const forbiddenHeader =
   /^(accept-charset|accept-encoding|access-control-request-headers|access-control-request-method|connection|content-length|cookie|date|dnt|expect|host|keep-alive|origin|permissions-policy|referer|te|trailer|transfer-encoding|upgrade|user-agent|via|sec-.*|proxy-.*|x-http-method.*)$/i;
+/** HTTP names are case-insensitive. Avoid Node fetch's lowercase __proto__ dictionary collision. */
+export function fetchHeaderEntries(
+  headers: Record<string, string>,
+): [string, string][] {
+  return Object.entries(headers).map(([name, value]) => [
+    name.toLowerCase() === '__proto__' ? '__Proto__' : name,
+    value,
+  ]);
+}
 export function setRequestHeader(
   headers: Record<string, string>,
   name: string,

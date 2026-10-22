@@ -13,6 +13,7 @@ import {
   redactJsonBody,
   encodeFormBody,
   isFormMediaType,
+  toFetchRequest,
 } from '@api-docs/explorer';
 import type { PreparedRequest, SnippetLanguage } from '@api-docs/explorer';
 import { CodeBlock } from './CodeBlock.js';
@@ -218,9 +219,7 @@ export function Explorer({
     const start = performance.now();
     try {
       const result = await fetch(request.url, {
-        method: request.method,
-        headers: request.headers,
-        ...(request.body ? { body: request.body } : {}),
+        ...toFetchRequest(request),
         signal: abort.signal,
         credentials: 'omit',
         redirect: 'error',

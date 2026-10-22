@@ -20,10 +20,11 @@ import {
   encodeFormBody,
   createMultipartParts,
   toFetchRequest,
+  generateSnippet,
 } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
-const multipart = toFetchRequest({
+const uploadRequest = {
   url: 'https://api.example.test/upload',
   method: 'POST',
   headers: {},
@@ -44,7 +45,13 @@ const multipart = toFetchRequest({
       },
     },
   ),
-});
+};
+const multipart = toFetchRequest(uploadRequest);
+for (const language of ['cURL', 'JavaScript', 'TypeScript', 'Python', 'Java']) {
+  const code = generateSnippet(uploadRequest, language);
+  assert(code.includes('YOUR_FILE_1'));
+  assert(!code.includes('installed.bin'));
+}
 const uploaded = await new Response(multipart.body, {
   headers: multipart.headers,
 }).formData();

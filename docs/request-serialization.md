@@ -31,3 +31,5 @@ Cookie parameters cannot be set manually. Browser-controlled headers, invalid na
 The API must permit the request through CORS. Requests omit browser cookies and refuse redirects. The reader asks before potentially destructive methods. JSON object bodies support [schema-aware field editing](explorer-bodies.md) with a raw editor for exact control. [Form-urlencoded bodies](form-bodies.md) support logical values and literal encoded text in both the reader and SDK. Multipart upload and streaming remain separate work.
 
 The parameter suite checks the style/explode combinations, content parameters, referenced schemas, delimiter-sensitive values and error boundaries. A loopback HTTP fixture also verifies the actual URL and header bytes received by a server.
+
+Fetch-bound headers use iterable entries rather than JavaScript object literals. The SDK fetch adapter and generated JavaScript/TypeScript clients capitalize the transport spelling of `__proto__` to `__Proto__` to avoid a lowercase dictionary collision in the pinned Node.js fetch implementation; HTTP field names are case-insensitive. Loopback tests inspect raw wire headers to verify this field is transmitted.
