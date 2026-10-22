@@ -365,6 +365,9 @@ components:
           writeOnly: true
           properties:
             secret: { type: string }
+            choice:
+              { type: string, enum: [fixture-choice-one, fixture-choice-two] }
+            fixed: { type: string, const: fixture-fixed-setting }
 
     Colors:
       type: array

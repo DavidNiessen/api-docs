@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 const route = 'http://127.0.0.1:4174/gallery/api/gallery/v1/editrequestfields/';
 const raw =
-  '{"name":"root","enabled":false,"count":0,"id":9007199254740993,"profile":{"name":"Ada","id":9007199254740993,"privateNote":"private-note","responseOnly":"retained-read-only","address":{"city":"Old city","zip":"12345","unknown":{"huge":1e400}},"manager":{"name":"Grace","id":2},"settings":{"secret":"private-settings"},"custom":{"precise":1.234567890123456789}},"constructor":"own","__proto__":{"keep":true},"profile.name":"literal-key"}';
+  '{"name":"root","enabled":false,"count":0,"id":9007199254740993,"profile":{"name":"Ada","id":9007199254740993,"privateNote":"private-note","responseOnly":"retained-read-only","address":{"city":"Old city","zip":"12345","unknown":{"huge":1e400}},"manager":{"name":"Grace","id":2},"settings":{"secret":"private-settings","choice":"private-choice","fixed":"fixture-fixed-setting"},"custom":{"precise":1.234567890123456789}},"constructor":"own","__proto__":{"keep":true},"profile.name":"literal-key"}';
 
 test('nested object controls retain precise and unknown values, mask secrets and send the edited body', async ({
   page,
@@ -25,6 +25,20 @@ test('nested object controls retain precise and unknown values, mask secrets and
   await expect(
     playground.getByLabel('Include body profile.responseOnly', { exact: true }),
   ).toHaveCount(0);
+  const fields = playground.locator('.body-fields');
+  for (const secret of [
+    'private-choice',
+    'fixture-choice-one',
+    'fixture-choice-two',
+    'fixture-fixed-setting',
+  ])
+    await expect(fields).not.toContainText(secret);
+  await expect(
+    playground.getByLabel('Body profile.settings.choice', { exact: true }),
+  ).toHaveValue('"private-choice"');
+  await playground
+    .getByLabel('Body profile.settings.choice', { exact: true })
+    .selectOption('"fixture-choice-two"');
   await playground.getByLabel('Body profile.id', { exact: true }).fill('-');
   await playground
     .getByLabel('Body profile.name', { exact: true })
@@ -74,7 +88,11 @@ test('nested object controls retain precise and unknown values, mask secrets and
     responseOnly: 'retained-read-only',
     address: { city: 'Berlin', zip: '12345' },
     manager: { name: 'Grace Hopper', id: 2 },
-    settings: { secret: 'private-settings' },
+    settings: {
+      secret: 'private-settings',
+      choice: 'fixture-choice-two',
+      fixed: 'fixture-fixed-setting',
+    },
   });
   expect(Object.hasOwn(body.profile, 'privateNote')).toBe(false);
   expect(body['profile.name']).toBe('literal-key');

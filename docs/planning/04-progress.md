@@ -25,6 +25,8 @@ Validation for this increment:
 - All 31 reader browser journeys pass, including real nested object/array requests, exact numeric tokens, draft/error cleanup, focus restoration, both themes, automated accessibility checks and mobile containment.
 - All 12 installed npm components pass archive, public API, CLI, adapter and dependency checks outside the workspace, including an offline lockfile reinstall.
 
+The sensitive-label follow-up conceals enum options, unknown current enum values and constants beneath write-only/password schemas. The browser regression verifies the concealed labels while selecting and submitting the real value. Source checks, all 378 compiler/component tests and all 31 reader browser journeys pass for this fix; the percentage does not increase for this correction.
+
 ## Previous release-preparation increment
 
 Release preparation passed a full prepared-version rehearsal, and a matching manual CI workflow is configured. A temporary clone installed from the existing npm cache, applied a saved plan from `0.1.0` to `0.2.0`, and passed the relevant checks while the main checkout remained unchanged. The saved-plan round-trip and package-formatting issues found during rehearsal were fixed and tested. A shared CI action handles read-only/application modes; the manual workflow requires `master`, reuses the quality workflow's Java matrix, checks prepared source/server/Studio/Java candidates, and retains unpublished evidence without tags, commits or publication. See [release rehearsals](../releases.md#local-prepared-version-rehearsal).

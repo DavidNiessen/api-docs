@@ -92,10 +92,12 @@ function FieldValue({
       ? schema.enum
       : undefined;
   const current = serializeJsonValue(value);
+  const sensitive = schema.writeOnly === true || schema.format === 'password';
   if (Object.hasOwn(schema, 'const'))
     return (
       <p className="body-constant">
-        Fixed value: <code>{JSON.stringify(schema.const)}</code>
+        Fixed value:{' '}
+        <code>{sensitive ? '••••••' : JSON.stringify(schema.const)}</code>
       </p>
     );
   const commit = (input: string) => {
@@ -139,11 +141,15 @@ function FieldValue({
             }}
           >
             {!options.some((option) => JSON.stringify(option) === current) && (
-              <option value={current}>Current: {current}</option>
+              <option value={current}>
+                Current: {sensitive ? 'sensitive value' : current}
+              </option>
             )}
             {options.map((option, index) => (
               <option key={index} value={JSON.stringify(option)}>
-                {JSON.stringify(option)}
+                {sensitive
+                  ? `Sensitive value ${index + 1}`
+                  : JSON.stringify(option)}
               </option>
             ))}
           </select>
@@ -224,11 +230,7 @@ function FieldValue({
               Value
               <input
                 aria-label={`Body ${name}`}
-                type={
-                  schema.format === 'password' || schema.writeOnly === true
-                    ? 'password'
-                    : 'text'
-                }
+                type={sensitive ? 'password' : 'text'}
                 autoComplete="off"
                 value={value.kind === 'string' ? value.value : current}
                 onChange={(event) =>
