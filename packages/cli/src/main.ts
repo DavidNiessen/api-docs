@@ -1,11 +1,12 @@
 #!/usr/bin/env node
+import { randomUUID } from 'node:crypto';
 import { Command } from 'commander';
 import { mkdir, writeFile, access } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { watch } from 'node:fs';
 import { compileProject } from '@api-docs/compiler';
 import { loadSpec } from '@api-docs/spec';
-import { buildSite, createStaticServer } from './index.js';
+import { buildSite, createStaticServer, stageArtifact } from './index.js';
 const program = new Command()
   .name('api-docs')
   .description(
@@ -254,6 +255,98 @@ program
       );
       if (changes.some((change) => change.severity === 'breaking'))
         process.exitCode = 1;
+    },
+  );
+program
+  .command('stage <directory>')
+  .description(
+    'Stage a verified publication in operator-controlled immutable storage',
+  )
+  .requiredOption('--store <directory>', 'artifact store root')
+  .action(async (directory: string, options: { store: string }) => {
+    console.log(
+      await stageArtifact(resolve(directory), resolve(options.store)),
+    );
+  });
+program
+  .command('publish <artifact>')
+  .description('Register and activate a staged publication')
+  .requiredOption('--server <origin>', 'management server HTTPS origin')
+  .requiredOption('--project <id>', 'project id or slug')
+  .option(
+    '--insecure-development',
+    'permit loopback HTTP for local development',
+  )
+  .action(
+    async (
+      artifact: string,
+      options: {
+        server: string;
+        project: string;
+        insecureDevelopment?: boolean;
+      },
+    ) => {
+      if (!/^[a-f0-9]{64}$/.test(artifact))
+        throw new Error('Artifact id must be a SHA-256 digest');
+      const url = new URL(options.server);
+      if (
+        url.pathname !== '/' ||
+        url.search ||
+        url.hash ||
+        url.username ||
+        url.password ||
+        (url.protocol !== 'https:' &&
+          !(
+            options.insecureDevelopment &&
+            url.protocol === 'http:' &&
+            ['localhost', '127.0.0.1'].includes(url.hostname)
+          ))
+      )
+        throw new Error(
+          'Use an HTTPS origin, or explicitly enable local development on loopback',
+        );
+      const token = process.env.DOCS_PUBLISH_TOKEN;
+      if (!token)
+        throw new Error('Set DOCS_PUBLISH_TOKEN securely in the environment');
+      const call = async (
+        path: string,
+        payload?: unknown,
+      ): Promise<unknown> => {
+        const response = await fetch(new URL(path, url), {
+          method: payload === undefined ? 'GET' : 'POST',
+          redirect: 'error',
+          signal: AbortSignal.timeout(30_000),
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+        });
+        if (!response.ok)
+          throw new Error(`Management API returned HTTP ${response.status}`);
+        return response.json() as Promise<unknown>;
+      };
+      const projects = (await call('/api/projects')) as {
+        id: string;
+        slug: string;
+        activePublicationId: string | null;
+      }[];
+      const project = projects.find(
+        (item) => item.id === options.project || item.slug === options.project,
+      );
+      if (!project) throw new Error('Project not found or not accessible');
+      await call(`/api/projects/${project.id}/artifacts`, {
+        artifactId: artifact,
+      });
+      const publication = (await call(
+        `/api/projects/${project.id}/publications`,
+        {
+          artifactId: artifact,
+          expectedPublicationId: project.activePublicationId,
+          idempotencyKey: process.env.DOCS_IDEMPOTENCY_KEY ?? randomUUID(),
+        },
+      )) as { id: string };
+      console.log(`Activated publication ${publication.id}.`);
     },
   );
 void program.parseAsync().catch((error: unknown) => {

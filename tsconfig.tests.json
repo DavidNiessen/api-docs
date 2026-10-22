@@ -10,6 +10,8 @@
     "vitest.config.ts",
     "playwright.config.ts",
     "apps/reader/vite.config.ts",
-    "vitest.integration.config.ts"
+    "vitest.integration.config.ts",
+    "apps/studio/vite.config.ts",
+    "playwright.studio.config.ts"
   ]
 }

@@ -36,6 +36,12 @@
     },
     {
       "path": "apps/server"
+    },
+    {
+      "path": "integrations/node"
+    },
+    {
+      "path": "apps/studio"
     }
   ]
 }

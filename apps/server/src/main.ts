@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { PostgresRepository } from '@api-docs/storage';
 import { createServer } from './index.js';
 const required = (name: string): string => {
@@ -13,7 +14,9 @@ async function start() {
     rootToken: required('ROOT_TOKEN'),
     publicUrl: required('PUBLIC_URL'),
     insecureDevelopment: process.env.INSECURE_DEVELOPMENT === 'true',
-    ...(process.env.STUDIO_ROOT ? { studioRoot: process.env.STUDIO_ROOT } : {}),
+    studioRoot:
+      process.env.STUDIO_ROOT ??
+      fileURLToPath(new URL('../../studio/dist/client/', import.meta.url)),
     ...(process.env.OIDC_ISSUER
       ? {
           oidc: {

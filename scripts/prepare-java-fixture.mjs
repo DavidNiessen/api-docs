@@ -1,0 +1,15 @@
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { buildSite } from '@api-docs/cli';
+const root = new URL('../.api-docs/java-fixture/', import.meta.url);
+await mkdir(root, { recursive: true });
+await cp(new URL('../examples/demo/', import.meta.url), root, {
+  recursive: true,
+  filter: (file) => !file.includes('.api-docs'),
+});
+const config = new URL('docs.config.yaml', root);
+await writeFile(
+  config,
+  (await readFile(config, 'utf8')) + '\nbasePath: /docs\n',
+);
+await buildSite(root.pathname);
+console.log('Prepared a real reader publication for Java adapter tests.');

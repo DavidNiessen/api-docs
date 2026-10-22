@@ -5,6 +5,9 @@
     "coverage/**",
     "**/dist/**",
     "**/.api-docs/**",
+    "**/test-results/**",
+    "**/playwright-report/**",
+    "**/target/**",
   ],
   "config": {
     "default": true,

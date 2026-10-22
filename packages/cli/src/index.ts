@@ -23,6 +23,7 @@ import { guideHref, operationHref } from '@api-docs/contracts';
 import type { SiteData } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
 import { createSearchIndex } from '@api-docs/search';
+import { confinedPath } from '@api-docs/spec';
 export interface BuildOptions {
   config?: string;
   output?: string;
@@ -153,4 +154,54 @@ export async function createStaticServer(directory: string, basePath?: string) {
     return await readFile(join(root, '404.html'), 'utf8');
   });
   return app;
+}
+
+export async function stageArtifact(
+  directory: string,
+  store: string,
+): Promise<string> {
+  const manifest = await verifyArtifact(directory);
+  if (!/^[a-f0-9]{64}$/.test(manifest.inputDigest))
+    throw new Error('Invalid artifact input digest');
+  await mkdir(store, { recursive: true });
+  const target = join(resolve(store), manifest.inputDigest);
+  try {
+    const existing = await verifyArtifact(target);
+    if (JSON.stringify(existing.files) !== JSON.stringify(manifest.files))
+      throw new Error(
+        'Artifact digest collision or inconsistent compiler output',
+      );
+    return manifest.inputDigest;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  const stage = join(resolve(store), `.stage-${randomUUID()}`);
+  await mkdir(stage);
+  try {
+    for (const file of [...Object.keys(manifest.files), 'manifest.json']) {
+      const from = await confinedPath(directory, file);
+      const destination = join(stage, file);
+      await mkdir(dirname(destination), { recursive: true });
+      await cp(from, destination);
+    }
+    await verifyArtifact(stage);
+    try {
+      await rename(stage, target);
+    } catch (error) {
+      if (
+        !['ENOTEMPTY', 'EEXIST'].includes(
+          (error as NodeJS.ErrnoException).code ?? '',
+        )
+      )
+        throw error;
+      const existing = await verifyArtifact(target);
+      if (JSON.stringify(existing.files) !== JSON.stringify(manifest.files))
+        throw new Error('Concurrent staging produced inconsistent output', {
+          cause: error,
+        });
+    }
+    return manifest.inputDigest;
+  } finally {
+    await rm(stage, { recursive: true, force: true });
+  }
 }

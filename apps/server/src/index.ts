@@ -102,7 +102,21 @@ export async function createServer(options: ServerOptions) {
       const subject = await repository.session(
         tokenHash(request.cookies.docs_session),
       );
-      if (subject) request.principal = { subject, root: false };
+      if (
+        subject?.startsWith('$root:') &&
+        equalSecret(subject.slice(6), tokenHash(options.rootToken))
+      )
+        request.principal = { subject: 'root', root: true };
+      else if (subject?.startsWith('$token:')) {
+        const token = await repository.token(subject.slice(7));
+        if (token)
+          request.principal = {
+            subject: token.subject,
+            root: false,
+            tokenProjectId: token.projectId,
+            tokenRole: token.role,
+          };
+      } else if (subject) request.principal = { subject, root: false };
     }
     if (
       !['GET', 'HEAD', 'OPTIONS'].includes(request.method) &&
@@ -172,6 +186,31 @@ export async function createServer(options: ServerOptions) {
     operator: request.principal?.root ?? false,
     oidc: Boolean(options.oidc),
   }));
+  app.post('/auth/token', async (request, reply) => {
+    if (
+      !request.principal ||
+      !request.headers.authorization?.startsWith('Bearer ')
+    )
+      fail(401, 'Bearer authentication required');
+    const credential = request.headers.authorization.slice(7);
+    const session = randomBytes(32).toString('base64url');
+    const subject = request.principal.root
+      ? `$root:${tokenHash(options.rootToken)}`
+      : `$token:${tokenHash(credential)}`;
+    await repository.createSession(
+      tokenHash(session),
+      subject,
+      new Date(Date.now() + 3_600_000),
+    );
+    reply.setCookie('docs_session', session, {
+      path: '/',
+      httpOnly: true,
+      secure: publicUrl.protocol === 'https:',
+      sameSite: 'lax',
+      maxAge: 3600,
+    });
+    return { status: 'signed-in' };
+  });
   app.post('/auth/logout', async (request, reply) => {
     if (request.cookies.docs_session)
       await repository.deleteSession(tokenHash(request.cookies.docs_session));

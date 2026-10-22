@@ -74,10 +74,42 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run build
       - run: npm run test:integration
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:studio
+  java:
+    name: Java ${{ matrix.java }} / Boot ${{ matrix.boot }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21', '25']
+        boot: ['3.5.16', '4.1.1']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: node scripts/prepare-java-fixture.mjs
+      - name: Verify Java consumers
+        working-directory: integrations/java
+        env:
+          BOOT_VERSION: ${{ matrix.boot }}
+        run: ./mvnw --batch-mode --no-transfer-progress --strict-checksums -Dspring-boot.version="$BOOT_VERSION" verify
   quality:
     name: Quality
     if: always()
-    needs: [source, database]
+    needs: [source, database, java]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -85,4 +117,5 @@ jobs:
         env:
           SOURCE_RESULT: ${{ needs.source.result }}
           DATABASE_RESULT: ${{ needs.database.result }}
-        run: test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success
+          JAVA_RESULT: ${{ needs.java.result }}
+        run: test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success

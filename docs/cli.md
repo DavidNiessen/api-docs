@@ -59,4 +59,6 @@ Authenticate management API requests with an operator or project-scoped bearer t
 
 Publish again with the same key and artifact to safely retry. A stale expected publication returns HTTP 409. Roll back by activating a previously registered artifact with a new key and the current expected publication id. History remains immutable.
 
-The initial protocol intentionally stages artifacts through operator-controlled storage rather than accepting arbitrary archives from the browser. Upload and build workers are further roadmap work.
+Use `api-docs stage <directory> --store <artifact-root>` to verify and atomically stage a build; retries are idempotent. Then set `DOCS_PUBLISH_TOKEN` securely and use `api-docs publish <artifact-id> --server <https-origin> --project <slug-or-id>`. For loopback testing only, add `--insecure-development`. An optional `DOCS_IDEMPOTENCY_KEY` makes CI retries reuse the same publication request.
+
+The protocol stages through operator-controlled storage rather than accepting arbitrary archives from the browser. Isolated upload/build workers are further roadmap work.

@@ -24,7 +24,7 @@ Operator requests use the root bearer token. Per-project tokens are created thro
 
 OIDC login uses `/auth/login` and the registered callback `/auth/callback`. State, nonce, PKCE, issuer, audience and signature are checked. Reader identity is the immutable issuer + subject pair, never an email address. Bind that subject to a project role through `PUT /api/projects/<id>/roles`. Viewer, editor, publisher, and admin roles are ordered; public documentation grants anonymous reading, while all mutations require credentials.
 
-Session cookies are opaque, HttpOnly, Secure on HTTPS, SameSite=Lax, and backed by expiring database records. Cookie-authenticated mutations require the exact configured origin. Logout deletes the session. Role revocation is checked on subsequent requests, including direct requests for search indexes, JSON data, specs and JavaScript assets.
+Session cookies are opaque, HttpOnly, Secure on HTTPS, SameSite=Lax, and backed by expiring database records. Studio exchanges a supplied operator/project token through `POST /auth/token` for a session; raw credentials are cleared from the form. Token-backed sessions recheck revocation on every request, and rotating the operator token invalidates its existing sessions. Cookie-authenticated mutations require the exact configured origin. Logout deletes the session. Role revocation is checked on subsequent requests, including direct requests for search indexes, JSON data, specs and JavaScript assets.
 
 ## Deployment boundary
 
