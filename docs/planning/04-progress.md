@@ -24,6 +24,7 @@ Validation for this increment:
 - Formatting/lint, type checking, 73 tooling tests and all 380 compiler/component tests pass.
 - The same inspected baseline JARs pass all 12 installed consumers across JDK 17/21/25 × Boot 3.5.16/4.1.1 × MVC/WebFlux: 48 current tests without skips and 12 fresh offline compilations.
 - All six source Java combinations pass 60 manifest/host tests without skips. Runtime/source/Javadoc archives, IDE metadata and the bound baseline SBOM remain validated by the candidate gate.
+- A clean `e6fb837` clone passed the exact preparation action and production build with canonical `0.2.0` metadata, all distribution checks, eight installed Java 21 / Boot 4.1.1 tests and two offline compilations. All three publication digest pins were verified; the clone was removed without tagging or publishing.
 
 See [Spring integration configuration](../integrations.md#spring-boot) and [Java validation](../java-validation.md). Candidates remain unsigned and unpublished; hosted CI remains blocked by account billing.
 
