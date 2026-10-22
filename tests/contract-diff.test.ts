@@ -59,6 +59,105 @@ function severities(a: Schema, b: Schema, direction: 'request' | 'response') {
 const operation = (document: ApiDocument): Operation => document.operations[0]!;
 
 describe('conservative API contract classification', () => {
+  it('uses each OpenAPI dialect for nullable changes and migrations', () => {
+    const old = api({ type: 'string', nullable: true });
+    old.openapiVersion = '3.1.0';
+    const next = structuredClone(old);
+    operation(next).requestBody!.content['application/json']!.schema = {
+      type: 'string',
+    };
+    expect(diffApi(old, next)).toEqual([]);
+    old.openapiVersion = '3.0.4';
+    expect(diffApi(old, next)).toContainEqual(
+      expect.objectContaining({ code: 'schema-type', severity: 'breaking' }),
+    );
+    operation(next).requestBody!.content['application/json']!.schema = {
+      type: ['string', 'null'],
+    };
+    expect(diffApi(old, next)).toEqual([]);
+  });
+  it('ignores OpenAPI 3.0 reference siblings throughout alias chains', () => {
+    const old = api({
+      $ref: '#/components/schemas/Alias',
+      type: 'integer',
+      nullable: true,
+    });
+    old.openapiVersion = '3.0.4';
+    old.schemas = {
+      Alias: { $ref: '#/components/schemas/Value', minLength: 10 },
+      Value: { type: 'string' },
+    };
+    const next = structuredClone(old);
+    operation(next).requestBody!.content['application/json']!.schema = {
+      type: 'string',
+    };
+    expect(diffApi(old, next)).toEqual([]);
+  });
+  it.each(['description', 'title', 'default', 'examples', 'deprecated'])(
+    'compares the property named %s inside compositions as a schema, not an annotation',
+    (name) => {
+      const old = api({
+        allOf: [{ type: 'object', properties: { [name]: { type: 'string' } } }],
+      });
+      const next = api({
+        allOf: [
+          { type: 'object', properties: { [name]: { type: 'integer' } } },
+        ],
+      });
+      expect(diffApi(old, next)).toContainEqual(
+        expect.objectContaining({ code: 'schema-review', severity: 'review' }),
+      );
+    },
+  );
+  it('keeps literal object fields meaningful while ignoring schema annotations', () => {
+    expect(
+      diffApi(
+        api({ allOf: [{ const: { description: 'old' } }] }),
+        api({ allOf: [{ const: { description: 'new' } }] }),
+      ),
+    ).toContainEqual(expect.objectContaining({ code: 'schema-review' }));
+    expect(
+      diffApi(
+        api({ allOf: [{ type: 'string', description: 'old' }] }),
+        api({ allOf: [{ type: 'string', description: 'new' }] }),
+      ),
+    ).toEqual([]);
+    const old = api({ allOf: [{ type: 'string', nullable: true }] });
+    const next = api({ allOf: [{ type: 'string', nullable: false }] });
+    old.openapiVersion = next.openapiVersion = '3.1.0';
+    expect(diffApi(old, next)).toEqual([]);
+  });
+  it.each(['request', 'response'] as const)(
+    'resolves required visibility annotations for %s property references',
+    (direction) => {
+      const old = api(
+        {
+          type: 'object',
+          properties: {
+            id: { $ref: '#/components/schemas/Id', maxLength: 20 },
+          },
+        },
+        direction,
+      );
+      old.openapiVersion = '3.1.0';
+      old.schemas = {
+        Id: {
+          type: 'string',
+          [direction === 'request' ? 'readOnly' : 'writeOnly']: true,
+        },
+      };
+      const next = structuredClone(old);
+      const schema =
+        direction === 'request'
+          ? operation(next).requestBody!.content['application/json']!.schema
+          : operation(next).responses[0]!.content['application/json']!.schema;
+      schema.required = ['id'];
+      expect(diffApi(old, next)).toEqual([]);
+      schema.properties = {};
+      schema.required = [];
+      expect(diffApi(old, next)).toEqual([]);
+    },
+  );
   it('retains explicit review boundaries for encoding and bounded schema depth', () => {
     const old = api();
     const next = structuredClone(old);

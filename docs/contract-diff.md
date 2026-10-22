@@ -21,6 +21,8 @@ The classifier matches endpoints by method/path and keeps callback parent/name/e
 
 Schema checks follow local component references and terminate recursive pairs. Input acceptance and output guarantees use opposite compatibility directions: narrowing request types or enum values breaks old inputs; widening response types or enum values breaks assumptions made by old clients. Bounds, nullable/type sets, literal constants, property removal/addition, required properties, array items/uniqueness, and additional-property policies are included. Required `readOnly` properties are excluded from requests and required `writeOnly` properties from responses. Callback/webhook payloads use the output direction because the API producer sends them to consumers.
 
+Each document keeps its OpenAPI dialect: 3.0 typed `nullable` schemas accept null, while 3.1 uses JSON Schema null types and treats `nullable` as an annotation. OpenAPI 3.0 reference siblings are ignored, including through alias chains. Required visibility checks resolve referenced property schemas. Composition review distinguishes schema annotations from property-map keys and literal values, so fields named `description`, `default` or `examples` cannot hide a contract change. Programmatic `diffApi` callers should retain `ApiDocument.openapiVersion`; older inputs without it keep the legacy 3.0 handling.
+
 Authentication comparison preserves OR alternatives, AND scheme requirements, OAuth scopes and anonymous alternatives. Removing an accepted credential alternative, adding required scopes, or changing the referenced scheme is breaking for ordinary endpoints. Incoming-event authentication changes require review.
 
 ## Deliberate review boundaries

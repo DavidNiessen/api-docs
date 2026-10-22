@@ -64,7 +64,7 @@ const identity = (op: Operation) =>
     op.callback?.name,
     op.callback?.expression,
   ]);
-const types = (schema: Schema): Set<string> => {
+const types = (schema: Schema, legacy: boolean): Set<string> => {
   const declared = schema.type;
   const result = new Set<string>(
     typeof declared === 'string'
@@ -74,7 +74,8 @@ const types = (schema: Schema): Set<string> => {
         : ['null', 'boolean', 'object', 'array', 'number', 'string'],
   );
   if (result.has('number')) result.add('integer');
-  if (schema.nullable === true) result.add('null');
+  if (legacy && schema.nullable === true && typeof declared === 'string')
+    result.add('null');
   return result;
 };
 const values = (schema: Schema): unknown[] | undefined =>
@@ -85,6 +86,38 @@ const values = (schema: Schema): unknown[] | undefined =>
       : undefined;
 const includes = (list: unknown[], value: unknown) =>
   list.some((item) => equal(item, value));
+function keywordKind(keyword: string): 'schema' | 'map' | 'array' | 'value' {
+  if (
+    [
+      'properties',
+      'patternProperties',
+      '$defs',
+      'definitions',
+      'dependentSchemas',
+    ].includes(keyword)
+  )
+    return 'map';
+  if (['allOf', 'anyOf', 'oneOf', 'prefixItems'].includes(keyword))
+    return 'array';
+  if (
+    [
+      'items',
+      'additionalProperties',
+      'unevaluatedProperties',
+      'unevaluatedItems',
+      'contains',
+      'not',
+      'if',
+      'then',
+      'else',
+      'propertyNames',
+      'contentSchema',
+      'additionalItems',
+    ].includes(keyword)
+  )
+    return 'schema';
+  return 'value';
+}
 const meaningful = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(meaningful);
   if (value && typeof value === 'object')
@@ -102,6 +135,10 @@ export function diffApi(
   after: ApiDocument,
 ): ContractChange[] {
   const changes: ContractChange[] = [];
+  const legacy = [before, after].map(
+    (api) =>
+      api.openapiVersion === undefined || api.openapiVersion.startsWith('3.0'),
+  );
   let visited = 0;
   const resolved = [
     new WeakMap<Schema, Schema>(),
@@ -114,7 +151,12 @@ export function diffApi(
       value = resolveSchema(
         schema,
         side === 0 ? before.schemas : after.schemas,
+        { ignoreReferenceSiblings: legacy[side]! },
       );
+      if (!legacy[side] && Object.hasOwn(value, 'nullable'))
+        value = Object.fromEntries(
+          Object.entries(value).filter(([key]) => key !== 'nullable'),
+        );
       cache.set(schema, value);
     }
     return value;
@@ -124,6 +166,7 @@ export function diffApi(
   const dependencyChanged = (
     left: unknown,
     right: unknown,
+    kind: 'schema' | 'map' | 'array' | 'value',
     depth = 0,
     active = new WeakMap<object, WeakSet<object>>(),
   ): boolean => {
@@ -139,8 +182,14 @@ export function diffApi(
       typeof right !== 'object'
     )
       return !equal(left, right);
-    const a = Array.isArray(left) ? left : resolve(record(left), 0);
-    const b = Array.isArray(right) ? right : resolve(record(right), 1);
+    const a =
+      kind === 'schema' && !Array.isArray(left)
+        ? resolve(record(left), 0)
+        : left;
+    const b =
+      kind === 'schema' && !Array.isArray(right)
+        ? resolve(record(right), 1)
+        : right;
     const pairs = active.get(a) ?? new WeakSet<object>();
     if (pairs.has(b)) return false;
     active.set(a, pairs);
@@ -152,14 +201,30 @@ export function diffApi(
           !Array.isArray(b) ||
           a.length !== b.length ||
           a.some((value, index) =>
-            dependencyChanged(value, b[index], depth + 1, active),
+            dependencyChanged(
+              value,
+              b[index],
+              kind === 'array' ? 'schema' : 'value',
+              depth + 1,
+              active,
+            ),
           )
         );
       const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
       return [...keys].some(
         (key) =>
-          !annotations.has(key) &&
-          dependencyChanged(a[key], b[key], depth + 1, active),
+          !(kind === 'schema' && annotations.has(key)) &&
+          dependencyChanged(
+            record(a)[key],
+            record(b)[key],
+            kind === 'map'
+              ? 'schema'
+              : kind === 'schema'
+                ? keywordKind(key)
+                : 'value',
+            depth + 1,
+            active,
+          ),
       );
     } finally {
       pairs.delete(b);
@@ -249,8 +314,8 @@ export function diffApi(
             'Schema changed whether any values are allowed.',
           );
         if (oldFalse || nextFalse) return;
-        const ta = types(a),
-          tb = types(b);
+        const ta = types(a, legacy[0]!),
+          tb = types(b, legacy[1]!);
         if (
           [...ta].some((type) => !tb.has(type)) ||
           [...tb].some((type) => !ta.has(type))
@@ -354,14 +419,17 @@ export function diffApi(
             'Array uniqueness requirement changed.',
           );
         const hidden = direction === 'request' ? 'readOnly' : 'writeOnly';
-        const required = (s: Schema) =>
+        const required = (s: Schema, side: 0 | 1) =>
           new Set(
             (Array.isArray(s.required) ? (s.required as string[]) : []).filter(
-              (name) => record(record(s.properties)[name])[hidden] !== true,
+              (name) =>
+                resolve(objectSchema(record(s.properties)[name]), side)[
+                  hidden
+                ] !== true,
             ),
           );
-        const ra = required(a);
-        const rb = required(b);
+        const ra = required(a, 0);
+        const rb = required(b, 1);
         for (const name of new Set([...ra, ...rb])) {
           if (ra.has(name) !== rb.has(name))
             incompatible(
@@ -377,8 +445,10 @@ export function diffApi(
         for (const name of new Set([...Object.keys(pa), ...Object.keys(pb)])) {
           const location = `${path}/properties/${escape(name)}`;
           if (
-            (record(pa[name])[hidden] === true && !Object.hasOwn(pb, name)) ||
-            (record(pb[name])[hidden] === true && !Object.hasOwn(pa, name))
+            (resolve(objectSchema(pa[name]), 0)[hidden] === true &&
+              !Object.hasOwn(pb, name)) ||
+            (resolve(objectSchema(pb[name]), 1)[hidden] === true &&
+              !Object.hasOwn(pa, name))
           )
             continue;
           if (!Object.hasOwn(pb, name)) {
@@ -445,7 +515,7 @@ export function diffApi(
           );
         for (const keyword of new Set([...Object.keys(a), ...Object.keys(b)])) {
           if (annotations.has(keyword) || understood.has(keyword)) continue;
-          if (dependencyChanged(a[keyword], b[keyword]))
+          if (dependencyChanged(a[keyword], b[keyword], keywordKind(keyword)))
             add(
               'review',
               'schema-review',

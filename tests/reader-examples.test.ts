@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { resolve } from 'node:path';
 import {
   exampleFor,
+  resolveSchema,
   exampleChoices,
   formatExample,
   hasExternalExamples,
@@ -11,6 +12,42 @@ import { loadSpec } from '@api-docs/spec';
 import { prepareRequest } from '@api-docs/explorer';
 
 describe('authored example presentation', () => {
+  it('resolves legacy reference aliases without adopting ignored siblings', () => {
+    const schemas = {
+      Alias: { $ref: '#/components/schemas/Value', minLength: 10 },
+      Value: { type: 'string', description: 'Base' },
+    };
+    expect(
+      resolveSchema(
+        { $ref: '#/components/schemas/Alias', nullable: true },
+        schemas,
+        { ignoreReferenceSiblings: true },
+      ),
+    ).toEqual(schemas.Value);
+    expect(
+      resolveSchema(
+        { $ref: '#/components/schemas/Value', nullable: true },
+        schemas,
+      ),
+    ).toMatchObject({ nullable: true });
+  });
+  it('retains reference annotations alongside intersected validation siblings', () => {
+    const target = {
+      type: 'string',
+      description: 'Identifier',
+      readOnly: true,
+    };
+    expect(
+      resolveSchema(
+        { $ref: '#/components/schemas/Id', maxLength: 20 },
+        { Id: target },
+      ),
+    ).toEqual({
+      description: 'Identifier',
+      readOnly: true,
+      allOf: [target, { maxLength: 20 }],
+    });
+  });
   it('generates null and avoids forbidden properties or array items', () => {
     expect(exampleFor({ type: 'null' })).toBeNull();
     expect(exampleFor({ type: ['null'] })).toBeNull();

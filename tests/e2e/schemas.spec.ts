@@ -124,6 +124,6 @@ test('schema constraints remain visible for booleans, arrays, dictionaries and c
   );
   await expect(
     page.locator('#responses .field-heading .type-label'),
-  ).toHaveText('string | null');
+  ).toHaveText(['any', 'string | null']);
   expect(errors).toEqual([]);
 });

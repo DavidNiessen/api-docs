@@ -175,6 +175,7 @@ function validateExamples(api: ApiDocument): Diagnostic[] {
             resolveSchema(
               record(record(schema.properties)[String(name)]),
               api.schemas,
+              { ignoreReferenceSiblings: legacy },
             )[hidden] !== true,
         );
       }
@@ -222,7 +223,9 @@ function validateExamples(api: ApiDocument): Diagnostic[] {
       mediaType?: string,
     ) => {
       const check = (example: unknown, location: string) => {
-        const actual = resolveSchema(schema, api.schemas);
+        const actual = resolveSchema(schema, api.schemas, {
+          ignoreReferenceSiblings: legacy,
+        });
         const plainString =
           mediaType?.split(';')[0]?.trim().toLowerCase() === 'text/plain' &&
           (actual.type === 'string' ||

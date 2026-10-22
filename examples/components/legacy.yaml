@@ -17,6 +17,8 @@ paths:
               schema:
                 type: object
                 properties:
+                  untyped:
+                    nullable: true
                   name:
                     type: string
                     nullable: true

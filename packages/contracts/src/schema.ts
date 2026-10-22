@@ -8,12 +8,15 @@ const text = (value: unknown): string =>
 export function resolveSchema(
   schema: Schema,
   schemas: Record<string, Schema>,
+  options: { ignoreReferenceSiblings?: boolean } = {},
 ): Schema {
   let actual = schema;
   const seen = new Set<string>();
   for (let depth = 0; depth < 64; depth++) {
     const ref = text(actual.$ref);
-    if (!ref || seen.has(ref)) return actual;
+    if (!ref) return actual;
+    if (seen.has(ref))
+      return options.ignoreReferenceSiblings ? { $ref: ref } : actual;
     seen.add(ref);
     const key = ref.startsWith('#/components/schemas/')
       ? ref
@@ -27,9 +30,11 @@ export function resolveSchema(
         ? schemas[key]
         : undefined;
     if (!target) return actual;
-    const siblings = Object.fromEntries(
-      Object.entries(actual).filter(([key]) => key !== '$ref'),
-    );
+    const siblings = options.ignoreReferenceSiblings
+      ? {}
+      : Object.fromEntries(
+          Object.entries(actual).filter(([key]) => key !== '$ref'),
+        );
     const annotations = new Set([
       'title',
       'description',
@@ -39,11 +44,15 @@ export function resolveSchema(
       'default',
       'readOnly',
       'writeOnly',
+      'nullable',
       'externalDocs',
       'xml',
     ]);
     if (Object.keys(siblings).some((key) => !annotations.has(key)))
       return {
+        ...Object.fromEntries(
+          Object.entries(target).filter(([key]) => annotations.has(key)),
+        ),
         ...Object.fromEntries(
           Object.entries(siblings).filter(([key]) => annotations.has(key)),
         ),

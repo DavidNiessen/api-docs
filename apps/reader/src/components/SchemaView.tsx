@@ -30,7 +30,12 @@ function typeLabel(schema: Schema, legacyNullable: boolean): string {
                     ? 'all of'
                     : 'any'),
       ];
-  if (legacyNullable && schema.nullable === true && !types.includes('null'))
+  if (
+    legacyNullable &&
+    typeof schema.type === 'string' &&
+    schema.nullable === true &&
+    !types.includes('null')
+  )
     types.push('null');
   return (
     types.join(' | ') + (schema.format ? ` · ${String(schema.format)}` : '')
@@ -144,7 +149,9 @@ export function SchemaView({
     );
   const next = new Set(visited);
   if (ref) next.add(ref);
-  const actual = resolveSchema(schema, schemas);
+  const actual = resolveSchema(schema, schemas, {
+    ignoreReferenceSiblings: legacyNullable,
+  });
   const required = Array.isArray(actual.required) ? actual.required : [];
   const properties = Object.entries(object(actual.properties));
   return (
@@ -164,7 +171,9 @@ export function SchemaView({
         <div className="schema-fields">
           {properties.map(([name, value]) => {
             const property = asSchema(value),
-              resolved = resolveSchema(property, schemas);
+              resolved = resolveSchema(property, schemas, {
+                ignoreReferenceSiblings: legacyNullable,
+              });
             const nested =
               resolved.$ref ||
               Object.hasOwn(resolved, 'properties') ||
