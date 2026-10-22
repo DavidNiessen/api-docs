@@ -2595,3 +2595,41 @@ h3 {
   overflow-wrap: anywhere;
   min-width: 0;
 }
+
+.body-array-fields {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.body-array-item {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.body-array-item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.body-array-item-heading code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.body-array-item-heading button,
+.body-array-add {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+.body-array-item-heading button {
+  flex-shrink: 0;
+}
+.body-array-add {
+  justify-self: start;
+}

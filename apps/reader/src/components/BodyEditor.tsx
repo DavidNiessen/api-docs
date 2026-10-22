@@ -6,8 +6,17 @@ import {
 } from '@api-docs/contracts';
 import type { JsonValueNode, Schema } from '@api-docs/contracts';
 import type { ReactNode } from 'react';
-import { bodyFieldModel, bodyFieldLabel } from '../body-fields.js';
-import type { BodyFieldModel, ObjectBodyValue } from '../body-fields.js';
+import {
+  bodyFieldModel,
+  bodyFieldLabel,
+  MAX_ARRAY_ITEMS,
+} from '../body-fields.js';
+import type {
+  BodyFieldModel,
+  ObjectBodyValue,
+  BodyArrayModel,
+  ArrayBodyValue,
+} from '../body-fields.js';
 
 const typeOf = (schema: Schema) =>
   Array.isArray(schema.type)
@@ -168,10 +177,10 @@ function FieldValue({
               Use null
             </label>
           )}
-          {nested && value.kind === 'object' && (
+          {nested && (value.kind === 'object' || value.kind === 'array') && (
             <div
               role="group"
-              aria-label={`${name} object editor`}
+              aria-label={`${name} ${value.kind} editor`}
               className="body-nested-modes"
             >
               <button
@@ -205,7 +214,9 @@ function FieldValue({
           {nestedReason && <p className="subtle">{nestedReason}</p>}
           {nullable && value.kind === 'null' ? (
             <code>null</code>
-          ) : nested && nestedMode === 'fields' && value.kind === 'object' ? (
+          ) : nested &&
+            nestedMode === 'fields' &&
+            (value.kind === 'object' || value.kind === 'array') ? (
             nested
           ) : declared === 'string' ||
             (!declared && value.kind === 'string') ? (
@@ -275,6 +286,178 @@ function FieldValue({
   );
 }
 
+function ChildFields({
+  nested,
+  array,
+  path,
+  onChange,
+  onError,
+}: {
+  nested?: BodyFieldModel | undefined;
+  array?: BodyArrayModel | undefined;
+  path: (string | number)[];
+  onChange: (value: JsonValueNode) => void;
+  onError: (key: string, error: string) => void;
+}) {
+  return (
+    <fieldset className="body-nested-fields">
+      <legend>{bodyFieldLabel(path)}</legend>
+      {nested?.available ? (
+        <ObjectFields
+          model={nested}
+          path={path}
+          onChange={onChange}
+          onError={onError}
+        />
+      ) : array?.available ? (
+        <ArrayFields
+          model={array}
+          path={path}
+          onChange={onChange}
+          onError={onError}
+        />
+      ) : null}
+    </fieldset>
+  );
+}
+
+function ArrayFields({
+  model,
+  path,
+  onChange,
+  onError,
+}: {
+  model: Extract<BodyArrayModel, { available: true }>;
+  path: (string | number)[];
+  onChange: (value: ArrayBodyValue) => void;
+  onError: (key: string, error: string) => void;
+}) {
+  const [revision, setRevision] = useState(0),
+    [error, setError] = useState('');
+  const report = useRef(onError);
+  const list = useRef<HTMLDivElement>(null),
+    add = useRef<HTMLButtonElement>(null);
+  const pendingFocus = useRef<number | null>(null);
+  report.current = onError;
+  const errorKey = JSON.stringify([...path, '$add']),
+    label = bodyFieldLabel(path);
+  useEffect(() => () => report.current(errorKey, ''), [errorKey]);
+  useEffect(() => {
+    const index = pendingFocus.current;
+    if (index === null) return;
+    pendingFocus.current = null;
+    const item = list.current?.children.item(index);
+    const target =
+      item?.querySelector<HTMLElement>('input, textarea, select') ??
+      item?.querySelector<HTMLElement>('button') ??
+      add.current;
+    target?.focus();
+  }, [revision]);
+  const update = (items: JsonValueNode[]) => onChange({ kind: 'array', items });
+  const restructure = (
+    items: JsonValueNode[],
+    focusIndex = items.length - 1,
+  ) => {
+    pendingFocus.current = focusIndex;
+    // Index changes must never attach an incomplete draft to a different item.
+    setRevision((value) => value + 1);
+    setError('');
+    onError(errorKey, '');
+    update(items);
+  };
+  return (
+    <div className="body-array-fields">
+      <p className="subtle">
+        Adding or removing an item discards incomplete drafts in this array.
+        Valid values are retained.
+      </p>
+      {error && <p role="alert">{error}</p>}
+      <div ref={list} key={revision} className="body-object-fields">
+        {model.items.map(({ value, schema, nested, array }, index) => {
+          const itemPath = [...path, index],
+            name = bodyFieldLabel(itemPath),
+            key = JSON.stringify(itemPath);
+          return (
+            <div className="body-array-item" key={key}>
+              <div className="body-array-item-heading">
+                <code>{name}</code>
+                <button
+                  type="button"
+                  aria-label={`Remove body ${name}`}
+                  onClick={() =>
+                    restructure(
+                      model.value.items.filter(
+                        (_, position) => position !== index,
+                      ),
+                      Math.min(index, model.items.length - 2),
+                    )
+                  }
+                >
+                  Remove
+                </button>
+              </div>
+              <FieldValue
+                name={name}
+                schema={schema}
+                value={value}
+                onChange={(value) =>
+                  update(
+                    model.value.items.map((previous, position) =>
+                      position === index ? value : previous,
+                    ),
+                  )
+                }
+                onError={(_name, error) => onError(key, error)}
+                nestedReason={
+                  nested && !nested.available
+                    ? nested.error
+                    : array && !array.available
+                      ? array.error
+                      : undefined
+                }
+                nested={
+                  nested?.available || array?.available ? (
+                    <ChildFields
+                      nested={nested}
+                      array={array}
+                      path={itemPath}
+                      onChange={(value) =>
+                        update(
+                          model.value.items.map((previous, position) =>
+                            position === index ? value : previous,
+                          ),
+                        )
+                      }
+                      onError={onError}
+                    />
+                  ) : undefined
+                }
+              />
+            </div>
+          );
+        })}
+      </div>
+      <button
+        ref={add}
+        className="body-array-add"
+        type="button"
+        aria-label={`Add item to body ${label}`}
+        disabled={model.items.length >= MAX_ARRAY_ITEMS}
+        onClick={() => {
+          try {
+            restructure([...model.value.items, seed(model.schema)]);
+          } catch {
+            setError('This item cannot be initialized here. Use JSON.');
+            onError(errorKey, 'Use JSON to initialize this array item.');
+          }
+        }}
+      >
+        + Add item
+      </button>
+    </div>
+  );
+}
+
 function ObjectFields({
   model,
   path = [],
@@ -282,7 +465,7 @@ function ObjectFields({
   onError,
 }: {
   model: Extract<BodyFieldModel, { available: true }>;
-  path?: string[];
+  path?: (string | number)[];
   onChange: (value: ObjectBodyValue) => void;
   onError: (key: string, error: string) => void;
 }) {
@@ -305,7 +488,7 @@ function ObjectFields({
   return (
     <div className="body-object-fields">
       {error && <p role="alert">{error}</p>}
-      {model.fields.map(({ name, schema: field, nested }) => {
+      {model.fields.map(({ name, schema: field, nested, array }) => {
         const fieldPath = [...path, name],
           label = bodyFieldLabel(fieldPath),
           key = JSON.stringify(fieldPath);
@@ -351,19 +534,21 @@ function ObjectFields({
                 onChange={update}
                 onError={(_name, error) => reportError(key, error)}
                 nestedReason={
-                  nested && !nested.available ? nested.error : undefined
+                  nested && !nested.available
+                    ? nested.error
+                    : array && !array.available
+                      ? array.error
+                      : undefined
                 }
                 nested={
-                  nested?.available ? (
-                    <fieldset className="body-nested-fields">
-                      <legend>{label}</legend>
-                      <ObjectFields
-                        model={nested}
-                        path={fieldPath}
-                        onChange={update}
-                        onError={reportError}
-                      />
-                    </fieldset>
+                  nested?.available || array?.available ? (
+                    <ChildFields
+                      nested={nested}
+                      array={array}
+                      path={fieldPath}
+                      onChange={update}
+                      onError={reportError}
+                    />
                   ) : undefined
                 }
               />
@@ -458,9 +643,9 @@ export function BodyEditor({
         <fieldset className="body-fields">
           <legend>Request fields</legend>
           <p className="subtle">
-            Arrays and complex schemas use JSON. Unknown and read-only values
-            are retained; edit them in JSON. Required fields and schema
-            constraints still apply.
+            Complex schemas use JSON. Unknown and read-only values are retained;
+            edit them in JSON. Required fields and schema constraints still
+            apply.
           </p>
           <ObjectFields
             model={model}

@@ -60,6 +60,9 @@ test('body fields retain exact numbers, protect snippet secrets and send the edi
     playground.getByLabel('Body optional', { exact: true }),
   ).toHaveValue('optional-default');
   await playground.getByLabel('Body optional', { exact: true }).fill('');
+  await playground
+    .getByRole('button', { name: 'Edit body options as JSON', exact: true })
+    .click();
   await playground.getByLabel('Body options', { exact: true }).fill('[1,');
   await expect(
     playground.getByRole('button', { name: 'Send request' }),

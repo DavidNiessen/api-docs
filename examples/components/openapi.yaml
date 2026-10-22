@@ -335,6 +335,16 @@ components:
         fixed: { type: string, const: fixed }
         profile:
           $ref: '#/components/schemas/NestedProfile'
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/NestedProfile' }
+        matrix:
+          type: array
+          items: { type: array, items: { type: number } }
+        tokens:
+          type: array
+          writeOnly: true
+          items: { type: string }
     NestedProfile:
       type: object
       required: [name, id]
