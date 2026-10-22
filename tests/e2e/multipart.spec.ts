@@ -16,6 +16,7 @@ test('multipart uploads send real binary files and structured parts while previe
       uploads.push(request.url());
   });
   await page.goto(route);
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   await expect(
     playground.getByRole('button', { name: 'Send request' }),
@@ -167,6 +168,7 @@ test('invalid and oversized multipart inputs cannot send and valid upload contro
       uploads.push(request.url());
   });
   await page.goto(route);
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   await playground.getByRole('button', { name: 'JSON', exact: true }).click();
   await playground
@@ -206,8 +208,11 @@ test('invalid and oversized multipart inputs cannot send and valid upload contro
     playground.getByRole('button', { name: 'Send request' }),
   ).toBeEnabled();
   for (const theme of ['light', 'dark']) {
-    if (theme === 'dark')
+    if (theme === 'dark') {
+      await page.getByRole('button', { name: 'Close playground' }).click();
       await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+      await page.getByRole('button', { name: 'Try now', exact: true }).click();
+    }
     const audit = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze();

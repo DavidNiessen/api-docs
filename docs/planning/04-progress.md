@@ -17,15 +17,15 @@ Updated: 2026-10-22. **Approximately 73% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
-The distribution now has one runtime version shared by the CLI, HTML generator metadata and compiler manifests. A read-only audit checks all npm workspace/package/lockfile references and the Maven reactor, with separate development-snapshot and release-alignment modes. Normal checks and candidate packaging run that audit; packing uses the same discovered workspace inventory, excludes private applications, and rejects colliding archive filenames. The overall estimate remains 73%: release preparation, changelog generation, signed publication and launch acceptance remain pending. See [version consistency](../versioning.md).
+**Try now opens a modal playground inspired by the Mintlify interaction.** Endpoint pages retain a request example card, with launch controls beside the endpoint URL and in the card. The large rounded modal places request configuration beside code/response panels, stacks them on mobile, and follows the configured light/dark palette. Its native dialog keeps the documentation inert, traps keyboard focus, supports Escape/backdrop/close-button dismissal, and restores focus to the launcher. Endpoint links with `?playground=open` open it directly; closing preserves other query parameters and fragments. Closing also clears drafts/files/credentials, cancels OAuth popups and aborts pending browser requests. The estimate remains 73%; broader release and production acceptance work remains pending. See [playground behavior](../explorer-auth.md#open-the-playground).
 
 Validation for this increment:
 
-- The complete local check passed: version alignment, formatting, ESLint, Markdown lint, TypeScript, 21 Node tooling tests and 361 compiler/component tests.
-- Negative cases reject stale workspace/runtime/Maven versions, lockfile/reference/link/inventory drift, private runtime dependencies, unsafe workspace paths, outside metadata symlinks and noncanonical versions. Fixtures derive the current base version so ordinary release bumps do not invalidate the tests.
-- All 12 packed components installed outside the workspace. The installed runtime, CLI version, HTML generator metadata and compiler manifest version agree.
-- The root dependency audit reports zero vulnerabilities. The current development Maven snapshots deliberately fail release-only alignment; no source version, release tag or registry publication was changed.
-- Reader layout and request behavior are unchanged in this increment. The preceding multipart increment passed all 20 browser journeys and 60 executable snippets; those checks were not repeated for the version-audit tooling.
+- The complete local check passed: version consistency, formatting, ESLint, Markdown lint, TypeScript, 21 tooling tests and 361 compiler/component tests.
+- All 23 browser journeys passed, including existing requests, precise JSON edits, form/multipart uploads, OAuth and navigation inside the new modal.
+- New browser checks cover both launch controls, direct links and browser-history restoration, query/fragment preservation, Escape/backdrop dismissal, focus return, fresh credentials, cancellation of an in-flight request, light/dark accessibility scans and mobile viewport containment.
+- The dark-theme validation-message contrast was corrected. Desktop/mobile screenshots were inspected, the demo was rebuilt, and the local reader reports ready.
+- Request codecs, snippet generators and server authorization were not changed. Previously recorded snippet, adapter and integration results remain scoped to those tested increments.
 
 These results apply to the tested local candidate. They do not establish a complete platform matrix, independent review or installation from published registries.
 

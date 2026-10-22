@@ -43,6 +43,7 @@ test('named examples, explicit null, media types and custom request values are u
   await expect(response.locator('pre')).toHaveCount(0);
   await response.getByRole('button', { name: '200', exact: true }).click();
   await expect(response.locator('pre')).toHaveText('null');
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   await expect(
     playground.getByRole('textbox', { name: 'Request body', exact: true }),
@@ -72,6 +73,7 @@ test('named examples, explicit null, media types and custom request values are u
   await expect(playground.locator('pre')).toContainText(
     "--data-raw '  keep these spaces  '",
   );
+  await page.getByRole('button', { name: 'Close playground' }).click();
   await response
     .getByRole('button', { name: 'Copy code', exact: true })
     .click();

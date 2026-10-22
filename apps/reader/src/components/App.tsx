@@ -22,7 +22,8 @@ import type {
   Theme,
 } from '@api-docs/contracts';
 import { Icon } from './Icon.js';
-import { Explorer } from './Explorer.js';
+import { Playground } from './Playground.js';
+import type { PlaygroundHandle } from './Playground.js';
 import { SchemaView } from './SchemaView.js';
 import { MediaExamples } from './MediaExamples.js';
 import { DeprecationCenter, OperationLifecycle } from './Lifecycle.js';
@@ -111,6 +112,7 @@ export function App({
   const [themeEditorOpen, setThemeEditorOpen] = useState(false);
   const [query, setQuery] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
+  const playground = useRef<PlaygroundHandle>(null);
   useEffect(() => {
     performance.mark('api-docs:hydrated');
   }, []);
@@ -743,6 +745,20 @@ export function App({
                   </span>
                   <code>{activeOperation.path}</code>
                   <span className="endpoint-version">{activeApi.version}</span>
+                  {(!activeOperation.kind ||
+                    activeOperation.kind === 'endpoint') && (
+                    <button
+                      type="button"
+                      className="try-now"
+                      aria-label="Try this endpoint"
+                      aria-haspopup="dialog"
+                      onClick={(event) =>
+                        playground.current?.open(event.currentTarget)
+                      }
+                    >
+                      Try now <Icon name="arrow" size={14} />
+                    </button>
+                  )}
                 </div>
                 <OperationDetails
                   key={`${activeApi.id}:${activeApi.version}:${activeOperation.slug}`}
@@ -752,7 +768,8 @@ export function App({
                 <PageFooter source={activeOperation.source} />
               </article>
               {!activeOperation.kind || activeOperation.kind === 'endpoint' ? (
-                <Explorer
+                <Playground
+                  ref={playground}
                   key={`${activeApi.id}:${activeApi.version}:${activeOperation.slug}`}
                   api={activeApi}
                   operation={activeOperation}

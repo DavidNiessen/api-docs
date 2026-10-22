@@ -2,6 +2,12 @@
 
 The reader accepts API keys, basic credentials, bearer tokens and OAuth authorization code with S256 PKCE. OAuth/OpenID security schemes can also use a manually acquired bearer token. Navigation and changes to the API server clear operation credentials; copied snippets use placeholders. The target API still enforces token validity, scopes and permissions.
 
+## Open the playground
+
+Choose **Try now** beside the endpoint URL or in its request example card. The playground opens over the current documentation, with request fields on the left and code/response panels on the right. On narrow screens the panels stack inside the modal. Add `?playground=open` to an endpoint URL to share the open playground; existing query parameters and fragments are preserved when opening or closing it.
+
+Use the close button, Escape or the backdrop to dismiss the modal. Keyboard focus returns to the control that opened it. Closing discards request drafts, files and credentials, cancels pending authorization, and aborts an in-flight browser request. An API may already have processed a request before cancellation; closing the playground does not undo server changes. Reopening starts a fresh request from the specification examples. The endpoint documentation and request example remain readable without JavaScript; sending requests requires JavaScript.
+
 ## Register a public client
 
 For an OAuth2 scheme with an `authorizationCode` flow, open **OAuth public client** in the playground. Set the public client ID and exact provider issuer, review the requested scopes, and register the displayed redirect URI with the provider. Then choose **Authorize with PKCE**. The provider must support public clients with PKCE and permit browser token requests through CORS. No client secret is needed or accepted in project configuration.

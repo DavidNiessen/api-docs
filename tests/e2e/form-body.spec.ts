@@ -10,6 +10,7 @@ test('form values, literal encoded drafts and example selection send the active 
   await page.goto(
     'http://127.0.0.1:4174/gallery/api/gallery/v1/editformvalues/',
   );
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   await expect(
     playground.getByRole('button', { name: 'Form values', exact: true }),

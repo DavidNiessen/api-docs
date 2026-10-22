@@ -57,10 +57,16 @@ export function Explorer({
   operation,
   basePath = '',
   oauthClients,
+  previewOnly = false,
+  onOpen,
+  onClose,
 }: {
   api: ApiDocument;
   operation: Operation;
   basePath?: string;
+  previewOnly?: boolean;
+  onOpen?: () => void;
+  onClose?: () => void;
   oauthClients?:
     Record<string, { clientId: string; issuer: string }> | undefined;
 }) {
@@ -294,39 +300,106 @@ export function Explorer({
       setBusy(false);
     }
   }
-  return (
-    <aside className="explorer" aria-label="API playground">
-      <div className="explorer-header">
-        <span className="live-dot" />
-        API playground<span className="playground-label">Interactive</span>
-      </div>
-      <div className="explorer-tabs">
-        <button
-          type="button"
-          className={tab === 'request' ? 'active' : ''}
-          onClick={() => setTab('request')}
+  const snippet = (
+    <>
+      <div className="snippet-controls">
+        <select
+          aria-label="Code language"
+          value={language}
+          onChange={(event) =>
+            setLanguage(event.target.value as SnippetLanguage)
+          }
         >
-          Request
-        </button>
-        <button
-          type="button"
-          className={tab === 'response' ? 'active' : ''}
-          onClick={() => setTab('response')}
-        >
-          Response
-          {response && (
-            <span
-              className={
-                response.status < 400 ? 'response-success' : 'response-failed'
-              }
-            >
-              {response.status}
-            </span>
+          {['cURL', 'JavaScript', 'TypeScript', 'Python', 'Java'].map(
+            (item) => (
+              <option key={item}>{item}</option>
+            ),
           )}
-        </button>
+        </select>
+        <span>Example</span>
       </div>
-      <div hidden={tab !== 'request'}>
-        <>
+      {preview.request ? (
+        <CodeBlock
+          code={generateSnippet(
+            redactRequest(
+              preview.request,
+              credentials,
+              (isJsonMediaType(contentType) ||
+                isMultipartMediaType(contentType)) &&
+                requestMedia
+                ? {
+                    schema: requestMedia.schema,
+                    schemas: api.schemas,
+                    openapiVersion: api.openapiVersion,
+                  }
+                : undefined,
+            ),
+            language,
+          )}
+          language={language}
+        />
+      ) : (
+        <p className="preview-error">{preview.error}</p>
+      )}
+    </>
+  );
+  if (previewOnly)
+    return (
+      <aside className="explorer request-example" aria-label="Request example">
+        <div className="explorer-header">
+          <Icon name="terminal" size={15} />
+          Request example
+          <button
+            type="button"
+            className="try-now"
+            onClick={onOpen}
+            aria-haspopup="dialog"
+          >
+            Try now <Icon name="arrow" size={14} />
+          </button>
+        </div>
+        {preview.request ? (
+          snippet
+        ) : (
+          <p className="preview-hint">
+            Open the playground to configure this request.
+          </p>
+        )}
+      </aside>
+    );
+  return (
+    <aside
+      className="explorer playground-workspace"
+      aria-label="API playground"
+    >
+      <header className="playground-heading">
+        <span className={`method-badge ${operation.method}`}>
+          {operation.method}
+        </span>
+        <strong>{operation.summary}</strong>
+        <code>{operation.path}</code>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Close playground"
+          onClick={onClose}
+          autoFocus
+        >
+          <Icon name="close" size={18} />
+        </button>
+      </header>
+      <div className="playground-panels">
+        <section
+          className="playground-inputs"
+          aria-label="Request configuration"
+        >
+          <div className="playground-intro">
+            <h2>{operation.summary}</h2>
+            <p>
+              {operation.description ||
+                'Configure and send a request to this endpoint.'}
+            </p>
+          </div>
           <div className="request-fields">
             <label>
               Server
@@ -575,52 +648,56 @@ export function Explorer({
               </label>
             )}
           </div>
-          <div className="snippet-controls">
-            <select
-              aria-label="Code language"
-              value={language}
-              onChange={(event) =>
-                setLanguage(event.target.value as SnippetLanguage)
-              }
-            >
-              {['cURL', 'JavaScript', 'TypeScript', 'Python', 'Java'].map(
-                (item) => (
-                  <option key={item}>{item}</option>
-                ),
-              )}
-            </select>
-            <span>Example</span>
-          </div>
-          {preview.request ? (
-            <CodeBlock
-              code={generateSnippet(
-                redactRequest(
-                  preview.request,
-                  credentials,
-                  (isJsonMediaType(contentType) ||
-                    isMultipartMediaType(contentType)) &&
-                    requestMedia
-                    ? {
-                        schema: requestMedia.schema,
-                        schemas: api.schemas,
-                        openapiVersion: api.openapiVersion,
-                      }
-                    : undefined,
-                ),
-                language,
-              )}
-              language={language}
-            />
-          ) : (
-            <p className="preview-error">{preview.error}</p>
+          {error && (
+            <p role="alert" className="request-error">
+              {error}
+            </p>
           )}
-        </>
-      </div>
-      {tab === 'response' && (
-        <div className="response-content">
-          {response ? (
-            <>
-              <div className="response-meta">
+          <div className="send-request">
+            <button
+              type="button"
+              className="button-primary"
+              disabled={
+                busy ||
+                !!bodyFormError ||
+                (isMultipartMediaType(contentType) && !!preview.error)
+              }
+              onClick={() => {
+                void execute();
+              }}
+            >
+              {busy ? 'Sending…' : 'Send request'}
+              <Icon name="arrow" size={16} />
+            </button>
+            {busy && (
+              <button type="button" onClick={() => controller.current?.abort()}>
+                Cancel
+              </button>
+            )}
+            <p>Requests are sent directly from your browser.</p>
+          </div>
+        </section>
+        <section
+          className="playground-output"
+          aria-label="Request and response"
+        >
+          <div className="explorer-tabs">
+            <button
+              type="button"
+              className={tab === 'request' ? 'active' : ''}
+              onClick={() => setTab('request')}
+              aria-pressed={tab === 'request'}
+            >
+              Request
+            </button>
+            <button
+              type="button"
+              className={tab === 'response' ? 'active' : ''}
+              onClick={() => setTab('response')}
+              aria-pressed={tab === 'response'}
+            >
+              Response{' '}
+              {response && (
                 <span
                   className={
                     response.status < 400
@@ -630,50 +707,43 @@ export function Explorer({
                 >
                   {response.status}
                 </span>
-                <span>{response.duration} ms</span>
-              </div>
-              <CodeBlock code={response.body} title="Response body" />
-              <details>
-                <summary>Response headers</summary>
-                <pre>{response.headers}</pre>
-              </details>
-            </>
+              )}
+            </button>
+          </div>
+          {tab === 'request' ? (
+            snippet
           ) : (
-            <div className="response-empty">
-              <Icon name="terminal" size={30} />
-              <h3>Your response will appear here</h3>
-              <p>Send a request to try this endpoint.</p>
+            <div className="response-content">
+              {response ? (
+                <>
+                  <div className="response-meta">
+                    <span
+                      className={
+                        response.status < 400
+                          ? 'response-success'
+                          : 'response-failed'
+                      }
+                    >
+                      {response.status}
+                    </span>
+                    <span>{response.duration} ms</span>
+                  </div>
+                  <CodeBlock code={response.body} title="Response body" />
+                  <details>
+                    <summary>Response headers</summary>
+                    <pre>{response.headers}</pre>
+                  </details>
+                </>
+              ) : (
+                <div className="response-empty">
+                  <Icon name="terminal" size={30} />
+                  <h3>Your response will appear here</h3>
+                  <p>Send a request to try this endpoint.</p>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
-      {error && (
-        <p role="alert" className="request-error">
-          {error}
-        </p>
-      )}
-      <div className="send-request">
-        <button
-          type="button"
-          className="button-primary"
-          disabled={
-            busy ||
-            !!bodyFormError ||
-            (isMultipartMediaType(contentType) && !!preview.error)
-          }
-          onClick={() => {
-            void execute();
-          }}
-        >
-          {busy ? 'Sending…' : 'Send request'}
-          <Icon name="arrow" size={16} />
-        </button>
-        {busy && (
-          <button type="button" onClick={() => controller.current?.abort()}>
-            Cancel
-          </button>
-        )}
-        <p>Requests are sent directly from your browser.</p>
+        </section>
       </div>
     </aside>
   );

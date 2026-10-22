@@ -9,6 +9,7 @@ test('body fields retain exact numbers, protect snippet secrets and send the edi
   await page.goto(
     'http://127.0.0.1:4174/gallery/api/gallery/v1/editrequestfields/',
   );
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   const raw =
     '{"name":"before","enabled":false,"count":0,"id":9007199254740993,"mode":"auto","note":"hello","options":["cat"],"metadata":{"precise":1.234567890123456789},"password":"fixture-body-password","responseOnly":"retained-read-only-value","custom":{"huge":1e400},"fixed":"fixed"}';
@@ -106,7 +107,14 @@ test('body fields retain exact numbers, protect snippet secrets and send the edi
     path: testInfo.outputPath('body-fields-light.png'),
     fullPage: true,
   });
+  await page.getByRole('button', { name: 'Close playground' }).click();
   await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
+  await playground.getByLabel('Request body', { exact: true }).fill(serialized);
+  await playground
+    .getByLabel('bearer credential', { exact: true })
+    .fill('demo-token');
+  await playground.getByRole('button', { name: 'Fields', exact: true }).click();
   expect(
     (
       await new AxeBuilder({ page })
@@ -136,6 +144,7 @@ test('invalid drafts can return to JSON without changing the last valid body', a
   await page.goto(
     'http://127.0.0.1:4174/gallery/api/gallery/v1/editrequestfields/',
   );
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   await playground.getByRole('button', { name: 'Fields', exact: true }).click();
   await playground.getByLabel('Body count', { exact: true }).fill('-');

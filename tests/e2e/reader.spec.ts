@@ -24,6 +24,7 @@ test('reader, local search and live API playground work end to end', async ({
   await expect(
     page.getByRole('heading', { name: 'Create a project', exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'bearerAuth credential' })
     .fill('demo-token');
@@ -45,6 +46,7 @@ test('reader, local search and live API playground work end to end', async ({
       .getByText('My first project', { exact: false })
       .first(),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Close playground' }).click();
   await page.getByRole('button', { name: 'Switch to dark theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.goBack();

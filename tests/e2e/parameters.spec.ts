@@ -8,6 +8,7 @@ test('parameter examples produce the same serialized browser request as the prev
   await page.goto(
     'http://127.0.0.1:4174/gallery/api/gallery/v1/serializeparameters/',
   );
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   await expect(playground.getByLabel('payload parameter')).toHaveValue(
     '"hello world"',

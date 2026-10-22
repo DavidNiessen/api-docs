@@ -14,6 +14,7 @@ test('PKCE acquisition binds the popup, sends a real API request and clears expi
       exchanges.push(request.postData() ?? '');
   });
   await page.goto(route);
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   const popupPromise = page.waitForEvent('popup');
   await playground
@@ -95,6 +96,7 @@ test('provider denial, wrong state and cancellation cannot install credentials',
     if (request.url() === 'http://127.0.0.1:4020/token') exchanges++;
   });
   await page.goto(route);
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   const open = async () => {
     const result = page.waitForEvent('popup');
@@ -145,14 +147,17 @@ test('navigation cancels pending authorization and standalone callbacks scrub UR
   page,
 }) => {
   await page.goto(route);
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const result = page.waitForEvent('popup');
   await page.getByRole('button', { name: 'Authorize oauth with PKCE' }).click();
   const popup = await result;
   await popup.waitForURL('http://127.0.0.1:4020/authorize?**');
   const closed = popup.waitForEvent('close');
+  await page.getByRole('button', { name: 'Close playground' }).click();
   await page.getByRole('link', { name: /Service health/ }).click();
   await closed;
   await page.goto(route);
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
   await expect(
     page.getByLabel('oauth credential', { exact: true }),
   ).toHaveValue('');

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { compileProject } from '@api-docs/compiler';
 import { renderDocument } from '@api-docs/reader/render';
 import { operationHref } from '@api-docs/contracts';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { Explorer } from '../apps/reader/dist/components/Explorer.js';
 import { resolve } from 'node:path';
 import { createMultipartParts, redactRequest } from '@api-docs/explorer';
 import type {
@@ -132,7 +135,12 @@ describe('multipart reader model and schema-aware previews', () => {
       ['constructor', { type: 'string', format: 'binary' }],
       ['__proto__', { type: 'string', format: 'binary' }],
     ]);
-    const html = renderDocument(site, operationHref(api, operation));
+    const page = renderDocument(site, operationHref(api, operation));
+    expect(page).toContain('Try now');
+    expect(page).not.toContain('aria-label="Upload constructor"');
+    const html = renderToStaticMarkup(
+      createElement(Explorer, { api, operation }),
+    );
     expect(html).toContain('aria-label="Upload constructor"');
     expect(html).toContain('aria-label="Upload __proto__"');
   });
