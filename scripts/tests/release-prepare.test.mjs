@@ -59,6 +59,15 @@ test('stages and audits an initial release without changing files, tags or the i
   assert.equal(result.version, BASE_VERSION);
   assert.equal(result.audit.mode, 'release');
   assert.equal(result.audit.javaVersion, BASE_VERSION);
+  assert.deepEqual(
+    result.files.map((file) => file.path),
+    [
+      'integrations/java/pom.xml',
+      'integrations/java/core/pom.xml',
+      'integrations/java/spring-boot-starter/pom.xml',
+      'CHANGELOG.md',
+    ],
+  );
   assert(
     result.files.some(
       (file) => file.path === 'CHANGELOG.md' && file.beforeSha256 === null,

@@ -24,7 +24,10 @@ import { readRepositoryFile, readWorkspacePackages } from './workspaces.mjs';
 
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 const json = (value) =>
-  format(JSON.stringify(value), { parser: 'json', singleQuote: true });
+  format(JSON.stringify(value), {
+    parser: 'json-stringify',
+    singleQuote: true,
+  });
 async function absent(path) {
   try {
     await lstat(path);
