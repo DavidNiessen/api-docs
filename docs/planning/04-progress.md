@@ -17,6 +17,18 @@ Updated: 2026-10-22. **Approximately 76% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**Spring MVC/WebFlux can now serve verified documentation at the application root.** `api-docs.path: /` normalizes to an empty mount suffix, so standalone and context-prefixed roots use the correct compiled public base path, resource mappings and redirects. Installed consumer journeys verify authentication, both slash variants, allowed assets/pages, rejected unlisted files and preserved host-owned routes. Fixture-only system properties have a separate namespace, and the result reader requires all named root/subpath scenarios. The estimate stays at approximately 76%; remaining product and launch gates still apply.
+
+Validation for this increment:
+
+- Formatting/lint, type checking, 73 tooling tests and all 380 compiler/component tests pass.
+- The same inspected baseline JARs pass all 12 installed consumers across JDK 17/21/25 × Boot 3.5.16/4.1.1 × MVC/WebFlux: 48 current tests without skips and 12 fresh offline compilations.
+- All six source Java combinations pass 60 manifest/host tests without skips. Runtime/source/Javadoc archives, IDE metadata and the bound baseline SBOM remain validated by the candidate gate.
+
+See [Spring integration configuration](../integrations.md#spring-boot) and [Java validation](../java-validation.md). Candidates remain unsigned and unpublished; hosted CI remains blocked by account billing.
+
+## Previous Java distribution increment
+
 **Java candidates now include source/Javadoc archives, a bound dependency SBOM and Spring IDE configuration metadata.** Both modules attach documented sources/API archives with canonical license/notice resources. The starter generates descriptions/defaults for its five supported configuration properties without adding the annotation processor to application runtimes. A pinned CycloneDX generator records the baseline dependency graph; validation rejects stale coordinates, inconsistent package URLs, broken/detached references and test dependencies, and binds project components to the inspected parent POM/runtime JAR hashes. Regular and prepared-version CI jobs retain all candidate archives and the inventory. This implemented distribution and IDE-support scope raises the estimate to approximately 76%; signed registry publication and external launch acceptance remain pending.
 
 Validation for this increment:

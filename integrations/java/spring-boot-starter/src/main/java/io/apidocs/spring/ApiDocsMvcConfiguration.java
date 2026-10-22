@@ -17,11 +17,12 @@ class ApiDocsMvcConfiguration implements WebMvcConfigurer {
   private final ApiDocsProperties properties;
   ApiDocsMvcConfiguration(Publication publication, ApiDocsProperties properties) { this.publication = publication; this.properties = properties; }
   @Override public void addViewControllers(org.springframework.web.servlet.config.annotation.ViewControllerRegistry registry) {
-    registry.addRedirectViewController(properties.getPath(), publication.basePath() + "/index.html").setContextRelative(false);
-    registry.addRedirectViewController(properties.getPath() + "/", publication.basePath() + "/index.html").setContextRelative(false);
+    String mount = properties.mountPrefix();
+    registry.addRedirectViewController(mount + "/", publication.basePath() + "/index.html").setContextRelative(false);
+    if (!mount.isEmpty()) registry.addRedirectViewController(mount, publication.basePath() + "/index.html").setContextRelative(false);
   }
   @Override public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry.addResourceHandler(properties.getPath() + "/**")
+    registry.addResourceHandler(properties.mountPrefix() + "/**")
       .addResourceLocations(publication.root().toUri().toString()).setCachePeriod(0)
       .resourceChain(false).addResolver(new PathResourceResolver() {
         @Override protected Resource getResource(String path, Resource location) throws IOException {

@@ -11,10 +11,10 @@ import org.junit.jupiter.api.Test;
 
 class PackagedPublicationTest {
   @Test void publicClassesComeFromTheExactInstalledJarsAndVerifyTheRealPublication() throws Exception {
-    verifyOrigin(Publication.class, "apiDocs.core.sha256");
-    verifyOrigin(ApiDocsAutoConfiguration.class, "apiDocs.starter.sha256");
-    var publication = new Publication(Path.of(System.getProperty("apiDocs.fixture")),
-        System.getProperty("apiDocs.artifactDigest"));
+    verifyOrigin(Publication.class, "consumer.core.sha256");
+    verifyOrigin(ApiDocsAutoConfiguration.class, "consumer.starter.sha256");
+    var publication = new Publication(Path.of(System.getProperty("consumer.fixture")),
+        System.getProperty("consumer.artifactDigest"));
     assertEquals("/gateway/docs", publication.basePath());
     assertTrue(publication.contains("index.html"));
     assertTrue(Files.readString(publication.resolve("index.html")).contains("/gateway/docs/assets/reader.js"));
@@ -24,7 +24,7 @@ class PackagedPublicationTest {
     var origin = Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath();
     assertTrue(Files.isRegularFile(origin) && origin.getFileName().toString().endsWith(".jar"),
         "A consumer must use an installed JAR, never reactor classes");
-    assertFalse(origin.startsWith(Path.of(System.getProperty("apiDocs.sourceRoot")).toRealPath()),
+    assertFalse(origin.startsWith(Path.of(System.getProperty("consumer.sourceRoot")).toRealPath()),
         "The installed artifact must be outside the source checkout");
     try (var input = Files.newInputStream(origin)) {
       var digest = MessageDigest.getInstance("SHA-256");

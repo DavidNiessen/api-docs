@@ -9,7 +9,7 @@ public class ApiDocsProperties {
   private boolean enabled = true;
   /** Filesystem directory containing a prebuilt publication and its manifest. Required when enabled. */
   private String directory;
-  /** Application-relative mount path, starting with a slash and without a trailing slash. */
+  /** Application-relative mount path without a trailing slash, or / for application-root hosting. */
   private String path = "/docs";
   /** External publication base path when a reverse proxy adds a prefix. Must match the compiled base path. */
   private String publicBasePath;
@@ -28,7 +28,7 @@ public class ApiDocsProperties {
   public void setDirectory(String value) { directory = value; }
   /** @return the application-relative mount path */
   public String getPath() { return path; }
-  /** @param value the application-relative mount path without a trailing slash */
+  /** @param value the application-relative mount path without a trailing slash, or / for the root */
   public void setPath(String value) { path = value; }
   /** @return the external base path override, or null to use the context and mount paths */
   public String getPublicBasePath() { return publicBasePath; }
@@ -38,4 +38,11 @@ public class ApiDocsProperties {
   public String getArtifactDigest() { return artifactDigest; }
   /** @param value a trusted lowercase SHA-256 digest, or null to omit the identity pin */
   public void setArtifactDigest(String value) { artifactDigest = value; }
+
+  String mountPrefix() {
+    if (path == null || !(path.equals("/") || path.matches("/[a-zA-Z0-9][a-zA-Z0-9/_-]*") && !path.endsWith("/"))) {
+      throw new IllegalArgumentException("api-docs.path must be / or an absolute mount path without a trailing slash");
+    }
+    return path.equals("/") ? "" : path;
+  }
 }

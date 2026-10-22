@@ -22,13 +22,11 @@ public class ApiDocsAutoConfiguration {
     if (properties.getDirectory() == null) {
       throw new IllegalArgumentException("Set api-docs.directory to a prebuilt publication directory, or disable api-docs.enabled");
     }
-    if (!properties.getPath().matches("/[a-zA-Z0-9][a-zA-Z0-9/_-]*") || properties.getPath().endsWith("/")) {
-      throw new IllegalArgumentException("api-docs.path must be an absolute path without a trailing slash");
-    }
+    String mount = properties.mountPrefix();
     var publication = new Publication(Path.of(properties.getDirectory()), properties.getArtifactDigest());
     String context = environment.getProperty("server.servlet.context-path",
         environment.getProperty("spring.webflux.base-path", ""));
-    String expected = properties.getPublicBasePath() == null ? context + properties.getPath() : properties.getPublicBasePath();
+    String expected = properties.getPublicBasePath() == null ? context + mount : properties.getPublicBasePath();
     if (!publication.basePath().equals(expected)) {
       throw new IllegalArgumentException("Publication basePath must match the public context and docs path: " + expected);
     }

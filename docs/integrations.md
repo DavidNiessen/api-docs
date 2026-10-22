@@ -65,7 +65,9 @@ Auto-configuration supports servlet MVC and reactive WebFlux. It verifies the po
 
 Optionally set `api-docs.artifact-digest` to an approved digest from your trusted build/release inventory; a mismatch fails startup. Older version 1 publications must be rebuilt before using this Java adapter. See [manifest verification and migration](artifact-manifest.md).
 
-The publication's `basePath` must equal the application context path plus `api-docs.path`. For a proxy prefix that differs from the application context, set `api-docs.public-base-path` to the exact external path and compile the publication with that same path. Incorrect paths fail startup rather than producing broken assets.
+Use `api-docs.path: /` to host documentation at the application root. Compile with an empty `basePath` for a standalone root deployment, or with the application context prefix (for example `/gateway`) when it has one. The default `/docs` mount remains available. Both MVC and WebFlux retain host-owned controllers/functional routes, enforce the host security policy, and serve only publication-listed documentation files.
+
+The publication's `basePath` must equal the application context path plus the normalized documentation mount (an empty suffix for `api-docs.path: /`). For a proxy prefix that differs from the application context, set `api-docs.public-base-path` to the exact external path and compile the publication with that same path. Incorrect paths fail startup rather than producing broken assets.
 
 Disable the integration with `api-docs.enabled=false`. Configure security rules for the entire `/docs/**` tree, including search JSON and scripts. The starter does not weaken the host security policy.
 

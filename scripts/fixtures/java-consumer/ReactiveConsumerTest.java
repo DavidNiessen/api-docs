@@ -16,6 +16,11 @@ class ReactiveConsumerTest {
   @SpringBootConfiguration @EnableAutoConfiguration @Import(Security.class)
   static class Application {}
   static class Security {
+    @Bean org.springframework.web.reactive.function.server.RouterFunction<org.springframework.web.reactive.function.server.ServerResponse> hostOwned() {
+      return org.springframework.web.reactive.function.server.RouterFunctions.route(
+          org.springframework.web.reactive.function.server.RequestPredicates.GET("/host-owned"),
+          request -> org.springframework.web.reactive.function.server.ServerResponse.ok().bodyValue("host-owned"));
+    }
     @Bean MapReactiveUserDetailsService users() {
       return new MapReactiveUserDetailsService(User.withUsername("reader").password("{noop}fixture-password").roles("DOCS").build());
     }
@@ -28,4 +33,13 @@ class ReactiveConsumerTest {
     HostProbe.exercise(Application.class, WebApplicationType.REACTIVE,
         "org.springframework.web.servlet.DispatcherServlet");
   }
+  @Test void installedReactiveStarterSupportsRootMountWithAContextPrefix() throws Exception {
+    HostProbe.exerciseRoot(Application.class, WebApplicationType.REACTIVE,
+        "org.springframework.web.servlet.DispatcherServlet", true);
+  }
+  @Test void installedReactiveStarterSupportsRootMountWithoutAContextPrefix() throws Exception {
+    HostProbe.exerciseRoot(Application.class, WebApplicationType.REACTIVE,
+        "org.springframework.web.servlet.DispatcherServlet", false);
+  }
+
 }

@@ -15,6 +15,7 @@ import { delimiter, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { buildSite } from '@api-docs/cli';
+import { parseSource } from '@api-docs/spec';
 import { auditReleaseVersions } from './release-versions.mjs';
 import { bindJavaSbom, validateSpringMetadata } from './java-distributions.mjs';
 
@@ -310,23 +311,46 @@ export async function buildJavaCandidate({
       scopes: ['compile', 'provided', 'runtime'],
       testScopeExcluded: true,
     };
-    const publication = join(output, 'fixture');
-    await cp(join(repository, 'examples/demo'), publication, {
-      recursive: true,
-      filter: (file) => !file.includes('.api-docs'),
-    });
-    const config = join(publication, 'docs.config.yaml');
-    await writeFile(
-      config,
-      (await readFile(config, 'utf8')) + '\nbasePath: /gateway/docs\n',
-    );
-    const result = await buildSite(publication);
-    assert(result, 'Consumer publication build failed.');
-    candidate.publication = join(publication, '.api-docs/site');
-    const manifest = JSON.parse(
-      await readFile(join(candidate.publication, 'manifest.json'), 'utf8'),
-    );
-    report.artifactDigest = manifest.artifactDigest;
+    const publications = [
+      {
+        name: 'fixture',
+        basePath: '/gateway/docs',
+        pathKey: 'publication',
+        digestKey: 'artifactDigest',
+      },
+      {
+        name: 'fixture-root',
+        basePath: '/gateway',
+        pathKey: 'rootPublication',
+        digestKey: 'rootArtifactDigest',
+      },
+      {
+        name: 'fixture-standalone',
+        basePath: '',
+        pathKey: 'standalonePublication',
+        digestKey: 'standaloneArtifactDigest',
+      },
+    ];
+    for (const item of publications) {
+      const publication = join(output, item.name);
+      await cp(join(repository, 'examples/demo'), publication, {
+        recursive: true,
+        filter: (file) => !file.includes('.api-docs'),
+      });
+      const config = join(publication, 'docs.config.yaml');
+      const value = parseSource(
+        await readFile(config, 'utf8'),
+        'docs.config.yaml',
+      );
+      value.basePath = item.basePath;
+      await writeFile(config, JSON.stringify(value, null, 2) + '\n');
+      await buildSite(publication);
+      candidate[item.pathKey] = join(publication, '.api-docs/site');
+      const manifest = JSON.parse(
+        await readFile(join(candidate[item.pathKey], 'manifest.json'), 'utf8'),
+      );
+      report[item.digestKey] = manifest.artifactDigest;
+    }
     await saveJavaCandidate(candidate);
     return candidate;
   } catch (error) {
@@ -343,6 +367,28 @@ export async function saveJavaCandidate(candidate) {
   );
 }
 export async function currentConsumerResults(directory, hostSuite) {
+  const requiredCases = new Map([
+    [
+      'io.apidocs.consumer.PackagedPublicationTest',
+      ['publicClassesComeFromTheExactInstalledJarsAndVerifyTheRealPublication'],
+    ],
+    [
+      'io.apidocs.consumer.MvcConsumerTest',
+      [
+        'installedStarterWorksWithOnlyMvcBehindHostSecurityAndContextPath',
+        'installedMvcStarterSupportsRootMountWithAContextPrefix',
+        'installedMvcStarterSupportsRootMountWithoutAContextPrefix',
+      ],
+    ],
+    [
+      'io.apidocs.consumer.ReactiveConsumerTest',
+      [
+        'installedStarterWorksWithOnlyWebFluxBehindHostSecurityAndContextPath',
+        'installedReactiveStarterSupportsRootMountWithAContextPrefix',
+        'installedReactiveStarterSupportsRootMountWithoutAContextPrefix',
+      ],
+    ],
+  ]);
   const names = (await readdir(directory)).filter((name) =>
     /^TEST-.+\.xml$/.test(name),
   );
@@ -374,7 +420,21 @@ export async function currentConsumerResults(directory, hostSuite) {
         counts.skipped === 0,
       'Installed consumer tests must run without failures or skips.',
     );
-    results.push({ suite: name.slice(5, -4), ...counts });
+    const suite = name.slice(5, -4);
+    const cases = [...xml.matchAll(/<testcase\b([^>]*)>/g)].map((entry) =>
+      entry[1].match(/\bname="([^"]+)"/)?.[1]?.replace(/\(\)$/, ''),
+    );
+    assert.equal(
+      cases.length,
+      counts.tests,
+      'JUnit case and summary counts disagree.',
+    );
+    const expected = requiredCases.get(suite);
+    assert(
+      expected && expected.every((name) => cases.includes(name)),
+      'Every required installed-consumer scenario must execute.',
+    );
+    results.push({ suite, ...counts, cases });
   }
   assert(
     results.some(
@@ -446,11 +506,15 @@ export async function testJavaConsumers(
         '--batch-mode',
         '--no-transfer-progress',
         '--strict-checksums',
-        `-DapiDocs.fixture=${candidate.publication}`,
-        `-DapiDocs.artifactDigest=${candidate.report.artifactDigest}`,
-        `-DapiDocs.sourceRoot=${repository}`,
-        `-DapiDocs.core.sha256=${core.sha256}`,
-        `-DapiDocs.starter.sha256=${starter.sha256}`,
+        `-Dconsumer.fixture=${candidate.publication}`,
+        `-Dconsumer.artifactDigest=${candidate.report.artifactDigest}`,
+        `-Dconsumer.rootFixture=${candidate.rootPublication}`,
+        `-Dconsumer.rootArtifactDigest=${candidate.report.rootArtifactDigest}`,
+        `-Dconsumer.standaloneFixture=${candidate.standalonePublication}`,
+        `-Dconsumer.standaloneArtifactDigest=${candidate.report.standaloneArtifactDigest}`,
+        `-Dconsumer.sourceRoot=${repository}`,
+        `-Dconsumer.core.sha256=${core.sha256}`,
+        `-Dconsumer.starter.sha256=${starter.sha256}`,
       ];
       await run(candidate.maven, [...args, 'test'], {
         cwd: directory,

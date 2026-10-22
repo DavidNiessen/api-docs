@@ -19,12 +19,13 @@ class ApiDocsReactiveConfiguration implements WebFluxConfigurer {
   ApiDocsReactiveConfiguration(Publication publication, ApiDocsProperties properties) { this.publication = publication; this.properties = properties; }
   @org.springframework.context.annotation.Bean
   org.springframework.web.reactive.function.server.RouterFunction<org.springframework.web.reactive.function.server.ServerResponse> apiDocsIndex() {
+    String mount = properties.mountPrefix();
     return org.springframework.web.reactive.function.server.RouterFunctions.route(
-      org.springframework.web.reactive.function.server.RequestPredicates.GET(properties.getPath()).or(org.springframework.web.reactive.function.server.RequestPredicates.GET(properties.getPath() + "/")),
+      org.springframework.web.reactive.function.server.RequestPredicates.GET(mount).or(org.springframework.web.reactive.function.server.RequestPredicates.GET(mount + "/")),
       request -> org.springframework.web.reactive.function.server.ServerResponse.temporaryRedirect(java.net.URI.create(publication.basePath() + "/index.html")).build());
   }
   @Override public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry.addResourceHandler(properties.getPath() + "/**")
+    registry.addResourceHandler(properties.mountPrefix() + "/**")
       .addResourceLocations(publication.root().toUri().toString()).resourceChain(false)
       .addResolver(new PathResourceResolver() {
         @Override protected Mono<Resource> getResource(String path, Resource location) {

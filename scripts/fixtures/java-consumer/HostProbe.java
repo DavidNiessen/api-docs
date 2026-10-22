@@ -14,15 +14,25 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 
 final class HostProbe {
   static void exercise(Class<?> application, WebApplicationType type, String absentClass) throws Exception {
+    exercise(application, type, absentClass, "consumer.fixture", "consumer.artifactDigest", "/gateway", "/docs", "/gateway/docs");
+  }
+  static void exerciseRoot(Class<?> application, WebApplicationType type, String absentClass, boolean context) throws Exception {
+    exercise(application, type, absentClass,
+        context ? "consumer.rootFixture" : "consumer.standaloneFixture",
+        context ? "consumer.rootArtifactDigest" : "consumer.standaloneArtifactDigest",
+        context ? "/gateway" : "", "/", context ? "/gateway" : "");
+  }
+  private static void exercise(Class<?> application, WebApplicationType type, String absentClass,
+      String fixtureProperty, String digestProperty, String contextPath, String mount, String publicBase) throws Exception {
     assertThrows(ClassNotFoundException.class, () -> Class.forName(absentClass),
         "Optional dependencies must remain absent from this consumer's classpath");
-    Path root = Path.of(System.getProperty("apiDocs.fixture"));
+    Path root = Path.of(System.getProperty(fixtureProperty));
     Path hidden = root.resolve("unlisted-consumer-file.txt");
     Files.writeString(hidden, "A real file outside the publication manifest");
     try (var context = new SpringApplicationBuilder(application).web(type).properties(
-        "server.port=0", "server.servlet.context-path=/gateway", "spring.webflux.base-path=/gateway",
-        "api-docs.directory=" + root, "api-docs.path=/docs",
-        "api-docs.artifact-digest=" + System.getProperty("apiDocs.artifactDigest"),
+        "server.port=0", "server.servlet.context-path=" + contextPath, "spring.webflux.base-path=" + contextPath,
+        "api-docs.directory=" + root, "api-docs.path=" + mount,
+        "api-docs.artifact-digest=" + System.getProperty(digestProperty),
         "spring.main.banner-mode=off", "logging.level.root=WARN").run()) {
       String base = "http://127.0.0.1:" + context.getEnvironment().getProperty("local.server.port");
       var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
@@ -30,19 +40,29 @@ final class HostProbe {
           "reader:fixture-password".getBytes(StandardCharsets.UTF_8));
       for (String path : new String[]{"/", "/search.json", "/assets/reader.js", "/guides/quickstart/",
           "/oauth/callback/", "/assets/oauth-callback.js"}) {
-        URI uri = URI.create(base + "/gateway/docs" + path);
+        URI uri = URI.create(base + publicBase + path);
         assertEquals(401, client.send(HttpRequest.newBuilder(uri).GET().build(),
             HttpResponse.BodyHandlers.ofString()).statusCode(), "Host security must cover " + path);
         var response = client.send(HttpRequest.newBuilder(uri).header("Authorization", credential).GET().build(),
             HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Failed to serve " + path + " at " + response.uri());
-        if (path.equals("/")) assertEquals("/gateway/docs/index.html", response.uri().getPath(),
+        if (path.equals("/")) assertEquals(publicBase + "/index.html", response.uri().getPath(),
             "The context prefix must appear exactly once in the landing-page redirect");
       }
+      if (!publicBase.isEmpty()) {
+        var response = client.send(HttpRequest.newBuilder(URI.create(base + publicBase))
+            .header("Authorization", credential).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode(), "The mount without a trailing slash must work");
+        assertEquals(publicBase + "/index.html", response.uri().getPath());
+      }
       for (String path : new String[]{"/missing.json", "/unlisted-consumer-file.txt"}) {
-        assertEquals(404, client.send(HttpRequest.newBuilder(URI.create(base + "/gateway/docs" + path))
+        assertEquals(404, client.send(HttpRequest.newBuilder(URI.create(base + publicBase + path))
             .header("Authorization", credential).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode());
       }
+      var host = client.send(HttpRequest.newBuilder(URI.create(base + contextPath + "/host-owned"))
+          .header("Authorization", credential).GET().build(), HttpResponse.BodyHandlers.ofString());
+      assertEquals(200, host.statusCode(), "Documentation must preserve application-owned routes");
+      assertEquals("host-owned", host.body());
     } finally {
       Files.deleteIfExists(hidden);
     }
