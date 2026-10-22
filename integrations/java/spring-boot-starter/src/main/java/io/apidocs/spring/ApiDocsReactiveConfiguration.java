@@ -14,6 +14,10 @@ import reactor.core.publisher.Mono;
 @ConditionalOnClass(WebFluxConfigurer.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 class ApiDocsReactiveConfiguration implements WebFluxConfigurer {
+  @org.springframework.context.annotation.Bean
+  static ApiDocsHostContext apiDocsHostContext(org.springframework.core.env.Environment environment) {
+    return new ApiDocsHostContext(environment.getProperty("spring.webflux.base-path", ""));
+  }
   private final Publication publication;
   private final ApiDocsProperties properties;
   ApiDocsReactiveConfiguration(Publication publication, ApiDocsProperties properties) { this.publication = publication; this.properties = properties; }

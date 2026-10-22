@@ -13,6 +13,10 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 @ConditionalOnClass(WebMvcConfigurer.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 class ApiDocsMvcConfiguration implements WebMvcConfigurer {
+  @org.springframework.context.annotation.Bean
+  static ApiDocsHostContext apiDocsHostContext(org.springframework.core.env.Environment environment) {
+    return new ApiDocsHostContext(environment.getProperty("server.servlet.context-path", ""));
+  }
   private final Publication publication;
   private final ApiDocsProperties properties;
   ApiDocsMvcConfiguration(Publication publication, ApiDocsProperties properties) { this.publication = publication; this.properties = properties; }

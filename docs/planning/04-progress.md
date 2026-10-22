@@ -17,7 +17,7 @@ Updated: 2026-10-22. **Approximately 76% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
-**Spring MVC/WebFlux can now serve verified documentation at the application root.** `api-docs.path: /` normalizes to an empty mount suffix, so standalone and context-prefixed roots use the correct compiled public base path, resource mappings and redirects. Installed consumer journeys verify authentication, both slash variants, allowed assets/pages, rejected unlisted files and preserved host-owned routes. Fixture-only system properties have a separate namespace, and the result reader requires all named root/subpath scenarios. The estimate stays at approximately 76%; remaining product and launch gates still apply.
+**Spring MVC/WebFlux can now serve verified documentation at the application root.** `api-docs.path: /` normalizes to an empty mount suffix, so standalone and context-prefixed roots use the correct compiled public base path, resource mappings and redirects. Installed consumer journeys verify authentication, both slash variants, allowed assets/pages, rejected unlisted files and preserved host-owned routes. Fixture-only system properties have a separate namespace, and the result reader requires all named root/subpath scenarios. A related regression now supplies conflicting inactive-stack prefixes: context selection follows the active MVC/WebFlux stack, fixing WebFlux startup when a servlet prefix is also configured. The estimate stays at approximately 76%; remaining product and launch gates still apply.
 
 Validation for this increment:
 

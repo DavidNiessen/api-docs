@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
+import org.springframework.beans.factory.ObjectProvider;
 
 /** Mounts a verified publication using the available web stack and existing host security. */
 @AutoConfiguration
@@ -18,14 +19,16 @@ public class ApiDocsAutoConfiguration {
   /** Create the auto-configuration discovered by Spring Boot. */
   public ApiDocsAutoConfiguration() {}
   @Bean
-  Publication apiDocsPublication(ApiDocsProperties properties, Environment environment) throws IOException {
+  Publication apiDocsPublication(ApiDocsProperties properties, Environment environment,
+      ObjectProvider<ApiDocsHostContext> hostContext) throws IOException {
     if (properties.getDirectory() == null) {
       throw new IllegalArgumentException("Set api-docs.directory to a prebuilt publication directory, or disable api-docs.enabled");
     }
     String mount = properties.mountPrefix();
     var publication = new Publication(Path.of(properties.getDirectory()), properties.getArtifactDigest());
-    String context = environment.getProperty("server.servlet.context-path",
-        environment.getProperty("spring.webflux.base-path", ""));
+    String context = hostContext.getIfAvailable(() -> new ApiDocsHostContext(
+        environment.getProperty("server.servlet.context-path",
+            environment.getProperty("spring.webflux.base-path", "")))).prefix();
     String expected = properties.getPublicBasePath() == null ? context + mount : properties.getPublicBasePath();
     if (!publication.basePath().equals(expected)) {
       throw new IllegalArgumentException("Publication basePath must match the public context and docs path: " + expected);

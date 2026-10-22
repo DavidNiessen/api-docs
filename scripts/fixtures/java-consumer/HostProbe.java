@@ -30,7 +30,8 @@ final class HostProbe {
     Path hidden = root.resolve("unlisted-consumer-file.txt");
     Files.writeString(hidden, "A real file outside the publication manifest");
     try (var context = new SpringApplicationBuilder(application).web(type).properties(
-        "server.port=0", "server.servlet.context-path=" + contextPath, "spring.webflux.base-path=" + contextPath,
+        "server.port=0", "server.servlet.context-path=" + (type == WebApplicationType.SERVLET ? contextPath : "/inactive-stack"),
+        "spring.webflux.base-path=" + (type == WebApplicationType.REACTIVE ? contextPath : "/inactive-stack"),
         "api-docs.directory=" + root, "api-docs.path=" + mount,
         "api-docs.artifact-digest=" + System.getProperty(digestProperty),
         "spring.main.banner-mode=off", "logging.level.root=WARN").run()) {
