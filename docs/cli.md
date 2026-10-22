@@ -37,7 +37,7 @@ A project can contain multiple API ids and versions. API ids and versions must b
 
 ## Guides
 
-Markdown front matter supports `title`, `description`, `group`, and numeric `order`. Tables, lists, code fences, blockquotes, and safe links are supported. Raw active HTML is removed. Heading anchors are deterministic. MDX and custom interactive guide components are not yet implemented.
+Markdown front matter supports `title`, `description`, `group`, and numeric `order`. Tables, lists, code fences, blockquotes, and safe links are supported. Raw active HTML is removed. Heading anchors are deterministic. Trusted MDX and reusable interactive guide components are available with `--trust-content`; see the authoring reference.
 
 ## Trust and credentials
 

@@ -18,6 +18,8 @@ import {
 } from '@api-docs/spec';
 import { loadGuides } from '@api-docs/content';
 import { applyPlugins } from '@api-docs/plugin-sdk';
+import { loadPublicAssets } from './assets.js';
+export { loadPublicAssets } from './assets.js';
 import type { BuildPlugin } from '@api-docs/plugin-sdk';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 
@@ -42,7 +44,12 @@ export async function compileProject(
   const identities = apis.map((api) => `${api.id}:${api.version}`);
   if (new Set(identities).size !== identities.length)
     throw new Error('Duplicate API id/version after spec loading');
+  const assets = await loadPublicAssets(root, config);
   let site: SiteData = {
+    assetMetadata: [...assets].map(([path, value]) => ({
+      path,
+      hash: digest(value),
+    })),
     schemaVersion: 1,
     config,
     apis,

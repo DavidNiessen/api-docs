@@ -3,3 +3,9 @@ name: Component gallery
 specs:
   - id: gallery
     path: openapi.yaml
+
+basePath: /gallery
+siteUrl: https://docs.example.test
+theme:
+  preset: violet
+  sidebarWidth: 280

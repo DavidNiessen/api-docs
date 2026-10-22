@@ -1,6 +1,6 @@
 import { renderToString } from 'react-dom/server';
 import { App } from './components/App.js';
-import { createPageData } from '@api-docs/contracts';
+import { createPageData, pageMetadata } from '@api-docs/contracts';
 import type { SiteData } from '@api-docs/contracts';
 export function renderDocument(
   site: SiteData,
@@ -28,5 +28,20 @@ export function renderDocument(
           "'": '&#39;',
         })[char] ?? char,
     );
-  return `<!doctype html><html lang="${escape(site.config.defaultLocale)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="description" content="${escape(site.config.description)}"><meta name="generator" content="api-docs 0.1.0"><title>${escape(options.title ?? site.config.name)} · Documentation</title><link rel="stylesheet" href="${site.config.basePath}/assets/reader.css"></head><body><div id="root">${markup}</div><script type="application/json" id="docs-data">${encoded}</script><script type="module" src="${site.config.basePath}/assets/reader.js"></script></body></html>`;
+  const metadata = pageMetadata(page, path);
+  const title = `${options.title ?? metadata.title} · ${site.config.name}`;
+  const canonical =
+    options.status !== 404 && metadata.canonical
+      ? `<link rel="canonical" href="${escape(metadata.canonical)}"><meta property="og:url" content="${escape(metadata.canonical)}">`
+      : '';
+  const image = metadata.image
+    ? `<meta property="og:image" content="${escape(metadata.image)}">`
+    : '';
+  const favicon = site.config.favicon
+    ? `<link rel="icon" href="${site.config.basePath}/media/${escape(site.config.favicon)}">`
+    : '';
+  const stylesheet = site.config.theme.stylesheet
+    ? `<link rel="stylesheet" href="${site.config.basePath}/media/${escape(site.config.theme.stylesheet)}">`
+    : '';
+  return `<!doctype html><html lang="${escape(site.config.defaultLocale)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="description" content="${escape(metadata.description)}"><meta name="robots" content="${options.status === 404 ? 'noindex,nofollow' : metadata.robots}"><meta property="og:type" content="website"><meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(metadata.description)}"><meta name="twitter:card" content="${metadata.image ? 'summary_large_image' : 'summary'}">${canonical}${image}${favicon}<meta name="generator" content="api-docs 0.1.0"><title>${escape(title)}</title><link rel="stylesheet" href="${site.config.basePath}/assets/reader.css">${stylesheet}</head><body><div id="root">${markup}</div><script type="application/json" id="docs-data">${encoded}</script><script type="module" src="${site.config.basePath}/assets/reader.js"></script></body></html>`;
 }

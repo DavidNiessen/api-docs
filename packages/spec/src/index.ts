@@ -14,6 +14,7 @@ export {
   confinedPath,
   parseSource,
   readTextFile,
+  readBoundedFile,
   record,
   text,
   array,

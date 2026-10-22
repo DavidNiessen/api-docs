@@ -88,7 +88,21 @@ export interface Guide {
   headings: { id: string; text: string; level: number }[];
   source: string;
 }
+export interface Palette {
+  background: string;
+  surface: string;
+  subtle: string;
+  border: string;
+  text: string;
+  muted: string;
+  heading: string;
+}
 export interface Theme {
+  preset?: 'mint' | 'ocean' | 'violet' | 'neutral';
+  colors?: { light?: Partial<Palette>; dark?: Partial<Palette> };
+  sidebarWidth?: number;
+  contentWidth?: number;
+  stylesheet?: string;
   accent: string;
   radius: number;
   font: string;
@@ -101,7 +115,11 @@ export interface ProjectConfig {
   description: string;
   basePath: string;
   logo?: string;
+  logoDark?: string;
   favicon?: string;
+  assets?: string;
+  siteUrl?: string;
+  seo?: { index: boolean; socialImage?: string };
   specs: { id: string; path: string; version?: string }[];
   guides: string;
   theme: Theme;
@@ -112,6 +130,7 @@ export interface ProjectConfig {
   plugins: string[];
 }
 export interface SiteData {
+  assetMetadata?: { path: string; hash: string }[];
   navigationTotal?: number;
   navigationTruncated?: boolean;
   pluginVersions?: { name: string; version: string }[];
@@ -179,4 +198,11 @@ export { resolveSchema, exampleFor } from './schema.js';
 
 export { createPageData, normalizePagePath } from './page.js';
 
-export { contrastRatio, readableAccent } from './theme.js';
+export {
+  contrastRatio,
+  readableAccent,
+  resolvePalette,
+  themePresets,
+} from './theme.js';
+
+export { pageMetadata } from './metadata.js';

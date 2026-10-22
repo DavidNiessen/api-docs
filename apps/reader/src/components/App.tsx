@@ -12,6 +12,8 @@ import {
   withBase,
   normalizePagePath,
   readableAccent,
+  resolvePalette,
+  pageMetadata,
 } from '@api-docs/contracts';
 import type {
   ApiDocument,
@@ -95,6 +97,10 @@ export function App({
   const [query, setQuery] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
   const config = site.config;
+  const palette = resolvePalette(
+    config.theme,
+    theme === 'dark' ? 'dark' : 'light',
+  );
   const href = (value: string) => withBase(config.basePath, value);
   const activeGuide =
     site.guides.find((guide) => guideHref(guide) === path) ??
@@ -120,10 +126,6 @@ export function App({
       site.apis.find((api) => `${api.id}:${api.version}` === selectedApi) ??
       activeApi;
   const firstApi = activeApi?.operations[0];
-  const title =
-    activeGuide?.title ??
-    activeOperation?.summary ??
-    (path === '/' ? 'Welcome' : 'Page not found');
   useEffect(() => {
     try {
       const saved = localStorage.getItem('api-docs-theme');
@@ -156,8 +158,34 @@ export function App({
     document.documentElement.dataset.theme = theme;
   }, [theme]);
   useEffect(() => {
-    document.title = `${title} · ${config.name}`;
-  }, [title, config.name]);
+    const metadata = pageMetadata(site, path);
+    document.title = `${metadata.title} · ${config.name}`;
+    for (const [selector, value] of [
+      ['meta[name="description"]', metadata.description],
+      ['meta[name="robots"]', metadata.robots],
+      ['meta[property="og:title"]', document.title],
+      ['meta[property="og:description"]', metadata.description],
+    ] as const)
+      document.querySelector(selector)?.setAttribute('content', value);
+    for (const [selector, attribute, value] of [
+      ['link[rel="canonical"]', 'href', metadata.canonical],
+      ['meta[property="og:url"]', 'content', metadata.canonical],
+    ] as const) {
+      let element = document.querySelector(selector);
+      if (value && !element) {
+        element = document.createElement(
+          selector.startsWith('link') ? 'link' : 'meta',
+        );
+        element.setAttribute(
+          selector.startsWith('link') ? 'rel' : 'property',
+          selector.startsWith('link') ? 'canonical' : 'og:url',
+        );
+        document.head.append(element);
+      }
+      if (value) element?.setAttribute(attribute, value);
+      else element?.remove();
+    }
+  }, [site, path, config.name]);
   useEffect(() => {
     for (const tab of document.querySelectorAll<HTMLButtonElement>(
       '.guide-content [data-guide-tab][aria-selected="true"]',
@@ -318,12 +346,30 @@ export function App({
   const results = searchResults;
   return (
     <div
-      className={`docs-shell density-${config.theme.density} font-${config.theme.font}`}
+      className={`docs-shell density-${config.theme.density} font-${config.theme.font} code-${config.theme.codeTheme}`}
       style={
         {
           '--accent': config.theme.accent,
-          '--accent-text-light': readableAccent(config.theme.accent, 'light'),
-          '--accent-text-dark': readableAccent(config.theme.accent, 'dark'),
+          '--action-bg': readableAccent(config.theme.accent, 'light'),
+          '--accent-text-light': readableAccent(
+            config.theme.accent,
+            'light',
+            resolvePalette(config.theme, 'light'),
+          ),
+          '--accent-text-dark': readableAccent(
+            config.theme.accent,
+            'dark',
+            resolvePalette(config.theme, 'dark'),
+          ),
+          '--bg': palette.background,
+          '--surface': palette.surface,
+          '--subtle': palette.subtle,
+          '--border': palette.border,
+          '--text': palette.text,
+          '--muted': palette.muted,
+          '--heading': palette.heading,
+          '--sidebar-width': `${config.theme.sidebarWidth ?? 274}px`,
+          '--content-width': `${config.theme.contentWidth ?? 760}px`,
           '--radius': `${config.theme.radius}px`,
         } as CSSProperties
       }
@@ -341,9 +387,26 @@ export function App({
       <header className="site-header">
         <div className="header-main">
           <a className="brand" href={href('/')} data-doc-route>
-            <span className="brand-mark">
-              <Icon name="spark" size={21} />
-            </span>
+            {config.logo ? (
+              <>
+                <img
+                  className="brand-logo logo-light"
+                  src={href('/media/' + config.logo)}
+                  alt=""
+                />
+                {config.logoDark && (
+                  <img
+                    className="brand-logo logo-dark"
+                    src={href('/media/' + config.logoDark)}
+                    alt=""
+                  />
+                )}
+              </>
+            ) : (
+              <span className="brand-mark">
+                <Icon name="spark" size={21} />
+              </span>
+            )}
             <span>{config.name}</span>
             <span className="docs-label">docs</span>
           </a>

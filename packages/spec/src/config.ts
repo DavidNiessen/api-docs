@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import type { ProjectConfig } from '@api-docs/contracts';
+import {
+  contrastRatio,
+  resolvePalette,
+  themePresets,
+} from '@api-docs/contracts';
 
 const safePath = z
   .string()
@@ -8,6 +13,18 @@ const safePath = z
     (value) => !value.split('/').includes('..'),
     'Parent traversal is not allowed',
   );
+const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const palette = z
+  .object({
+    background: color.optional(),
+    surface: color.optional(),
+    subtle: color.optional(),
+    border: color.optional(),
+    text: color.optional(),
+    muted: color.optional(),
+    heading: color.optional(),
+  })
+  .strict();
 export const configSchema = z
   .object({
     schemaVersion: z.literal(1).default(1),
@@ -26,8 +43,37 @@ export const configSchema = z
             !value.endsWith('/')),
         'Use an empty base path or /path without a trailing slash',
       ),
-    logo: z.string().optional(),
-    favicon: z.string().optional(),
+    logo: safePath.optional(),
+    logoDark: safePath.optional(),
+    favicon: safePath.optional(),
+    assets: safePath.default('public'),
+    siteUrl: z
+      .string()
+      .url()
+      .refine((value) => {
+        try {
+          const url = new URL(value);
+          return (
+            url.protocol === 'https:' &&
+            !url.username &&
+            !url.password &&
+            url.pathname === '/' &&
+            !url.search &&
+            !url.hash
+          );
+        } catch {
+          return false;
+        }
+      }, 'siteUrl must be an HTTPS origin; configure basePath separately')
+      .transform((value) => new URL(value).origin)
+      .optional(),
+    seo: z
+      .object({
+        index: z.boolean().default(true),
+        socialImage: safePath.optional(),
+      })
+      .strict()
+      .prefault({}),
     specs: z
       .array(
         z.object({
@@ -46,16 +92,31 @@ export const configSchema = z
     guides: safePath.default('guides'),
     theme: z
       .object({
-        accent: z
-          .string()
-          .regex(/^#[0-9a-fA-F]{6}$/)
-          .default('#16a076'),
+        preset: z.enum(['mint', 'ocean', 'violet', 'neutral']).default('mint'),
+        accent: color.optional(),
+        colors: z
+          .object({ light: palette.optional(), dark: palette.optional() })
+          .strict()
+          .optional(),
+        sidebarWidth: z.number().int().min(220).max(320).default(274),
+        contentWidth: z.number().int().min(600).max(960).default(760),
+        stylesheet: safePath
+          .refine(
+            (value) => value.endsWith('.css'),
+            'Stylesheet must be a CSS asset',
+          )
+          .optional(),
         radius: z.number().min(0).max(24).default(10),
         font: z.enum(['system', 'sans', 'serif']).default('system'),
         codeTheme: z.enum(['dark', 'light']).default('dark'),
         density: z.enum(['comfortable', 'compact']).default('comfortable'),
       })
-      .prefault({}),
+      .strict()
+      .prefault({})
+      .transform((theme) => ({
+        ...theme,
+        accent: theme.accent ?? themePresets[theme.preset],
+      })),
     links: z
       .array(
         z.object({
@@ -88,6 +149,23 @@ export const configSchema = z
         .size !== config.specs.length
     )
       context.addIssue({ code: 'custom', message: 'Duplicate API id/version' });
+    if (config.logoDark && !config.logo)
+      context.addIssue({
+        code: 'custom',
+        path: ['logoDark'],
+        message: 'logoDark requires a default logo',
+      });
+    for (const mode of ['light', 'dark'] as const) {
+      const colors = resolvePalette(config.theme, mode);
+      for (const foreground of ['text', 'muted', 'heading'] as const)
+        for (const background of ['background', 'surface', 'subtle'] as const)
+          if (contrastRatio(colors[foreground], colors[background]) < 4.5)
+            context.addIssue({
+              code: 'custom',
+              path: ['theme', 'colors', mode, foreground],
+              message: `${foreground} must reach 4.5:1 contrast against ${background}`,
+            });
+    }
     if (!config.locales.includes(config.defaultLocale))
       context.addIssue({
         code: 'custom',

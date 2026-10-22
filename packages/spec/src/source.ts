@@ -27,10 +27,10 @@ export async function confinedPath(
   return target;
 }
 /** Bound reads before allocating the entire input, including files that grow after stat. */
-export async function readTextFile(
+export async function readBoundedFile(
   filename: string,
   limit = 16 * 1024 * 1024,
-): Promise<string> {
+): Promise<Buffer> {
   const file = await open(filename, 'r');
   try {
     const info = await file.stat();
@@ -49,12 +49,18 @@ export async function readTextFile(
         throw new Error(`Input exceeds ${limit} bytes: ${filename}`);
       chunks.push(chunk.subarray(0, bytesRead));
     }
-    return new TextDecoder('utf-8', { fatal: true }).decode(
-      Buffer.concat(chunks, total),
-    );
+    return Buffer.concat(chunks, total);
   } finally {
     await file.close();
   }
+}
+export async function readTextFile(
+  filename: string,
+  limit = 16 * 1024 * 1024,
+): Promise<string> {
+  return new TextDecoder('utf-8', { fatal: true }).decode(
+    await readBoundedFile(filename, limit),
+  );
 }
 export function parseSource(source: string, filename: string): unknown {
   if (Buffer.byteLength(source) > 16 * 1024 * 1024)

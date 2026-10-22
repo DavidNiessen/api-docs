@@ -18,6 +18,8 @@ import {
   safeOutput,
   writeManifest,
   verifyArtifact,
+  loadPublicAssets,
+  digest,
 } from '@api-docs/compiler';
 import { guideHref, operationHref, createPageData } from '@api-docs/contracts';
 import type { SiteData } from '@api-docs/contracts';
@@ -66,6 +68,18 @@ export async function buildSite(
       ),
     );
     await cp(assets, join(stage, 'assets'), { recursive: true });
+    for (const [path, value] of await loadPublicAssets(project, site.config)) {
+      if (
+        site.assetMetadata?.find((asset) => asset.path === path)?.hash !==
+        digest(value)
+      )
+        throw new Error(
+          `Public asset changed during build: ${path}. Retry the build.`,
+        );
+      const output = join(stage, 'media', path);
+      await mkdir(dirname(output), { recursive: true });
+      await writeFile(output, value);
+    }
     const pages = new Map<string, string>([
       ['/', site.guides[0]?.title ?? site.config.name],
     ]);
@@ -121,7 +135,33 @@ export async function buildSite(
         `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${href}"><title>Page moved</title></head><body><a href="${href}">Continue to the new page</a></body></html>`,
       );
     }
-    await writeFile(join(stage, 'robots.txt'), 'User-agent: *\nAllow: /\n');
+    const indexed = site.config.seo?.index !== false;
+    const sitemap =
+      site.config.siteUrl && indexed
+        ? site.config.siteUrl + site.config.basePath + '/sitemap.xml'
+        : undefined;
+    if (sitemap) {
+      const xmlEscape = (value: string) =>
+        value.replace(
+          /[&<>"']/g,
+          (char) =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&apos;',
+            })[char]!,
+        );
+      await writeFile(
+        join(stage, 'sitemap.xml'),
+        `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${[...pages.keys()].map((path) => `<url><loc>${xmlEscape(site.config.siteUrl! + site.config.basePath + path)}</loc></url>`).join('')}</urlset>`,
+      );
+    }
+    await writeFile(
+      join(stage, 'robots.txt'),
+      `User-agent: *\n${indexed ? 'Allow: /' : 'Disallow: /'}\n${sitemap ? `Sitemap: ${sitemap}\n` : ''}`,
+    );
     await writeManifest(stage, site, [...pages.keys()]);
     await verifyArtifact(stage);
     await rm(previous, { recursive: true });

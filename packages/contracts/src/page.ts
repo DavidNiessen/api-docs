@@ -111,6 +111,7 @@ export function createPageData(site: SiteData, inputPath: string): SiteData {
       site.apis.reduce((total, api) => total + api.operations.length, 0);
   return {
     ...site,
+    assetMetadata: [],
     navigationTotal,
     navigationTruncated:
       site.navigationTruncated ||

@@ -1,3 +1,4 @@
+import type { Palette } from './index.js';
 function rgb(hex: string): number[] {
   if (!/^#[a-fA-F0-9]{6}$/.test(hex))
     throw new Error('Theme colors must use six-digit hex notation');
@@ -32,11 +33,28 @@ function blend(a: string, b: string, weight: number): string {
   );
 }
 /** Derive an accessible text color while retaining the configured brand hue. */
-export function readableAccent(accent: string, mode: 'light' | 'dark'): string {
-  const surface = mode === 'light' ? '#f8fafb' : '#161b20';
-  const background = mode === 'light' ? '#ffffff' : '#101316';
+export function readableAccent(
+  accent: string,
+  mode: 'light' | 'dark',
+  colors?: Pick<Palette, 'surface' | 'background'>,
+): string {
+  const surface = colors?.surface ?? (mode === 'light' ? '#f8fafb' : '#161b20');
+  const background =
+    colors?.background ?? (mode === 'light' ? '#ffffff' : '#101316');
   const tinted = blend(background, accent, 0.08);
-  const destination = mode === 'light' ? '#111b27' : '#ffffff';
+  const destination = ['#111b27', '#ffffff'].sort(
+    (a, b) =>
+      Math.min(
+        ...[surface, background, tinted].map((color) =>
+          contrastRatio(b, color),
+        ),
+      ) -
+      Math.min(
+        ...[surface, background, tinted].map((color) =>
+          contrastRatio(a, color),
+        ),
+      ),
+  )[0]!;
   for (let step = 0; step <= 100; step++) {
     const candidate = blend(accent, destination, step / 100);
     if (
@@ -47,4 +65,50 @@ export function readableAccent(accent: string, mode: 'light' | 'dark'): string {
       return candidate;
   }
   return destination;
+}
+
+export const themePresets = {
+  mint: '#16a076',
+  ocean: '#2563eb',
+  violet: '#7c3aed',
+  neutral: '#526071',
+} as const;
+const light: Palette = {
+  background: '#ffffff',
+  surface: '#f8fafb',
+  subtle: '#f4f6f8',
+  border: '#e8ebee',
+  text: '#202a35',
+  muted: '#596572',
+  heading: '#111b27',
+};
+const dark: Palette = {
+  background: '#101316',
+  surface: '#161b20',
+  subtle: '#1d232a',
+  border: '#293038',
+  text: '#cbd3dc',
+  muted: '#a1adba',
+  heading: '#f1f5f9',
+};
+export function resolvePalette(
+  theme: {
+    colors?:
+      | {
+          light?:
+            Partial<Record<keyof Palette, string | undefined>> | undefined;
+          dark?: Partial<Record<keyof Palette, string | undefined>> | undefined;
+        }
+      | undefined;
+  },
+  mode: 'light' | 'dark',
+): Palette {
+  return {
+    ...(mode === 'light' ? light : dark),
+    ...Object.fromEntries(
+      Object.entries(theme.colors?.[mode] ?? {}).filter(
+        ([, value]) => value !== undefined,
+      ),
+    ),
+  };
 }
