@@ -265,3 +265,14 @@ export function redactRequest(
 }
 export { generateSnippet } from './snippets.js';
 export type { SnippetLanguage } from './snippets.js';
+export {
+  oauthUrl,
+  calculatePkceChallenge,
+  createPkceTransaction,
+  exchangePkceCode,
+} from './oauth.js';
+export type {
+  OAuthClient,
+  PkceTransaction,
+  OAuthAccessToken,
+} from './oauth.js';
