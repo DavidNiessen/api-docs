@@ -2,6 +2,23 @@
 
 The project is in development. There is no approved stable release, registry ownership is not verified, and these commands do not publish anything. The current `@api-docs` scope and Maven coordinates remain provisional. Never install or execute artifacts from an untrusted pull request.
 
+## Review a release plan
+
+Use a full clone with fetched release tags. The planner checks distribution metadata before reading local Git history. It never edits versions, writes a changelog, creates tags, fetches, pushes or publishes. With no merged release tags, select the initial release explicitly:
+
+```sh
+npm run --silent release:plan -- --initial --date 2026-10-22 > /tmp/api-docs-release-plan.json
+npm run --silent release:plan -- --initial --date 2026-10-22 --notes
+```
+
+After a release, omit `--initial` to use the highest merged canonical `v<version>` tag. `--since <local-ancestor-ref>` selects an explicit baseline; a canonical release tag also supplies its version. `--version <canonical-semver>` records an explicit maintainer-selected target, which cannot precede the checkout's declared version. The default date is the current UTC date; supplying it makes repeated plans reproducible. `--help` lists options. npm's `--silent` keeps the redirected JSON free of npm script headers.
+
+The schema-versioned JSON reports the source commit, dirty state, baseline, declared npm/Java versions, proposed bump/target, classified commits, unclassified messages and Markdown notes. Dirty plans are development evidence. Unclassified messages require manual review; they do not silently become features or breaking changes. Notes group breaking changes, features, fixes/reverts, performance and documentation, and escape commit-supplied Markdown/HTML. GitHub links are included only for a recognized origin, with URL credentials removed.
+
+Features suggest a minor increment; fixes, reverts and performance changes suggest a patch. Breaking changes suggest a major increment on stable versions and a minor increment below 1.0. Existing prereleases advance their prerelease number instead of promoting to stable automatically. Documentation/maintenance changes alone do not infer a bump. Initial releases retain the declared version for review. Metadata already advanced beyond the baseline's proposed increment is retained; the planner never downgrades it. An explicit override remains a maintainer decision, not proof that the version is semantically correct.
+
+Shallow repositories, invalid/unrelated baselines, invalid dates, conflicting target tags, inconsistent versions and oversized histories/messages fail. Plans are bounded to 5,000 non-merge commits, 64 KiB per commit body and an 8 MiB Git output buffer; narrow a large range with `--since`. A passing plan is not release authorization or signature/provenance verification. Review the complete range, upgrade notes, supported matrix and all gates below before preparing publication artifacts.
+
 ## Pack and verify npm components
 
 First run the [distribution version audit](versioning.md), which also participates in `npm run check`. The current checkout permits development Maven snapshots; release-mode alignment is a later gate.
@@ -24,4 +41,4 @@ Browser builds collect license texts for packages identified in bundle source ma
 
 ## Still required before publication
 
-Confirm owned npm/Maven/container namespaces and the final project name. Complete the advertised support matrix, independent security/accessibility review and pilots; verify branch/tag/environment protection; then test the exact candidate from a clean checkout. Registry release workflows, reviewed semantic version/changelog changes, Java/container SBOMs, signatures, provenance, upgrade/install rehearsals and release-owner approval remain launch gates. A local tarball install and a cache-only npm reinstall do not establish installation from public registries or a fully air-gapped server deployment.
+Confirm owned npm/Maven/container namespaces and the final project name. Complete the advertised support matrix, independent security/accessibility review and pilots; verify branch/tag/environment protection; then test the exact candidate from a clean checkout. Registry release workflows, applied/reviewed semantic version/changelog changes, Java/container SBOMs, signatures, provenance, upgrade/install rehearsals and release-owner approval remain launch gates. A local tarball install and a cache-only npm reinstall do not establish installation from public registries or a fully air-gapped server deployment.

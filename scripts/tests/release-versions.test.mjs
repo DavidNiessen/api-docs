@@ -2,8 +2,6 @@ import test from 'node:test';
 import { inc } from 'semver';
 import assert from 'node:assert/strict';
 import {
-  cp,
-  mkdir,
   mkdtemp,
   readFile,
   rm,
@@ -12,56 +10,19 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { auditReleaseVersions } from '../lib/release-versions.mjs';
-import { readWorkspacePackages } from '../lib/workspaces.mjs';
 
-const repository = fileURLToPath(new URL('../../', import.meta.url));
-const BASE_VERSION = JSON.parse(
-  await readFile(join(repository, 'package.json'), 'utf8'),
-).version;
+import { fixture, BASE_VERSION, poms } from './helpers/release-fixture.mjs';
+
 const OTHER_VERSION = inc(BASE_VERSION, 'major');
 assert(OTHER_VERSION);
-const poms = [
-  'integrations/java/pom.xml',
-  'integrations/java/core/pom.xml',
-  'integrations/java/spring-boot-starter/pom.xml',
-];
 const json = async (root, path) =>
   JSON.parse(await readFile(join(root, path), 'utf8'));
 async function editJson(root, path, change) {
   const data = await json(root, path);
   change(data);
   await writeFile(join(root, path), JSON.stringify(data, null, 2) + '\n');
-}
-async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'api-docs-versions-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  const paths = [
-    ...(await readWorkspacePackages(repository)).map(
-      (pkg) => (pkg.path ? pkg.path + '/' : '') + 'package.json',
-    ),
-    'package-lock.json',
-    'packages/contracts/src/version.ts',
-    ...poms,
-  ];
-  for (const path of paths) {
-    await mkdir(dirname(join(root, path)), { recursive: true });
-    await cp(join(repository, path), join(root, path));
-  }
-  for (const path of poms) {
-    const file = join(root, path);
-    await writeFile(
-      file,
-      (await readFile(file, 'utf8')).replace(
-        /(<artifactId>api-docs-parent<\/artifactId>\s*<version>)[^<]+(<\/version>)/g,
-        (_match, prefix, suffix) =>
-          prefix + BASE_VERSION + '-SNAPSHOT' + suffix,
-      ),
-    );
-  }
-  return root;
 }
 test('all npm/runtime/lockfile and Maven versions align without changing files', async (t) => {
   const root = await fixture(t),
