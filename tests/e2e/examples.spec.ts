@@ -66,7 +66,7 @@ test('named examples, explicit null, media types and custom request values are u
     .selectOption('text/plain');
   await expect(playground.locator('pre')).toContainText('Accept: text/plain');
   await expect(playground.locator('pre')).toContainText(
-    "--data '  keep these spaces  '",
+    "--data-raw '  keep these spaces  '",
   );
   await response
     .getByRole('button', { name: 'Copy code', exact: true })

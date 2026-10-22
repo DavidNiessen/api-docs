@@ -263,34 +263,5 @@ export function redactRequest(
     ...(request.body === undefined ? {} : { body: scrub(request.body) }),
   };
 }
-const shell = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`;
-export type SnippetLanguage =
-  'cURL' | 'JavaScript' | 'TypeScript' | 'Python' | 'Java';
-export function generateSnippet(
-  request: PreparedRequest,
-  language: SnippetLanguage,
-): string {
-  if (language === 'cURL')
-    return [
-      `curl --request ${request.method}`,
-      `  --url ${shell(request.url)}`,
-      ...Object.entries(request.headers).map(
-        ([key, value]) => `  --header ${shell(`${key}: ${value}`)}`,
-      ),
-      ...(request.body ? [`  --data ${shell(request.body)}`] : []),
-    ].join(' \\\n');
-  if (language === 'JavaScript' || language === 'TypeScript')
-    return `const response = await fetch(${JSON.stringify(request.url)}, ${JSON.stringify({ method: request.method, headers: request.headers, ...(request.body ? { body: request.body } : {}) }, null, 2)});\nif (!response.ok) throw new Error(\`HTTP \${response.status}\`);\nconst data${language === 'TypeScript' ? ': unknown' : ''} = await response.json();\nconsole.log(data);`;
-  if (language === 'Python')
-    return `import json\nimport urllib.request\n\nheaders = json.loads(${JSON.stringify(JSON.stringify(request.headers))})\nrequest = urllib.request.Request(\n    ${JSON.stringify(request.url)},\n    headers=headers,\n    method=${JSON.stringify(request.method)},${request.body ? `\n    data=${JSON.stringify(request.body)}.encode("utf-8"),` : ''}\n)\nwith urllib.request.urlopen(request, timeout=30) as response:\n    print(response.read().decode("utf-8"))`;
-  return `import java.net.URI;\nimport java.net.http.*;\nimport java.time.Duration;\n\nclass Example {\n  public static void main(String[] args) throws Exception {\n    var client = HttpClient.newHttpClient();\n    var request = HttpRequest.newBuilder(URI.create(${JSON.stringify(request.url)}))\n        .timeout(Duration.ofSeconds(30))\n${Object.entries(
-    request.headers,
-  )
-    .map(
-      ([key, value]) =>
-        `        .header(${JSON.stringify(key)}, ${JSON.stringify(value)})`,
-    )
-    .join(
-      '\n',
-    )}\n        .method(${JSON.stringify(request.method)}, HttpRequest.BodyPublishers.${request.body ? `ofString(${JSON.stringify(request.body)})` : 'noBody()'})\n        .build();\n    var response = client.send(request, HttpResponse.BodyHandlers.ofString());\n    System.out.println(response.body());\n  }\n}`;
-}
+export { generateSnippet } from './snippets.js';
+export type { SnippetLanguage } from './snippets.js';

@@ -34,10 +34,17 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Audit locked dependencies
         run: npm audit --audit-level=moderate
+      - name: Set up snippet Java runtime
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Check formatting and lint
         run: npm run check
       - name: Build demo publication
         run: npm run demo:build
+      - name: Execute generated snippets in all five languages
+        run: npm run test:snippets
       - name: Validate authored examples offline
         run: node packages/cli/dist/main.js doctor examples/demo --strict
       - name: Check first-party plugin conformance
