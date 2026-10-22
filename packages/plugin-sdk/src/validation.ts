@@ -22,6 +22,7 @@ const parameter = z
     style: z.string().optional(),
     explode: z.boolean().optional(),
     example: z.unknown().optional(),
+    examples: object.optional(),
     content: content.optional(),
     allowReserved: z.boolean().optional(),
     deprecated: z.boolean().optional(),
@@ -96,6 +97,7 @@ const schema = z
       .array(
         z
           .object({
+            openapiVersion: z.string().optional(),
             id: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
             version: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
             title: text,

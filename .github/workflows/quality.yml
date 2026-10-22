@@ -38,6 +38,10 @@ jobs:
         run: npm run check
       - name: Build demo publication
         run: npm run demo:build
+      - name: Validate authored examples offline
+        run: node packages/cli/dist/main.js doctor examples/demo --strict
+      - name: Check first-party plugin conformance
+        run: node packages/cli/dist/main.js plugin-check release-label.mjs examples/plugins --trust-plugins
       - name: Install browser
         run: npx playwright install --with-deps chromium
       - name: Test reader and API playground

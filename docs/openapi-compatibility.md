@@ -27,3 +27,7 @@ File reads are bounded before loading the full input: 16 MiB per spec/reference,
 Generated examples are bounded illustrative templates. Conditional schemas, advanced array/object evaluation, discriminator branch selection and arbitrary regex constraints are preserved but are not yet fully represented by interactive forms or guaranteed-valid synthetic examples. Example validation and broader schema presentation remain release work. Cookie parameters cannot be set manually by the browser explorer; host authentication or copyable client snippets require the appropriate runtime policy.
 
 The compatibility suite covers YAML/JSON parity across both versions, semantic failures, alias/nested/circular references, `$ref` intersections, webhook/callback rendering, source limits and malformed UTF-8. Framework support and packaged consumer tests are documented in [integrations](integrations.md).
+
+## Authored example checks
+
+Run `doctor` for offline schema validation of authored examples, including local references, falsy values, standard formats and directional read/write-only requirements. See the [doctor coverage and limits](doctor.md). Structural import alone does not validate example data.

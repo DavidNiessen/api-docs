@@ -19,6 +19,17 @@ import {
   pointerValue,
 } from './source.js';
 
+function namedExamples(
+  document: unknown,
+  input: unknown,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(record(input)).map(([name, example]) => [
+      name,
+      resolvePointer(document, example),
+    ]),
+  );
+}
 function content(document: unknown, input: unknown): Record<string, Media> {
   return Object.fromEntries(
     Object.entries(record(input)).map(([type, value]) => {
@@ -37,14 +48,7 @@ function content(document: unknown, input: unknown): Record<string, Media> {
           ...(media.examples === undefined
             ? {}
             : {
-                examples: Object.fromEntries(
-                  Object.entries(record(media.examples)).map(
-                    ([name, example]) => [
-                      name,
-                      resolvePointer(document, example),
-                    ],
-                  ),
-                ),
+                examples: namedExamples(document, media.examples),
               }),
         },
       ];
@@ -183,7 +187,10 @@ export function normalizeSpec(
             in: location as Parameter['in'],
             required: parameter.required === true,
             description: text(parameter.description),
-            schema: record(schema),
+            schema:
+              typeof schema === 'boolean'
+                ? { 'x-api-docs-boolean-schema': schema }
+                : record(schema),
             ...(parameter.content === undefined
               ? {}
               : { content: content(document, parameter.content) }),
@@ -200,6 +207,11 @@ export function normalizeSpec(
             ...(parameter.example === undefined
               ? {}
               : { example: parameter.example }),
+            ...(parameter.examples === undefined
+              ? {}
+              : {
+                  examples: namedExamples(document, parameter.examples),
+                }),
           });
         }
       }
@@ -251,7 +263,33 @@ export function normalizeSpec(
               content: content(document, response.content),
               headers: Object.fromEntries(
                 Object.entries(record(response.headers)).map(
-                  ([name, header]) => [name, resolvePointer(document, header)],
+                  ([name, rawHeader]) => {
+                    const header = resolvePointer(document, rawHeader);
+                    return [
+                      name,
+                      {
+                        ...header,
+                        ...(typeof header.schema === 'boolean'
+                          ? {
+                              schema: {
+                                'x-api-docs-boolean-schema': header.schema,
+                              },
+                            }
+                          : {}),
+                        ...(header.examples === undefined
+                          ? {}
+                          : {
+                              examples: namedExamples(
+                                document,
+                                header.examples,
+                              ),
+                            }),
+                        ...(header.content === undefined
+                          ? {}
+                          : { content: content(document, header.content) }),
+                      },
+                    ];
+                  },
                 ),
               ),
             };
@@ -366,6 +404,7 @@ export function normalizeSpec(
     }
   }
   return {
+    openapiVersion: text(document.openapi),
     id: input.id,
     version: input.version ?? text(info.version),
     title: text(info.title),

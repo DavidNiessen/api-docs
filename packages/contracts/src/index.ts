@@ -18,6 +18,7 @@ export interface Parameter {
   style?: string;
   explode?: boolean;
   example?: unknown;
+  examples?: Record<string, unknown>;
   content?: Record<string, Media>;
   allowReserved?: boolean;
   deprecated?: boolean;
@@ -67,6 +68,7 @@ export interface SecurityScheme {
   openIdConnectUrl?: string;
 }
 export interface ApiDocument {
+  openapiVersion?: string;
   id: string;
   version: string;
   title: string;

@@ -5,7 +5,7 @@ import { mkdir, writeFile, access } from 'node:fs/promises';
 import { resolve, join, dirname, basename } from 'node:path';
 import { watch } from 'node:fs';
 import { compileProject } from '@api-docs/compiler';
-import { loadSpec, diffApi, parseConfig } from '@api-docs/spec';
+import { loadSpec, diffApi, parseConfig, checkExamples } from '@api-docs/spec';
 import { checkPluginConformance } from '@api-docs/plugin-sdk';
 import {
   buildSite,
@@ -55,56 +55,59 @@ buildOptions(
     );
   },
 );
-program
-  .command('validate [project]')
-  .alias('doctor')
-  .description(
-    'Validate specs, guides, configuration and documentation quality',
-  )
-  .option('-c, --config <file>', 'project config file', 'docs.config.yaml')
-  .option('--strict', 'fail on warnings')
-  .option('--json', 'machine-readable output')
-  .option('--trust-plugins', 'allow reviewed local plugins')
-  .option(
-    '--trust-content',
-    'allow reviewed MDX content to execute in bounded workers',
-  )
-  .action(
-    async (
-      project = '.',
-      options: {
-        config: string;
-        strict?: boolean;
-        json?: boolean;
-        trustPlugins?: boolean;
-        trustContent?: boolean;
-      },
-    ) => {
-      const site = await compileProject(
-        resolve(project),
-        options.config,
-        options,
-      );
-      console.log(
-        options.json
-          ? JSON.stringify(site.diagnostics)
-          : site.diagnostics.length
-            ? site.diagnostics
-                .map(
-                  (diagnostic) =>
-                    `${diagnostic.severity} [${diagnostic.code}] ${diagnostic.message}`,
-                )
-                .join('\n')
-            : 'Validation passed with no diagnostics.',
-      );
-      if (
-        site.diagnostics.some(
-          (diagnostic) => diagnostic.severity === 'error' || options.strict,
+for (const mode of ['validate', 'doctor'] as const)
+  program
+    .command(`${mode} [project]`)
+    .description(
+      'Validate specs, guides, configuration and documentation quality',
+    )
+    .option('-c, --config <file>', 'project config file', 'docs.config.yaml')
+    .option('--strict', 'fail on warnings')
+    .option('--json', 'machine-readable output')
+    .option('--trust-plugins', 'allow reviewed local plugins')
+    .option(
+      '--trust-content',
+      'allow reviewed MDX content to execute in bounded workers',
+    )
+    .action(
+      async (
+        project = '.',
+        options: {
+          config: string;
+          strict?: boolean;
+          json?: boolean;
+          trustPlugins?: boolean;
+          trustContent?: boolean;
+        },
+      ) => {
+        const site = await compileProject(
+          resolve(project),
+          options.config,
+          options,
+        );
+        if (mode === 'doctor')
+          for (const api of site.apis)
+            site.diagnostics.push(...(await checkExamples(api)));
+        console.log(
+          options.json
+            ? JSON.stringify(site.diagnostics)
+            : site.diagnostics.length
+              ? site.diagnostics
+                  .map(
+                    (diagnostic) =>
+                      `${diagnostic.severity} [${diagnostic.code}] ${diagnostic.message}`,
+                  )
+                  .join('\n')
+              : 'Validation passed with no diagnostics.',
+        );
+        if (
+          site.diagnostics.some(
+            (diagnostic) => diagnostic.severity === 'error' || options.strict,
+          )
         )
-      )
-        process.exitCode = 1;
-    },
-  );
+          process.exitCode = 1;
+      },
+    );
 program
   .command('serve <directory>')
   .description('Serve an existing static publication')
