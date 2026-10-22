@@ -25,6 +25,7 @@ import { Icon } from './Icon.js';
 import { Explorer } from './Explorer.js';
 import { SchemaView } from './SchemaView.js';
 import { MediaExamples } from './MediaExamples.js';
+import { DeprecationCenter, OperationLifecycle } from './Lifecycle.js';
 
 const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
 function scrollFragment(hash: string) {
@@ -145,6 +146,7 @@ export function App({
       site.apis.find((api) => `${api.id}:${api.version}` === selectedApi) ??
       activeApi;
   const firstApi = activeApi?.operations[0];
+  const lifecyclePage = site.lifecycle?.page;
   useEffect(() => {
     setThemeEditorEnabled(
       new URL(window.location.href).searchParams.get('theme-editor') === '1',
@@ -499,7 +501,7 @@ export function App({
         </div>
         <nav className="header-tabs" aria-label="Documentation sections">
           <a
-            className={!activeOperation ? 'active' : ''}
+            className={!activeOperation && !lifecyclePage ? 'active' : ''}
             href={href(site.guides[0] ? guideHref(site.guides[0]) : '/')}
             data-doc-route
           >
@@ -514,6 +516,17 @@ export function App({
             >
               <Icon name="code" size={16} />
               API Reference
+            </a>
+          )}
+          {(site.lifecycle?.total ?? 0) > 0 && (
+            <a
+              className={lifecyclePage ? 'active' : ''}
+              href={href('/deprecations/')}
+              data-doc-route
+              aria-current={lifecyclePage ? 'page' : undefined}
+            >
+              <Icon name="info" size={16} />
+              Deprecations
             </a>
           )}
           <span className="header-version">
@@ -656,11 +669,21 @@ export function App({
         <main
           id="main-content"
           className={
-            activeOperation ? 'main-area api-layout' : 'main-area guide-layout'
+            lifecyclePage
+              ? 'main-area lifecycle-layout'
+              : activeOperation
+                ? 'main-area api-layout'
+                : 'main-area guide-layout'
           }
           tabIndex={-1}
         >
-          {activeOperation && activeApi ? (
+          {lifecyclePage ? (
+            <DeprecationCenter
+              key={path}
+              page={lifecyclePage}
+              basePath={config.basePath}
+            />
+          ) : activeOperation && activeApi ? (
             <>
               <article className="article api-article">
                 <div className="breadcrumb">
@@ -700,12 +723,19 @@ export function App({
                       </span>
                     </div>
                   )}
-                {activeOperation.deprecated && (
-                  <div className="callout warning">
-                    <Icon name="info" />
-                    This endpoint is deprecated. Check the migration guide
-                    before integrating.
-                  </div>
+                {site.lifecycle?.current ? (
+                  <OperationLifecycle
+                    entry={site.lifecycle.current}
+                    basePath={config.basePath}
+                  />
+                ) : (
+                  activeOperation.deprecated && (
+                    <div className="callout warning">
+                      <Icon name="info" />
+                      This endpoint is deprecated. Check the migration guide
+                      before integrating.
+                    </div>
+                  )
                 )}
                 <div className="endpoint-address">
                   <span className={`method-badge ${activeOperation.method}`}>

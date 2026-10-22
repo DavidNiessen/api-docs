@@ -240,6 +240,7 @@ kbd {
   display: flex;
   gap: 28px;
   align-items: stretch;
+  overflow-x: auto;
   font-size: 13px;
 }
 .header-tabs > a {
@@ -249,6 +250,8 @@ kbd {
   border-bottom: 2px solid transparent;
   color: var(--muted);
   padding: 0 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .header-tabs > a.active {
   border-color: var(--accent-text);
@@ -1579,7 +1582,7 @@ h3 {
   .header-tabs {
     height: 44px;
     padding: 0 20px;
-    gap: 25px;
+    gap: 18px;
     font-size: 12px;
   }
   .sidebar {
@@ -1992,4 +1995,127 @@ h3 {
   background: var(--surface);
   color: var(--text);
   border-color: var(--border);
+}
+
+.lifecycle-layout {
+  grid-template-columns: minmax(0, var(--content-width, 760px));
+}
+.lifecycle-center .page-description {
+  max-width: 640px;
+}
+.lifecycle-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.lifecycle-filters,
+.lifecycle-pagination,
+.lifecycle-links,
+.lifecycle-operation,
+.lifecycle-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.lifecycle-filters {
+  margin: 24px 0 14px;
+  align-items: flex-start;
+}
+.lifecycle-filters a,
+.lifecycle-filters summary,
+.lifecycle-pagination a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+}
+.lifecycle-filters [aria-current] {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+.lifecycle-group-options {
+  display: grid;
+  max-height: 300px;
+  overflow: auto;
+  gap: 6px;
+  margin-top: 8px;
+}
+.lifecycle-entries {
+  display: grid;
+  gap: 18px;
+}
+.lifecycle-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.lifecycle-card h2 {
+  margin: 16px 0 10px;
+  padding: 0;
+  border: 0;
+  font-size: 19px;
+}
+.lifecycle-card p {
+  margin: 12px 0 0;
+}
+.lifecycle-card-meta {
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 11px;
+}
+.lifecycle-status {
+  color: var(--accent-text);
+  background: var(--subtle);
+  border-radius: 5px;
+  padding: 4px 7px;
+}
+.lifecycle-operation {
+  font-size: 12px;
+  min-width: 0;
+}
+.lifecycle-operation code {
+  white-space: normal;
+}
+.lifecycle-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+  margin: 16px 0;
+}
+.lifecycle-dates dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.lifecycle-dates dd {
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.lifecycle-links a,
+.lifecycle-notice > div > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  color: var(--accent-text);
+  font-size: 12px;
+}
+.lifecycle-notice p {
+  margin: 8px 0;
+}
+.lifecycle-notice > div > a {
+  margin-top: 8px;
+}
+.lifecycle-pagination {
+  justify-content: center;
+  margin-top: 28px;
+  font-size: 12px;
 }

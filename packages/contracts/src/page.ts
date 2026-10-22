@@ -1,5 +1,6 @@
 import type { ApiDocument, Operation, Schema, SiteData } from './index.js';
 import { guideHref, operationHref } from './index.js';
+import { lifecycleContext } from './lifecycle-pages.js';
 export function normalizePagePath(path: string): string {
   return path.replace(/\/index\.html$/, '/') || '/';
 }
@@ -61,6 +62,7 @@ function navigationOperation(operation: Operation): Operation {
 /** Only route-relevant content is serialized. Bounded navigation stays useful on very large APIs. */
 export function createPageData(site: SiteData, inputPath: string): SiteData {
   const path = normalizePagePath(inputPath);
+  if (site.pagePath === path) return site;
   const activeGuide =
     site.guides.find((guide) => guideHref(guide) === path) ??
     (path === '/' ? site.guides[0] : undefined);
@@ -111,6 +113,13 @@ export function createPageData(site: SiteData, inputPath: string): SiteData {
       site.apis.reduce((total, api) => total + api.operations.length, 0);
   return {
     ...site,
+    pagePath: path,
+    lifecycle: lifecycleContext(
+      site,
+      path === '/' && activeApi && activeOperation
+        ? operationHref(activeApi, activeOperation)
+        : path,
+    ),
     assetMetadata: [],
     navigationTotal,
     navigationTruncated:

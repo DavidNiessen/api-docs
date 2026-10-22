@@ -6,6 +6,7 @@ import {
   withBase,
   resolveSchema,
   lifecycleReport,
+  lifecycleRoutes,
 } from '@api-docs/contracts';
 import type {
   Diagnostic,
@@ -118,6 +119,8 @@ export async function auditDocumentation(
   const base = site.config.basePath;
   const origin = site.config.siteUrl ?? 'https://api-docs.invalid';
   const routes = new Map<string, Set<string> | undefined>();
+  for (const route of lifecycleRoutes(site))
+    routes.set(normalize(withBase(base, route)), new Set(['main-content']));
   const guideMetadata = new Map<
     string,
     {

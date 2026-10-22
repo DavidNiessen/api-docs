@@ -190,6 +190,8 @@ const paths = [
   '/reference/site.json',
   '/reference/oauth/callback/',
   '/reference/assets/oauth-callback.js',
+  '/reference/deprecations/',
+  '/reference/deprecations/page-data.json',
 ];
 const app = express();
 const docs = await createExpressDocs({

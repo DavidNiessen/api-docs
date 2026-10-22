@@ -160,6 +160,9 @@ export interface ProjectConfig {
   plugins: string[];
 }
 export interface SiteData {
+  /** Route-scoped render data; absent from the compiler's full graph. */
+  pagePath?: string;
+  lifecycle?: import('./lifecycle-pages.js').LifecycleContext;
   assetMetadata?: { path: string; hash: string }[];
   navigationTotal?: number;
   navigationTruncated?: boolean;
@@ -232,6 +235,13 @@ export function withBase(base: string, path: string): string {
 export { resolveSchema, exampleFor } from './schema.js';
 
 export { createPageData, normalizePagePath } from './page.js';
+export { lifecycleContext, lifecycleRoutes } from './lifecycle-pages.js';
+export type {
+  LifecycleContext,
+  LifecycleGroup,
+  LifecyclePage,
+  LifecycleRecord,
+} from './lifecycle-pages.js';
 
 export {
   contrastRatio,

@@ -172,6 +172,8 @@ describe('self-hosted publication and authorization', () => {
       'search.json',
       'assets/reader.js',
       'guides/introduction/',
+      'deprecations/',
+      'deprecations/page-data.json',
     ])
       expect((await server.inject(`/docs/${slug}/${path}`)).statusCode).toBe(
         401,
@@ -189,6 +191,14 @@ describe('self-hosted publication and authorization', () => {
     expect(page.statusCode).toBe(200);
     expect(page.headers['cache-control']).toContain('no-store');
     expect(page.body).toContain('Introduction');
+    for (const path of ['deprecations/', 'deprecations/page-data.json']) {
+      const center = await server.inject({
+        url: `/docs/${slug}/${path}`,
+        headers,
+      });
+      expect(center.statusCode).toBe(200);
+      expect(center.headers['cache-control']).toContain('no-store');
+    }
     expect(
       (
         await server.inject({
@@ -215,6 +225,14 @@ describe('self-hosted publication and authorization', () => {
     expect(
       (await server.inject({ url: `/docs/${slug}/search.json`, headers }))
         .statusCode,
+    ).toBe(401);
+    expect(
+      (
+        await server.inject({
+          url: `/docs/${slug}/deprecations/page-data.json`,
+          headers,
+        })
+      ).statusCode,
     ).toBe(401);
   });
   it('prevents concurrent publishers from losing updates and records audit events', async () => {

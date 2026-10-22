@@ -1,6 +1,6 @@
 # API lifecycle inventory
 
-The CLI inventories deprecated operations, announced retirement dates, replacement operations and migration guides across API versions. The reader's full deprecation-center screen is a pending increment; this foundation provides validated metadata and reproducible CI reports.
+The CLI inventories deprecated operations, announced retirement dates, replacement operations and migration guides across API versions. The reader exposes the same declarations in a static deprecation center and on operation pages.
 
 Standard `deprecated: true` operations appear even without extra metadata. Add the reserved `x-api-docs-lifecycle` extension when dates or migration details are available:
 
@@ -21,6 +21,16 @@ Fields are optional, but an extension must declare at least one. Dates must be r
 Replacement targets default to the same API id, API version and operation kind. Set `apiId`, `version` or `kind` to select another published target. Endpoint identifiers normally use OpenAPI `operationId`; the JSON inventory exposes the normalized identifiers for generated/incoming-event operations. Missing, ambiguous or self-referencing replacements are reported without inventing a link. A migration guide can cover a transition that has no single replacement operation.
 
 Future dates can be announced without setting the standard deprecated flag yet. Standard deprecation or a reached `deprecatedOn` produces a deprecated status. A reached sunset takes precedence; otherwise sunsets within the chosen window appear as soon, and other announced entries remain planned. Date-only deadlines start at 00:00 UTC on the stated date. The tool reports declarations; it does not remove API endpoints or verify a server's actual shutdown.
+
+## Reader center
+
+Every export includes `/deprecations/`, with API/version filters and 50-operation pages. All inventory entries remain reachable even when the regular sidebar is truncated for a large API. Filters and pagination use real static routes and work without JavaScript, including under a configured base path. Only the current slice is embedded in its HTML and page-data JSON; ordinary pages receive an inventory count and, where relevant, the current operation's guidance. The center appears in the header when lifecycle entries exist. An empty publication still has a usable empty center.
+
+Cards and operation notices link to resolved replacement operations and migration guides. Unresolved declarations display a request for guidance instead of an invented destination. Dates and migration links remain readable without JavaScript. With JavaScript, the reader classifies the displayed entries against the visitor's current UTC date and refreshes that date every minute. A reached sunset is labeled **Sunset date reached**, not a claim that the endpoint has been removed. The 30-day upcoming window is informational; CI policy uses the CLI's explicit window.
+
+The build includes these routes in its artifact manifest and sitemap. Private hosting must apply its normal authentication to the center's HTML and JSON, just like search and guide artifacts. This catalog contains API metadata and is not a separate public feed.
+
+`createPageData` returns route-scoped data with `pagePath` and a bounded `lifecycle` context. Rendering that same route again preserves its resolved cross-version links. `lifecycleRoutes` and `lifecycleContext` share an identity-based cache: complete plugin transformations first and treat a graph as immutable during rendering; create a new graph object for updates. The catalog supports up to 100,000 operations and 1,000 API/version groups, within the artifact's overall route/file budgets. Split larger projects.
 
 ## CLI and CI
 

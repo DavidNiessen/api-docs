@@ -18,6 +18,11 @@ export default defineConfig({
   },
   webServer: [
     {
+      command: 'node scripts/lifecycle-browser-fixture.mjs',
+      url: 'http://127.0.0.1:4176/health/ready',
+      reuseExistingServer: false,
+    },
+    {
       command: 'node scripts/mock-oauth.mjs',
       url: 'http://127.0.0.1:4020/health',
       reuseExistingServer: false,

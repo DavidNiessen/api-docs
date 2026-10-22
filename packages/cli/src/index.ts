@@ -24,7 +24,12 @@ import {
   loadPublicAssets,
   digest,
 } from '@api-docs/compiler';
-import { guideHref, operationHref, createPageData } from '@api-docs/contracts';
+import {
+  guideHref,
+  operationHref,
+  createPageData,
+  lifecycleRoutes,
+} from '@api-docs/contracts';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
 import { createSearchIndex } from '@api-docs/search';
@@ -90,6 +95,7 @@ export async function buildSite(
     for (const api of site.apis)
       for (const operation of api.operations)
         pages.set(operationHref(api, operation), operation.summary);
+    for (const route of lifecycleRoutes(site)) pages.set(route, 'Deprecations');
     const callbackRoute = '/oauth/callback/';
     if (
       Object.keys(site.config.redirects).some(
