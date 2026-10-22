@@ -1,5 +1,6 @@
 import { parseJsonValue, resolveSchema } from '@api-docs/contracts';
 import type { JsonValueNode, Schema } from '@api-docs/contracts';
+import { objectFieldSchema } from './body-object-schema.js';
 
 export type ObjectBodyValue = Extract<JsonValueNode, { kind: 'object' }>;
 export type ArrayBodyValue = Extract<JsonValueNode, { kind: 'array' }>;
@@ -45,11 +46,21 @@ export function bodyFieldModel(
   legacy: boolean,
 ): BodyFieldModel | BodyArrayModel {
   const budget = { remaining: 100 };
-  const resolved = (schema: Schema, sensitive = false): Schema => ({
-    ...resolveSchema(schema, schemas, { ignoreReferenceSiblings: legacy }),
-    ...(!legacy ? { nullable: false } : {}),
-    ...(sensitive ? { writeOnly: true } : {}),
-  });
+  const resolved = (schema: Schema, sensitive = false): Schema => {
+    let actual = resolveSchema(schema, schemas, {
+      ignoreReferenceSiblings: legacy,
+    });
+    try {
+      actual = objectFieldSchema(actual, schemas, legacy);
+    } catch {
+      // Unsupported field shapes keep their original local JSON fallback.
+    }
+    return {
+      ...actual,
+      ...(!legacy ? { nullable: false } : {}),
+      ...(sensitive ? { writeOnly: true } : {}),
+    };
+  };
   function children(
     value: JsonValueNode | undefined,
     schema: Schema,
@@ -142,9 +153,7 @@ export function bodyFieldModel(
         throw new Error(
           'Use JSON for objects beyond eight field-editor levels.',
         );
-      const actual = resolveSchema(schema, schemas, {
-        ignoreReferenceSiblings: legacy,
-      });
+      const actual = objectFieldSchema(schema, schemas, legacy);
       if (complex(actual))
         throw new Error(
           'Use JSON for composed or conditional request schemas.',

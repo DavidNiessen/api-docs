@@ -323,7 +323,7 @@ paths:
         '400': { description: Invalid upload }
 components:
   schemas:
-    BodyInput:
+    BodyIdentity:
       type: object
       required: [name, enabled, count, id]
       properties:
@@ -331,49 +331,63 @@ components:
         enabled: { type: boolean }
         count: { type: integer, minimum: 0 }
         id: { type: integer }
-        mode: { type: string, enum: [auto, manual] }
-        note: { type: [string, 'null'], default: null }
-        options: { type: array, items: { type: string } }
-        metadata: { type: object }
-        password: { type: string, format: password, writeOnly: true }
-        responseOnly: { type: string, readOnly: true }
-        optional: { type: string, default: optional-default }
-        fixed: { type: string, const: fixed }
-        profile:
-          $ref: '#/components/schemas/NestedProfile'
-        members:
-          type: array
-          items: { $ref: '#/components/schemas/NestedProfile' }
-        matrix:
-          type: array
-          items: { type: array, items: { type: number } }
-        tokens:
-          type: array
-          writeOnly: true
-          items: { type: string }
-    NestedProfile:
+    BodyInput:
+      allOf:
+        - $ref: '#/components/schemas/BodyIdentity'
+        - type: object
+          properties:
+            mode: { type: string, enum: [auto, manual] }
+            note: { type: [string, 'null'], default: null }
+            options: { type: array, items: { type: string } }
+            metadata: { type: object }
+            password: { type: string, format: password, writeOnly: true }
+            responseOnly: { type: string, readOnly: true }
+            optional: { type: string, default: optional-default }
+            fixed: { type: string, const: fixed }
+            profile:
+              $ref: '#/components/schemas/NestedProfile'
+            members:
+              type: array
+              items: { $ref: '#/components/schemas/NestedProfile' }
+            matrix:
+              type: array
+              items: { type: array, items: { type: number } }
+            tokens:
+              type: array
+              writeOnly: true
+              items: { type: string }
+    ProfileIdentity:
       type: object
       required: [name, id]
       properties:
         name: { type: string }
         id: { type: integer }
-        privateNote: { type: string, writeOnly: true }
-        responseOnly: { type: string, readOnly: true }
-        address:
-          type: [object, 'null']
+    NestedProfile:
+      allOf:
+        - $ref: '#/components/schemas/ProfileIdentity'
+        - type: object
           properties:
-            city: { type: string }
-            zip: { type: string }
-        manager:
-          $ref: '#/components/schemas/NestedProfile'
-        settings:
-          type: object
-          writeOnly: true
-          properties:
-            secret: { type: string }
-            choice:
-              { type: string, enum: [fixture-choice-one, fixture-choice-two] }
-            fixed: { type: string, const: fixture-fixed-setting }
+            privateNote: { type: string, writeOnly: true }
+            responseOnly: { type: string, readOnly: true }
+            address:
+              type: [object, 'null']
+              properties:
+                city: { type: string }
+                zip: { type: string }
+            manager:
+              $ref: '#/components/schemas/NestedProfile'
+            settings:
+              allOf:
+                - writeOnly: true
+                - type: object
+                  properties:
+                    secret: { type: string }
+                    choice:
+                      {
+                        type: string,
+                        enum: [fixture-choice-one, fixture-choice-two],
+                      }
+                    fixed: { type: string, const: fixture-fixed-setting }
 
     Colors:
       type: array

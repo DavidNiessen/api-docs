@@ -165,7 +165,7 @@ describe('bounded nested object form model', () => {
     expect(child.fields[0]!.schema.writeOnly).toBe(true);
     expect(JSON.stringify(schema)).toBe(original);
   });
-  it('keeps composed children in JSON while ordinary siblings remain editable', () => {
+  it('keeps conditional children in JSON while ordinary siblings remain editable', () => {
     const model = bodyFieldModel(
       '{"plain":{"name":"Ada"},"complex":{"value":1}}',
       {
@@ -174,7 +174,7 @@ describe('bounded nested object form model', () => {
           plain: { type: 'object', properties: { name: { type: 'string' } } },
           complex: {
             type: 'object',
-            allOf: [{ properties: { value: { type: 'number' } } }],
+            allOf: [{ if: { properties: { value: { type: 'number' } } } }],
           },
         },
       },
@@ -192,6 +192,172 @@ describe('bounded nested object form model', () => {
         false,
       ).available,
     ).toBe(false);
+  });
+  it('projects referenced allOf objects without losing requirements, privacy or exact values', () => {
+    const schemas = {
+      Identity: {
+        type: 'object',
+        required: ['name', 'id'],
+        properties: { name: { type: 'string' }, id: { type: 'integer' } },
+      },
+      Secret: {
+        allOf: [
+          { writeOnly: true },
+          { properties: { token: { type: 'string' } } },
+        ],
+      },
+    };
+    const schema = {
+      allOf: [
+        { $ref: '#/components/schemas/Identity' },
+        {
+          required: ['secret'],
+          properties: {
+            secret: { $ref: '#/components/schemas/Secret' },
+            server: {
+              allOf: [
+                { readOnly: true },
+                { properties: { status: { type: 'string' } } },
+              ],
+            },
+          },
+        },
+      ],
+    };
+    const before = JSON.stringify({ schema, schemas });
+    const model = bodyFieldModel(
+      '{"name":"Ada","id":9007199254740993,"secret":{"token":"private"},"server":{"status":"kept"},"extra":1e400}',
+      schema,
+      schemas,
+      false,
+    );
+    if (!model.available) throw new Error(model.error);
+    expect(model.required).toEqual(['name', 'id', 'secret']);
+    expect(model.fields.map(({ name }) => name)).toEqual([
+      'name',
+      'id',
+      'secret',
+    ]);
+    const secret = model.fields[2]!;
+    expect(secret.schema.writeOnly).toBe(true);
+    if (!secret.nested?.available) throw new Error('Missing secret controls');
+    expect(secret.nested.fields[0]!.schema.writeOnly).toBe(true);
+    expect(model.value.entries).toContainEqual([
+      'id',
+      { kind: 'number', text: '9007199254740993' },
+    ]);
+    expect(model.value.entries).toContainEqual([
+      'extra',
+      { kind: 'number', text: '1e400' },
+    ]);
+    expect(model.value.entries.some(([name]) => name === 'server')).toBe(true);
+    expect(JSON.stringify({ schema, schemas })).toBe(before);
+  });
+  it('honors dialect-specific reference siblings when composing objects', () => {
+    const schema = {
+      $ref: '#/components/schemas/Base',
+      required: ['extra'],
+      properties: { extra: { type: 'boolean' } },
+    };
+    const schemas = { Base: { properties: { name: { type: 'string' } } } };
+    const modern = bodyFieldModel('{}', schema, schemas, false);
+    const legacy = bodyFieldModel('{}', schema, schemas, true);
+    if (!modern.available || !legacy.available)
+      throw new Error('Missing fields');
+    expect(modern.fields.map(({ name }) => name)).toEqual(['name', 'extra']);
+    expect(modern.required).toEqual(['extra']);
+    expect(legacy.fields.map(({ name }) => name)).toEqual(['name']);
+    expect(legacy.required).toEqual([]);
+  });
+  it.each([
+    { properties: { a: { type: 'string' } } },
+    { additionalProperties: false },
+    { unevaluatedProperties: false },
+    { patternProperties: { '^a': { type: 'string' } } },
+    { const: { a: 'fixed' } },
+    { oneOf: [{ type: 'object' }] },
+    { type: 'string' },
+    { $ref: '#/components/schemas/Missing' },
+  ])('retains JSON for incompatible object compositions: %j', (branch) => {
+    const model = bodyFieldModel(
+      '{}',
+      {
+        allOf: [{ properties: { a: { type: 'string' } } }, branch],
+      },
+      {},
+      false,
+    );
+    expect(model.available).toBe(false);
+  });
+  it('intersects nullable object types across composition branches', () => {
+    for (const legacy of [true, false]) {
+      const nullable = legacy
+        ? { type: 'object', nullable: true }
+        : { type: ['object', 'null'] };
+      for (const allowNull of [true, false]) {
+        const model = bodyFieldModel(
+          '{"child":{}}',
+          {
+            properties: {
+              child: {
+                allOf: [
+                  { ...nullable, properties: { a: { type: 'string' } } },
+                  {
+                    ...(allowNull ? nullable : { type: 'object' }),
+                    properties: { b: { type: 'string' } },
+                  },
+                ],
+              },
+            },
+          },
+          {},
+          legacy,
+        );
+        if (!model.available) throw new Error(model.error);
+        const child = model.fields[0]!.schema;
+        expect(
+          legacy
+            ? child.nullable
+            : Array.isArray(child.type) && child.type.includes('null'),
+        ).toBe(allowNull);
+      }
+    }
+  });
+  it('bounds wide, deep and recursive compositions with local JSON fallback', () => {
+    let deep: Schema = { properties: { a: { type: 'string' } } };
+    for (let depth = 0; depth < 9; depth++) deep = { allOf: [deep] };
+    const recursive = { allOf: [{ $ref: '#/components/schemas/Loop' }] };
+    const wide = { allOf: Array.from({ length: 33 }, () => ({})) };
+    for (const child of [deep, wide, recursive]) {
+      const model = bodyFieldModel(
+        '{"safe":"kept","child":{}}',
+        {
+          properties: { safe: { type: 'string' }, child },
+        },
+        { Loop: recursive },
+        false,
+      );
+      if (!model.available) throw new Error(model.error);
+      expect(model.fields[0]!.name).toBe('safe');
+      expect(model.fields[1]!.nested?.available).toBe(false);
+    }
+  });
+  it('composes literal prototype property names without prototype mutation', () => {
+    const schema = JSON.parse(
+      '{"allOf":[{"properties":{"__proto__":{"type":"string"}}},{"properties":{"constructor":{"type":"string"}}}]}',
+    ) as Schema;
+    const model = bodyFieldModel(
+      '{"__proto__":"own","constructor":"own"}',
+      schema,
+      {},
+      false,
+    );
+    if (!model.available) throw new Error(model.error);
+    expect(model.fields.map(({ name }) => name)).toEqual([
+      '__proto__',
+      'constructor',
+    ]);
+    expect(Object.hasOwn(Object.prototype, 'type')).toBe(false);
   });
   it('does not expand object enums, constants or ambiguous type unions', () => {
     const object = { type: 'object', properties: { name: { type: 'string' } } };

@@ -4,7 +4,7 @@ const route = 'http://127.0.0.1:4174/gallery/api/gallery/v1/editrequestfields/';
 const raw =
   '{"name":"root","enabled":false,"count":0,"id":9007199254740993,"profile":{"name":"Ada","id":9007199254740993,"privateNote":"private-note","responseOnly":"retained-read-only","address":{"city":"Old city","zip":"12345","unknown":{"huge":1e400}},"manager":{"name":"Grace","id":2},"settings":{"secret":"private-settings","choice":"private-choice","fixed":"fixture-fixed-setting"},"custom":{"precise":1.234567890123456789}},"constructor":"own","__proto__":{"keep":true},"profile.name":"literal-key"}';
 
-test('nested object controls retain precise and unknown values, mask secrets and send the edited body', async ({
+test('allOf object controls retain precise and unknown values, mask secrets and send the edited body', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -25,6 +25,15 @@ test('nested object controls retain precise and unknown values, mask secrets and
   await expect(
     playground.getByLabel('Include body profile.responseOnly', { exact: true }),
   ).toHaveCount(0);
+  for (const name of ['name', 'id']) {
+    const headings = playground.locator('.body-field-heading').filter({
+      has: page
+        .locator('code')
+        .filter({ hasText: new RegExp('^' + name + '$') }),
+    });
+    for (const heading of await headings.all())
+      await expect(heading).toContainText('required');
+  }
   const fields = playground.locator('.body-fields');
   for (const secret of [
     'private-choice',
