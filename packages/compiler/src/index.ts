@@ -61,6 +61,10 @@ export async function compileProject(
       plugins.push(imported.default);
     }
     site = await applyPlugins(site, plugins);
+    site.pluginVersions = plugins.map(({ name, version }) => ({
+      name,
+      version,
+    }));
   }
   return site;
 }
@@ -83,20 +87,41 @@ export async function writeManifest(
     }
   };
   await walk(directory);
-  const manifest: ArtifactManifest = {
+  const details: Omit<ArtifactManifest, 'artifactDigest'> = {
     schemaVersion: 1,
     compilerVersion: '0.1.0',
     inputDigest: digest(JSON.stringify(site)),
     files,
     routes,
     diagnostics: site.diagnostics,
-    plugins: [],
+    plugins: site.pluginVersions ?? [],
+  };
+  const manifest: ArtifactManifest = {
+    ...details,
+    artifactDigest: artifactIdentity(details),
   };
   await writeFile(
     join(directory, 'manifest.json'),
     JSON.stringify(manifest, null, 2),
   );
   return manifest;
+}
+export function artifactIdentity(
+  manifest: Omit<ArtifactManifest, 'artifactDigest'>,
+): string {
+  return digest(
+    JSON.stringify({
+      schemaVersion: manifest.schemaVersion,
+      compilerVersion: manifest.compilerVersion,
+      inputDigest: manifest.inputDigest,
+      files: Object.fromEntries(
+        Object.entries(manifest.files).sort(([a], [b]) => a.localeCompare(b)),
+      ),
+      routes: manifest.routes,
+      diagnostics: manifest.diagnostics,
+      plugins: manifest.plugins,
+    }),
+  );
 }
 export async function verifyArtifact(
   directory: string,
@@ -110,6 +135,8 @@ export async function verifyArtifact(
     !Array.isArray(manifest.routes)
   )
     throw new Error('Invalid artifact manifest');
+  if (artifactIdentity(manifest) !== manifest.artifactDigest)
+    throw new Error('Artifact manifest identity mismatch');
   for (const [path, hash] of Object.entries(manifest.files)) {
     const file = await confinedPath(directory, path);
     if (digest(await readFile(file)) !== hash)

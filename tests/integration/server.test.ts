@@ -42,7 +42,7 @@ beforeAll(async () => {
     (await readFile(config, 'utf8')) + `\nbasePath: /docs/${slug}\n`,
   );
   const build = await buildSite(source);
-  artifactId = (await verifyArtifact(build.directory)).inputDigest;
+  artifactId = (await verifyArtifact(build.directory)).artifactDigest;
   await cp(build.directory, join(store, artifactId), { recursive: true });
   const { privateKey, publicKey } = await generateKeyPair('RS256');
   const jwk = {

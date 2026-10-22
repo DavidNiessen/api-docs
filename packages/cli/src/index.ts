@@ -161,17 +161,17 @@ export async function stageArtifact(
   store: string,
 ): Promise<string> {
   const manifest = await verifyArtifact(directory);
-  if (!/^[a-f0-9]{64}$/.test(manifest.inputDigest))
+  if (!/^[a-f0-9]{64}$/.test(manifest.artifactDigest))
     throw new Error('Invalid artifact input digest');
   await mkdir(store, { recursive: true });
-  const target = join(resolve(store), manifest.inputDigest);
+  const target = join(resolve(store), manifest.artifactDigest);
   try {
     const existing = await verifyArtifact(target);
     if (JSON.stringify(existing.files) !== JSON.stringify(manifest.files))
       throw new Error(
         'Artifact digest collision or inconsistent compiler output',
       );
-    return manifest.inputDigest;
+    return manifest.artifactDigest;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
@@ -200,7 +200,7 @@ export async function stageArtifact(
           cause: error,
         });
     }
-    return manifest.inputDigest;
+    return manifest.artifactDigest;
   } finally {
     await rm(stage, { recursive: true, force: true });
   }

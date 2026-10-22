@@ -106,6 +106,7 @@ export interface ProjectConfig {
   plugins: string[];
 }
 export interface SiteData {
+  pluginVersions?: { name: string; version: string }[];
   schemaVersion: 1;
   config: ProjectConfig;
   apis: ApiDocument[];
@@ -127,6 +128,7 @@ export interface SearchResult extends SearchDocument {
   excerpt: string;
 }
 export interface ArtifactManifest {
+  artifactDigest: string;
   schemaVersion: 1;
   compilerVersion: string;
   inputDigest: string;

@@ -49,7 +49,7 @@ Every build writes `manifest.json` with SHA-256 output digests and verifies it b
 
 ## Self-hosted publication protocol
 
-The management server consumes immutable artifacts in its configured `ARTIFACT_ROOT`. Build with `basePath: /docs/<project-slug>`. Verify the generated manifest, then copy the complete build directory into `<ARTIFACT_ROOT>/<manifest.inputDigest>` using an operator-controlled deployment process. Keep that directory immutable once registered.
+The management server consumes immutable artifacts in its configured `ARTIFACT_ROOT`. Build with `basePath: /docs/<project-slug>`. Verify the generated manifest, then copy the complete build directory into `<ARTIFACT_ROOT>/<manifest.artifactDigest>` using an operator-controlled deployment process. Keep that directory immutable once registered.
 
 Authenticate management API requests with an operator or project-scoped bearer token. Create a project, register its artifact, and activate it:
 

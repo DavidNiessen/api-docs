@@ -344,8 +344,8 @@ export async function createServer(options: ServerOptions) {
       ) as SiteData;
       if (site.config.basePath !== `/docs/${project.slug}`)
         fail(400, `Build this project with basePath /docs/${project.slug}`);
-      if (manifest.inputDigest !== request.body.artifactId)
-        fail(400, 'Artifact directory must match its input digest');
+      if (manifest.artifactDigest !== request.body.artifactId)
+        fail(400, 'Artifact directory must match its artifact digest');
       await repository.registerArtifact(
         project.id,
         request.body.artifactId,

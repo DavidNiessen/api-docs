@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, cp, readFile, writeFile } from 'node:fs/promises';
+import {
+  mkdtemp,
+  cp,
+  readFile,
+  writeFile,
+  symlink,
+  access,
+} from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { renderMarkdown } from '@api-docs/content';
-import { verifyArtifact } from '@api-docs/compiler';
+import { verifyArtifact, writeManifest, safeOutput } from '@api-docs/compiler';
 import { buildSite, createStaticServer } from '@api-docs/cli';
 describe('static publishing', () => {
   it('sanitizes active content and creates stable heading links', async () => {
@@ -25,6 +32,7 @@ describe('static publishing', () => {
     await buildSite(root);
     const manifest2 = await verifyArtifact(first.directory);
     expect(manifest2.files).toEqual(manifest1.files);
+    expect(manifest2.artifactDigest).toBe(manifest1.artifactDigest);
     const server = await createStaticServer(first.directory);
     try {
       const page = await server.inject('/api/orbit/v1/create-project/');
@@ -37,6 +45,19 @@ describe('static publishing', () => {
     } finally {
       await server.close();
     }
+    const assetPath = join(first.directory, 'assets/reader.js');
+    await writeFile(
+      assetPath,
+      (await readFile(assetPath, 'utf8')) + '\n/* Renderer upgrade fixture */',
+    );
+    const upgraded = await writeManifest(
+      first.directory,
+      first.site,
+      manifest1.routes,
+    );
+    expect(upgraded.inputDigest).toBe(manifest1.inputDigest);
+    expect(upgraded.artifactDigest).not.toBe(manifest1.artifactDigest);
+    await verifyArtifact(first.directory);
     const path = join(first.directory, 'index.html');
     await writeFile(path, (await readFile(path, 'utf8')) + 'tampered');
     await expect(verifyArtifact(first.directory)).rejects.toThrow(/checksum/);
@@ -45,5 +66,16 @@ describe('static publishing', () => {
     await expect(
       buildSite(resolve('examples/demo'), { output: 'guides' }),
     ).rejects.toThrow(/output/);
+  });
+  it('rejects output symlinks before creating directories outside the project', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'api-docs-symlink-'));
+    const outside = await mkdtemp(join(tmpdir(), 'api-docs-outside-'));
+    await symlink(outside, join(root, '.api-docs'));
+    await expect(safeOutput(root, '.api-docs/site')).rejects.toThrow(
+      /symlinks/,
+    );
+    await expect(access(join(outside, 'site'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
   });
 });
