@@ -50,7 +50,7 @@ The script accepts only loopback HTTP targets without embedded credentials, quer
 
 ## Remaining performance gates
 
-The full-build, memory, warm search and tested server delivery budgets pass on the recorded fixtures. Incremental Markdown timing is recorded below. Controlled browser LCP/CLS/interaction runs and dependency-aware caching for trusted extension code still require dedicated evidence before a production release claim. Avoid extrapolating these results to different hardware, content sizes, plugin behavior, or private-network APIs.
+The full-build, memory, warm search and tested server delivery budgets pass on the recorded fixtures. Incremental Markdown timing is recorded below. A controlled browser run is recorded below. Broader device/browser coverage, field interaction measurements and dependency-aware caching for trusted extension code still need evidence before a production release claim. Avoid extrapolating these results to different hardware, content sizes, plugin behavior, or private-network APIs.
 
 ## Incremental Markdown build evidence
 
@@ -59,3 +59,18 @@ A warm development-builder run on the same four-CPU Linux/Node 24.19.0 environme
 `dev` retains a verified graph and file hashes. A plain Markdown body edit with unchanged title, group, order, description and route updates its guide/root HTML and JSON, affected search shards, full compatibility data and the publication manifest. Files are replaced atomically and the manifest is written last. Tests compare the resulting artifact digest and every file digest against a clean full build, preserve unchanged API page timestamps, exercise parser errors, and reject output symlinks. A separately replaced output invalidates the cache.
 
 Navigation/configuration/specification/asset changes and projects containing trusted MDX or plugins use a full rebuild. This conservative path avoids reusing code with undeclared dependencies. The cache belongs to a running preview process, assumes it owns its output, and is not shared between projects or authorization partitions. Publication staging continues to verify every file, including unchanged cached files. The incremental path does not replace the fully verified production build or make local preview edits a multi-file transactional publication.
+
+## Controlled mobile browser evidence
+
+Run `npm run build`, `npm run demo:build`, then `npm run benchmark:browser`. The script starts and closes its own loopback static server, verifies the publication manifest, and uses Playwright Chromium. Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` for a system browser or install Playwright's browser. Reports and first-sample screenshots stay in ignored `.api-docs/browser-benchmark` directories. A scheduled/manual performance workflow runs browser and 10k compiler budgets in separate jobs and retains reports for 28 days; remote execution still requires working GitHub Actions account access.
+
+A 22 October 2026 run used Chromium **154.0.8037.57**, Node **24.19.0**, four available CPUs on an AMD EPYC 9V74 cloud host, a **390×844** viewport at device scale 1, **4× CPU slowdown**, **150 ms latency**, **1.6 Mbit/s download** and **750 kbit/s upload**. Ten cold contexts per route had HTTP caches disabled and service workers blocked. Delivery used uncompressed loopback HTTP; initial gzip sizes below are calculated from downloaded JavaScript rather than observed compressed wire bytes. No mock API requests or external assets were needed.
+
+| Fixture                | LCP median / p95 | Maximum CLS | Search-open latency p95 | Initial JS gzip |
+| ---------------------- | ---------------- | ----------- | ----------------------- | --------------- |
+| Quickstart guide       | 696 / 716 ms     | 0           | 101.7 ms                | 80.1 KiB        |
+| List-projects endpoint | 732 / 752 ms     | 0           | 116.1 ms                | 80.1 KiB        |
+
+Budgets passed: LCP p95 ≤2500 ms, CLS ≤0.1, scripted interaction p95 ≤200 ms, and initial guide JavaScript ≤150 KiB gzip. With ten samples, p95 is the maximum observed sample. LCP is observed before interaction; CLS uses the maximum session window excluding recent user input. Interaction measures the search click's capture handler to the second animation frame after opening its dialog. It is a controlled lab latency and **does not establish field INP**, network search latency, or every explorer interaction.
+
+The measured artifact digest was `4b7c4e06fd2aba92af89f6f62b67525798dfbfc2176b37e99b06e257da64a6bb`. The run used an in-progress working tree and records that fact alongside the base commit and artifact digest; it is not a released artifact certification. Browser/CDP emulation, shared host resources, small fixture size, and a short sample window limit extrapolation to physical phones, large content, other browsers or production networks. The benchmark intentionally fails on missing paint data, hydration failure, browser errors, unexpected external requests, or exceeded budgets.

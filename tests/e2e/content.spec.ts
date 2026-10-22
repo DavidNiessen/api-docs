@@ -50,7 +50,9 @@ test('authored components support keyboard tabs, disclosures and accessible navi
     'href',
     'https://docs.example.test/gallery/api/gallery/v1/health/',
   );
-  await page.getByRole('button', { name: 'Search documentation…' }).click();
+  await page
+    .getByRole('button', { name: 'Search documentation', exact: true })
+    .click();
   await page
     .getByRole('textbox', { name: 'Search documentation', exact: true })
     .fill('health');

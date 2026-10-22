@@ -9,7 +9,9 @@ test('reader, local search and live API playground work end to end', async ({
   await expect(
     page.getByRole('heading', { name: 'Introduction', exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Search documentation…' }).click();
+  await page
+    .getByRole('button', { name: 'Search documentation', exact: true })
+    .click();
   await page
     .getByRole('textbox', { name: 'Search documentation', exact: true })
     .fill('create project');
@@ -90,6 +92,13 @@ test('mobile navigation and unknown routes behave correctly', async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await page
+    .getByRole('button', { name: 'Search documentation', exact: true })
+    .click();
+  await expect(
+    page.getByRole('dialog', { name: 'Search documentation' }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Toggle navigation' }).click();
   await page.getByRole('link', { name: 'Authentication', exact: true }).click();
   await expect(

@@ -101,6 +101,9 @@ export function App({
   const [themeEditorOpen, setThemeEditorOpen] = useState(false);
   const [query, setQuery] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    performance.mark('api-docs:hydrated');
+  }, []);
   const config = themeDraft
     ? { ...site.config, theme: themeDraft }
     : site.config;
@@ -423,6 +426,7 @@ export function App({
           <button
             className="search-trigger"
             type="button"
+            aria-label="Search documentation"
             onClick={() => openSearch()}
           >
             <Icon name="search" size={17} />
