@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { buildSite } from '@api-docs/cli';
 import { auditReleaseVersions } from './release-versions.mjs';
+import { bindJavaSbom, validateSpringMetadata } from './java-distributions.mjs';
 
 const exec = promisify(execFile);
 export const repository = fileURLToPath(new URL('../../', import.meta.url));
@@ -158,6 +159,7 @@ export async function buildJavaCandidate({
     published: false,
     passed: false,
     artifacts: [],
+    distributions: [],
     consumers: [],
   };
   const candidate = { output, report, environment, maven, args };
@@ -210,8 +212,21 @@ export async function buildJavaCandidate({
           log: join(output, `inspect-${module}.log`),
         },
       );
-      const inspection = JSON.parse(result.stdout),
+      const { configurationMetadataBase64, ...inspection } = JSON.parse(
+          result.stdout,
+        ),
         pomSha256 = sha(await readFile(join(output, name + '.pom')));
+      if (module === 'spring-boot-starter') {
+        assert(
+          typeof configurationMetadataBase64 === 'string',
+          'Missing Spring configuration metadata.',
+        );
+        report.springConfiguration = validateSpringMetadata(
+          JSON.parse(
+            Buffer.from(configurationMetadataBase64, 'base64').toString('utf8'),
+          ),
+        );
+      }
       assert.equal(
         inspection.pomSha256,
         pomSha256,
@@ -225,7 +240,76 @@ export async function buildJavaCandidate({
         pomSha256,
         ...inspection,
       });
+      for (const classifier of ['sources', 'javadoc']) {
+        const filename = `${name}-${classifier}.jar`;
+        await cp(
+          join(javaRoot, module, 'target', filename),
+          join(output, filename),
+        );
+        const documentation = await run(
+          join(environment.JAVA_HOME, 'bin/java'),
+          [
+            join(fixture, 'InspectDocumentation.java'),
+            join(output, filename),
+            module,
+            classifier,
+            versions.javaVersion,
+            license,
+            notice,
+          ],
+          {
+            environment,
+            timeout: 30_000,
+            log: join(output, `inspect-${module}-${classifier}.log`),
+          },
+        );
+        const inspected = JSON.parse(documentation.stdout);
+        if (classifier === 'sources')
+          assert.equal(
+            inspected.pomSha256,
+            pomSha256,
+            'Source archive Maven metadata disagrees.',
+          );
+        report.distributions.push({
+          module,
+          artifact,
+          classifier,
+          filename,
+          sha256: sha(await readFile(join(output, filename))),
+          ...inspected,
+        });
+      }
     }
+    await run(
+      maven,
+      [
+        ...args,
+        '--batch-mode',
+        '--no-transfer-progress',
+        '--strict-checksums',
+        `-Dspring-boot.version=${baselineBoot}`,
+        '-DskipTests',
+        'org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom',
+      ],
+      { cwd: javaRoot, environment, log: join(output, 'sbom-build.log') },
+    );
+    const rawBom = await readFile(join(javaRoot, 'target/bom.json'));
+    assert(rawBom.byteLength <= 4 * 1024 * 1024, 'Oversized Java SBOM.');
+    const bom = bindJavaSbom(JSON.parse(rawBom.toString('utf8')), {
+      version: versions.javaVersion,
+      artifacts: report.artifacts,
+      parentPom: report.parentPom,
+    });
+    const bomBytes = JSON.stringify(bom, null, 2) + '\n';
+    await writeFile(join(output, 'java-bom.cdx.json'), bomBytes);
+    report.javaSbom = {
+      filename: 'java-bom.cdx.json',
+      sha256: sha(bomBytes),
+      components: bom.components.length,
+      dependencies: bom.dependencies.length,
+      scopes: ['compile', 'provided', 'runtime'],
+      testScopeExcluded: true,
+    };
     const publication = join(output, 'fixture');
     await cp(join(repository, 'examples/demo'), publication, {
       recursive: true,

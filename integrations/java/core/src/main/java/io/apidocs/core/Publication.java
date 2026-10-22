@@ -14,18 +14,32 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Set;
 
-/** A verified, immutable static publication. No JavaScript runtime is needed to serve it. */
+/**
+ * A static publication whose portable manifest and file digests are verified at construction.
+ * No JavaScript runtime is needed to serve it. Keep the directory immutable while serving it;
+ * verification does not lock files or rehash their contents on every request.
+ */
 public final class Publication {
   private final Path root;
   private final String basePath;
   private final String artifactDigest;
   private final Set<String> files;
 
+  /**
+   * Verify a publication without an external identity pin.
+   * @param directory the prebuilt publication directory
+   * @throws IOException if metadata, paths or file checksums fail verification
+   */
   public Publication(Path directory) throws IOException {
     this(directory, null);
   }
 
-  /** Pin the digest to a value obtained from a trusted build or release inventory. */
+  /**
+   * Verify a publication and optionally pin its identity to a trusted build inventory.
+   * @param directory the prebuilt publication directory
+   * @param expectedArtifactDigest a lowercase SHA-256 identity, or null to omit the pin
+   * @throws IOException if identity, metadata, paths or file checksums fail verification
+   */
   public Publication(Path directory, String expectedArtifactDigest) throws IOException {
     root = directory.toRealPath();
     Manifest manifest = Manifest.read(root.resolve("manifest.json"));
@@ -80,6 +94,12 @@ public final class Publication {
     } catch (RuntimeException error) { throw new IOException("Invalid publication configuration"); }
   }
 
+  /**
+   * Resolve a manifest-listed file to a regular file inside the canonical publication root.
+   * @param file a relative logical path from the manifest
+   * @return the canonical file path
+   * @throws IOException if the file is unlisted, missing or escapes the publication root
+   */
   public Path resolve(String file) throws IOException {
     if (!files.contains(file)) throw new IOException("File is not in the publication manifest");
     Path target = root.resolve(file).toRealPath();
@@ -89,8 +109,16 @@ public final class Publication {
     return target;
   }
 
+  /**
+   * Check logical manifest membership without performing a filesystem lookup.
+   * @param file a relative logical path
+   * @return whether the path appears in the verified manifest
+   */
   public boolean contains(String file) { return files.contains(file); }
+  /** @return the compiled public base path, empty for root hosting */
   public String basePath() { return basePath; }
+  /** @return the verified portable manifest identity as lowercase SHA-256 */
   public String artifactDigest() { return artifactDigest; }
+  /** @return the canonical directory; serve only files accepted by {@link #resolve(String)} */
   public Path root() { return root; }
 }

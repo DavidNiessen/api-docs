@@ -24,7 +24,17 @@ Each selected JDK/Boot combination consumes those exact installed bytes from sep
 
 `JAVA_CONSUMER_MAVEN` and `JAVA_CONSUMER_MAVEN_ARGS` select an installed Maven executable and a JSON array of extra arguments; their `JAVA_MATRIX_*` equivalents are accepted as fallbacks. Keep credentials in Maven settings. The configured local Maven repository must be outside the source checkout so origin assertions can reject reactor/build classes. The runner uses normal checksum/TLS verification and never interprets argument strings through a shell.
 
-Feature/PR/default-branch checks and the manual prepared-version rehearsal include installed consumers in every Java job before the source matrix check. Local validation does not establish that GitHub Actions ran, that the Maven namespace is owned, or that packages are signed or published. Registry installation, source/Javadoc distributions, Java SBOMs and signature/provenance verification remain release work.
+Feature/PR/default-branch checks and the manual prepared-version rehearsal include installed consumers in every Java job before the source matrix check. Local validation does not establish that GitHub Actions ran, that the Maven namespace is owned, or that packages are signed or published. Registry installation and signature/provenance verification remain release work.
+
+## Candidate distributions and IDE configuration
+
+Each module now attaches a source archive and a Javadoc archive during the Maven package phase. The candidate runner verifies the public source/API entries and checks the exact root license/notice contents in all six JARs: runtime/source archives use `META-INF`, while Javadoc archives use `resources/legal` and retain the doclet’s own notices. Public API documentation is generated with doclint enabled and without fetching external API links.
+
+The Spring starter includes generated `META-INF/spring-configuration-metadata.json` for IDE completion and property descriptions. The gate verifies all five properties, their source types, descriptions and the real defaults for `enabled` and `path`. The configuration processor is a build dependency and is not added to consuming applications’ runtime classpaths.
+
+A pinned CycloneDX Maven plugin generates a 1.6 JSON inventory of the baseline reactor’s compile, provided and runtime dependencies, including the optional web-stack dependencies and excluding test libraries. The runner checks component coordinates, graph completeness, licenses for project components and package URL consistency, then binds the parent POM and both runtime JARs to their inspected SHA-256 hashes. Third-party component records remain unchanged. `java-bom.cdx.json` and its checksum are retained with source/Javadoc inventories in the candidate report and CI artifacts. Applications should generate their own resolved runtime SBOM after choosing their framework BOM and deployment dependencies.
+
+The 2026-10-22 development run passed all six archive inspections, the five-property metadata check, a 20-component/21-node dependency inventory, all twelve installed consumers (24 tests without skips and twelve offline compilations), and all six source combinations (60 tests without skips). The Node tooling gate has 73 passing tests and the compiler/component suite has 380. Candidates remain unsigned and unpublished; namespace ownership and the release-wide distribution/license review are separate gates.
 
 ## Recorded Linux validation
 

@@ -39,16 +39,18 @@ Authentication hooks remain within the plugin's encapsulation. Follow the docume
 
 ## Spring Boot
 
-Build the Java artifacts with a JDK and Maven:
+Build and install the Java development artifacts with a JDK and Maven:
 
 ```sh
 npm run build
 node scripts/prepare-java-fixture.mjs
 cd integrations/java
-./mvnw verify
+./mvnw --batch-mode --no-transfer-progress --strict-checksums install
 ```
 
 Add `io.github.davidniessen.apidocs:api-docs-spring-boot-starter` to your application after installing or publishing the local artifacts. The current development version is `0.1.0-SNAPSHOT`. Registry publication is separate release work.
+
+The local installation includes source and Javadoc archives. Spring-aware IDEs can complete the documented `api-docs` properties from the starter’s generated configuration metadata.
 
 Configure a prebuilt publication:
 

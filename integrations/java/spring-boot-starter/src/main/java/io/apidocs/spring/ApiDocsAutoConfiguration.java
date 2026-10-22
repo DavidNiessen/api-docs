@@ -9,11 +9,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
+/** Mounts a verified publication using the available web stack and existing host security. */
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "api-docs", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(ApiDocsProperties.class)
 @Import({ApiDocsMvcConfiguration.class, ApiDocsReactiveConfiguration.class})
 public class ApiDocsAutoConfiguration {
+  /** Create the auto-configuration discovered by Spring Boot. */
+  public ApiDocsAutoConfiguration() {}
   @Bean
   Publication apiDocsPublication(ApiDocsProperties properties, Environment environment) throws IOException {
     if (properties.getDirectory() == null) {

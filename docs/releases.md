@@ -69,6 +69,12 @@ Results remain in `.api-docs/npm-candidates/<commit>-<run>/`: archives, `manifes
 
 Browser builds collect license texts for packages identified in bundle source maps plus Vite's generated preload helper. Reader exports and Studio distributions include `assets/THIRD_PARTY_NOTICES.txt`; static exports retain that file. This is attribution collection, not completion of the release-wide dependency/license review.
 
+## Java candidate distributions
+
+`npm run test:java-consumers -- --matrix` builds and installs a baseline development candidate, inspects runtime/source/Javadoc archives and generated Spring configuration metadata, and consumes the same runtime JARs outside the source checkout across the supported matrix. It retains the parent/module POMs, all six JARs, sanitized logs, SHA-256 inventories and a baseline CycloneDX dependency SBOM with test dependencies excluded. Project-component SBOM hashes are bound to the inspected parent POM/runtime JARs; applications should produce their own resolved runtime inventory. See [Java validation](java-validation.md) for prerequisites and exact scope.
+
+The regular and prepared-version Java jobs retain these unpublished candidates and SBOMs. Maven namespace ownership, signatures, provenance and registry installation remain separate gates. The local candidates do not create tags, public packages or release entries.
+
 ## Still required before publication
 
-Confirm owned npm/Maven/container namespaces and the final project name. Complete the advertised support matrix, independent security/accessibility review and pilots; verify branch/tag/environment protection; then test the exact candidate from a clean checkout. Registry release workflows, reviewed final version/changelog changes, Java/container SBOMs, signatures, provenance, upgrade/install rehearsals and release-owner approval remain launch gates. A local tarball install and a cache-only npm reinstall do not establish installation from public registries or a fully air-gapped server deployment.
+Confirm owned npm/Maven/container namespaces and the final project name. Complete the advertised support matrix, independent security/accessibility review and pilots; verify branch/tag/environment protection; then test the exact candidate from a clean checkout. Registry release workflows, reviewed final version/changelog changes, container SBOMs, signatures, provenance, upgrade/install rehearsals and release-owner approval remain launch gates. A local tarball install and a cache-only npm reinstall do not establish installation from public registries or a fully air-gapped server deployment.

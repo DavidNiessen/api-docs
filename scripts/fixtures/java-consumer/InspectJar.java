@@ -55,9 +55,12 @@ class InspectJar {
             "Missing automatic Spring Boot discovery metadata");
       }
       names.sort(String::compareTo);
+      String metadata = module.equals("spring-boot-starter")
+          ? ",\"configurationMetadataBase64\":\"" + java.util.Base64.getEncoder().encodeToString(
+              content(jar, "META-INF/spring-configuration-metadata.json")) + "\"" : "";
       System.out.println("{\"entries\":[\"" + String.join("\",\"", names)
           + "\"],\"classes\":" + classes + ",\"bytecodeMajor\":61,\"pomSha256\":\""
-          + sha(content(jar, maven + "pom.xml")) + "\"}");
+          + sha(content(jar, maven + "pom.xml")) + "\"" + metadata + "}");
     }
   }
   private static byte[] content(JarFile jar, String name) throws Exception {

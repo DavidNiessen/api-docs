@@ -155,6 +155,7 @@ jobs:
           name: installed-java-${{ matrix.java }}-boot-${{ matrix.boot }}-${{ github.run_id }}
           path: |
             .api-docs/java-candidates/**/report.json
+            .api-docs/java-candidates/**/*.cdx.json
             .api-docs/java-candidates/**/*.jar
             .api-docs/java-candidates/**/*.pom
             .api-docs/java-candidates/**/*.log
