@@ -16,6 +16,7 @@ test('PKCE acquisition binds the popup, sends a real API request and clears expi
   await page.goto(route);
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   const popupPromise = page.waitForEvent('popup');
   await playground
     .getByRole('button', { name: 'Authorize oauth with PKCE' })
@@ -70,9 +71,6 @@ test('PKCE acquisition binds the popup, sends a real API request and clears expi
   );
   await playground.getByRole('button', { name: 'Send request' }).click();
   expect((await response).status()).toBe(200);
-  await playground
-    .getByRole('button', { name: 'Request', exact: true })
-    .click();
   await expect(
     playground.getByLabel('oauth credential', { exact: true }),
   ).toHaveValue('demo-token');
@@ -80,7 +78,9 @@ test('PKCE acquisition binds the popup, sends a real API request and clears expi
   await expect(
     playground.getByLabel('oauth credential', { exact: true }),
   ).toHaveValue('');
-  await expect(playground.getByRole('status')).toContainText('Token expired');
+  await expect(
+    playground.locator('.auth-fields').getByRole('status'),
+  ).toContainText('Token expired');
   const audit = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze();
@@ -98,6 +98,7 @@ test('provider denial, wrong state and cancellation cannot install credentials',
   await page.goto(route);
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   const open = async () => {
     const result = page.waitForEvent('popup');
     await playground

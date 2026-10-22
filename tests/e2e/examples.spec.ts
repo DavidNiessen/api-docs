@@ -45,6 +45,7 @@ test('named examples, explicit null, media types and custom request values are u
   await expect(response.locator('pre')).toHaveText('null');
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   await expect(
     playground.getByRole('textbox', { name: 'Request body', exact: true }),
   ).toHaveValue('null');

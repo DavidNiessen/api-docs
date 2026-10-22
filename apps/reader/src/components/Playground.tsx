@@ -36,6 +36,9 @@ export function Playground({ ref, ...props }: Props) {
     const previousOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
     element.showModal();
+    element
+      .querySelector<HTMLButtonElement>('[aria-label="Close playground"]')
+      ?.focus();
     return () => {
       element.close();
       document.documentElement.style.overflow = previousOverflow;

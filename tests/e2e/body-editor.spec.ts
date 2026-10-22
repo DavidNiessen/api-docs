@@ -11,6 +11,7 @@ test('body fields retain exact numbers, protect snippet secrets and send the edi
   );
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   const raw =
     '{"name":"before","enabled":false,"count":0,"id":9007199254740993,"mode":"auto","note":"hello","options":["cat"],"metadata":{"precise":1.234567890123456789},"password":"fixture-body-password","responseOnly":"retained-read-only-value","custom":{"huge":1e400},"fixed":"fixed"}';
   await playground.getByLabel('Request body', { exact: true }).fill(raw);
@@ -146,6 +147,7 @@ test('invalid drafts can return to JSON without changing the last valid body', a
   );
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   await playground.getByRole('button', { name: 'Fields', exact: true }).click();
   await playground.getByLabel('Body count', { exact: true }).fill('-');
   await expect(

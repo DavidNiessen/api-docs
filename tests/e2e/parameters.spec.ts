@@ -10,6 +10,7 @@ test('parameter examples produce the same serialized browser request as the prev
   );
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   await expect(playground.getByLabel('payload parameter')).toHaveValue(
     '"hello world"',
   );
@@ -26,10 +27,10 @@ test('parameter examples produce the same serialized browser request as the prev
   await playground.getByRole('button', { name: 'Send request' }).click();
   expect((await result).status()).toBe(200);
   await expect(
-    playground.locator('.response-content .code-block pre'),
+    playground.locator('.response-monaco .view-lines'),
   ).toContainText(expected);
   await expect(
-    playground.locator('.response-content .code-block pre'),
+    playground.locator('.response-monaco .view-lines'),
   ).toContainText('R=100,G=200');
   expect(errors).toEqual([]);
 });

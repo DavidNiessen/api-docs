@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   exampleChoices,
   formatExample,
@@ -23,11 +23,30 @@ import type {
 } from '@api-docs/explorer';
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
+import { CopyButton } from './CopyButton.js';
+import { RequestUrlBar } from './RequestUrlBar.js';
+
 import { AuthField } from './AuthField.js';
 import { BodyEditor } from './BodyEditor.js';
 import { FormBodyEditor } from './FormBodyEditor.js';
 import { MultipartBodyEditor } from './MultipartBodyEditor.js';
 import { multipartExampleBody } from '../multipart-input.js';
+const ResponseEditor = lazy(() =>
+  import('./ResponseEditor.js').catch(() => ({ default: ResponseFallback })),
+);
+function ResponseFallback({ body }: { body: string }) {
+  return (
+    <div className="response-editor">
+      <p role="status">
+        The editor is unavailable. The full response is shown below.
+      </p>
+      <CopyButton text={body} label="Copy entire response" />
+      <pre tabIndex={0} className="response-fallback">
+        {body}
+      </pre>
+    </div>
+  );
+}
 const bodyInputFormat = (
   type: string,
   value: unknown,
@@ -133,7 +152,6 @@ export function Explorer({
   const requestChoices = requestMedia
     ? exampleChoices(requestMedia, api.schemas)
     : [];
-  const [tab, setTab] = useState<'request' | 'response'>('request');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [response, setResponse] = useState<{
@@ -141,6 +159,7 @@ export function Explorer({
     duration: number;
     body: string;
     headers: string;
+    contentType: string;
   }>();
   const controller = useRef<AbortController | null>(null);
   useEffect(
@@ -215,6 +234,25 @@ export function Explorer({
     credentials,
     authNames.join(','),
   ]);
+  const requestTarget = useMemo(() => {
+    try {
+      // Resolving a URL must not depend on body validity or selected upload files.
+      const targetOperation = { ...operation };
+      delete targetOperation.requestBody;
+      const target = prepareRequest(targetOperation, api.securitySchemes, {
+        server,
+        parameters,
+        schemas: api.schemas,
+        openapiVersion: api.openapiVersion,
+        credentials: Object.fromEntries(
+          authNames.map((name) => [name, 'YOUR_CREDENTIAL']),
+        ),
+      });
+      return redactRequest(target, credentials).url;
+    } catch {
+      return '';
+    }
+  }, [operation, api, server, parameters, credentials, authNames.join(',')]);
   async function execute() {
     setError('');
     if (bodyFormError) {
@@ -251,7 +289,6 @@ export function Explorer({
     controller.current = abort;
     const timeout = setTimeout(() => abort.abort(), 30_000);
     setBusy(true);
-    setTab('response');
     const start = performance.now();
     try {
       const result = await fetch(request.url, {
@@ -276,15 +313,12 @@ export function Explorer({
           }
           text += decoder.decode(part.value, { stream: true });
         }
-      try {
-        text = JSON.stringify(JSON.parse(text), null, 2);
-      } catch {
-        /* Preserve text responses. */
-      }
+      text += decoder.decode();
       setResponse({
         status: result.status,
         duration: Math.round(performance.now() - start),
-        body: text || '(empty response)',
+        body: text,
+        contentType: result.headers.get('content-type') ?? 'text/plain',
         headers: [...result.headers]
           .map(([key, value]) => `${key}: ${value}`)
           .join('\n'),
@@ -373,11 +407,19 @@ export function Explorer({
       aria-label="API playground"
     >
       <header className="playground-heading">
-        <span className={`method-badge ${operation.method}`}>
-          {operation.method}
-        </span>
-        <strong>{operation.summary}</strong>
-        <code>{operation.path}</code>
+        <RequestUrlBar
+          method={operation.method}
+          url={requestTarget}
+          busy={busy}
+          disabled={
+            !!bodyFormError ||
+            (isMultipartMediaType(contentType) && !!preview.error)
+          }
+          onSend={() => {
+            void execute();
+          }}
+          onCancel={() => controller.current?.abort()}
+        />
         <button
           type="button"
           className="icon-button"
@@ -648,101 +690,57 @@ export function Explorer({
               </label>
             )}
           </div>
+          <details className="playground-request-example">
+            <summary>Request example</summary>
+            {snippet}
+          </details>
           {error && (
             <p role="alert" className="request-error">
               {error}
             </p>
           )}
-          <div className="send-request">
-            <button
-              type="button"
-              className="button-primary"
-              disabled={
-                busy ||
-                !!bodyFormError ||
-                (isMultipartMediaType(contentType) && !!preview.error)
-              }
-              onClick={() => {
-                void execute();
-              }}
-            >
-              {busy ? 'Sending…' : 'Send request'}
-              <Icon name="arrow" size={16} />
-            </button>
-            {busy && (
-              <button type="button" onClick={() => controller.current?.abort()}>
-                Cancel
-              </button>
-            )}
-            <p>Requests are sent directly from your browser.</p>
-          </div>
+          <p className="request-note">
+            Requests are sent directly from your browser.
+          </p>
         </section>
-        <section
-          className="playground-output"
-          aria-label="Request and response"
-        >
-          <div className="explorer-tabs">
-            <button
-              type="button"
-              className={tab === 'request' ? 'active' : ''}
-              onClick={() => setTab('request')}
-              aria-pressed={tab === 'request'}
-            >
-              Request
-            </button>
-            <button
-              type="button"
-              className={tab === 'response' ? 'active' : ''}
-              onClick={() => setTab('response')}
-              aria-pressed={tab === 'response'}
-            >
-              Response{' '}
-              {response && (
-                <span
-                  className={
-                    response.status < 400
-                      ? 'response-success'
-                      : 'response-failed'
-                  }
-                >
-                  {response.status}
-                </span>
-              )}
-            </button>
-          </div>
-          {tab === 'request' ? (
-            snippet
-          ) : (
-            <div className="response-content">
-              {response ? (
-                <>
-                  <div className="response-meta">
-                    <span
-                      className={
-                        response.status < 400
-                          ? 'response-success'
-                          : 'response-failed'
-                      }
-                    >
-                      {response.status}
-                    </span>
-                    <span>{response.duration} ms</span>
-                  </div>
-                  <CodeBlock code={response.body} title="Response body" />
-                  <details>
-                    <summary>Response headers</summary>
-                    <pre>{response.headers}</pre>
-                  </details>
-                </>
-              ) : (
-                <div className="response-empty">
-                  <Icon name="terminal" size={30} />
-                  <h3>Your response will appear here</h3>
-                  <p>Send a request to try this endpoint.</p>
+        <section className="playground-output" aria-label="API response">
+          <div className="response-panel-heading">Response</div>
+          <div className="response-content">
+            {response ? (
+              <>
+                <div className="response-meta">
+                  <span
+                    className={
+                      response.status < 400
+                        ? 'response-success'
+                        : 'response-failed'
+                    }
+                  >
+                    {response.status}
+                  </span>
+                  <span>{response.duration} ms</span>
                 </div>
-              )}
-            </div>
-          )}
+                <Suspense
+                  fallback={<p role="status">Loading response editor…</p>}
+                >
+                  <ResponseEditor
+                    body={response.body}
+                    contentType={response.contentType}
+                  />
+                </Suspense>
+                <details>
+                  <summary>Response headers</summary>
+                  <pre>{response.headers}</pre>
+                </details>
+              </>
+            ) : (
+              <div className="response-empty">
+                <Icon name="terminal" size={30} />
+                <h3>Your response will appear here</h3>
+                <p>Send a request to try this endpoint.</p>
+              </div>
+            )}
+          </div>
         </section>
       </div>
     </aside>

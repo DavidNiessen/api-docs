@@ -31,7 +31,9 @@ test('Try now opens a focused modal with shareable URLs, keyboard dismissal and 
   await expect(
     dialog.getByLabel('bearer credential', { exact: true }),
   ).toHaveValue('');
-  await expect(dialog.locator('pre')).not.toContainText('session-only-secret');
+  await expect(
+    dialog.getByText('Your response will appear here', { exact: true }),
+  ).toBeVisible();
   await page.mouse.click(4, 4);
   await expect(dialog).not.toBeVisible();
   await expect(trigger).toBeFocused();

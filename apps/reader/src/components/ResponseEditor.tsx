@@ -1,0 +1,140 @@
+import { useEffect, useRef, useState } from 'react';
+import * as monaco from 'monaco-editor/editor/editor.api.js';
+import 'monaco-editor/codicon.css';
+import 'monaco-editor/editor/contrib/folding/browser/folding.js';
+import 'monaco-editor/languages/definitions/xml/register.js';
+import 'monaco-editor/languages/definitions/html/register.js';
+import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
+import { responseDisplay, responseLanguage } from '../response-view.js';
+import { CopyButton } from './CopyButton.js';
+
+// Only the standalone editor and selected tokenizers are loaded, without language services.
+globalThis.MonacoEnvironment = { getWorker: () => new EditorWorker() };
+monaco.languages.register({
+  id: 'json',
+  aliases: ['JSON', 'json'],
+  mimetypes: ['application/json'],
+});
+monaco.languages.setLanguageConfiguration('json', {
+  brackets: [
+    ['{', '}'],
+    ['[', ']'],
+  ],
+});
+monaco.languages.setMonarchTokensProvider('json', {
+  defaultToken: '',
+  tokenPostfix: '.json',
+  tokenizer: {
+    root: [
+      [/"(?:[^"\\]|\\.)*"(?=\s*:)/, 'string.key'],
+      [/"(?:[^"\\]|\\.)*"/, 'string.value'],
+      [/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/, 'number'],
+      [/\b(?:true|false|null)\b/, 'keyword'],
+      [/[{}[\]]/, '@brackets'],
+      [/[:,]/, 'delimiter'],
+    ],
+  },
+});
+
+export default function ResponseEditor({
+  body,
+  contentType,
+}: {
+  body: string;
+  contentType: string;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  const instance = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [error, setError] = useState('');
+  const language = responseLanguage(contentType);
+  useEffect(() => {
+    if (!host.current) return;
+    let editor: monaco.editor.IStandaloneCodeEditor | undefined;
+    let model: monaco.editor.ITextModel | undefined;
+    let observer: MutationObserver | undefined;
+    try {
+      model = monaco.editor.createModel(
+        responseDisplay(body, language),
+        language,
+      );
+      const theme = () =>
+        document.documentElement.dataset.theme === 'dark' ? 'vs-dark' : 'vs';
+      editor = monaco.editor.create(host.current, {
+        model,
+        theme: theme(),
+        readOnly: true,
+        domReadOnly: true,
+        ariaLabel: 'Response body',
+        accessibilitySupport: 'on',
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 12,
+        lineHeight: 21,
+        padding: { top: 14, bottom: 14 },
+        folding: true,
+        foldingStrategy: 'indentation',
+        showFoldingControls: 'always',
+        scrollBeyondLastLine: false,
+        wordWrap: 'on',
+        renderLineHighlight: 'none',
+        contextmenu: false,
+        links: false,
+        colorDecorators: false,
+        stickyScroll: { enabled: false },
+        tabIndex: 0,
+      });
+      instance.current = editor;
+      observer = new MutationObserver(() => monaco.editor.setTheme(theme()));
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme'],
+      });
+    } catch {
+      setError(
+        'The response editor could not load. The full response is shown below.',
+      );
+    }
+    return () => {
+      observer?.disconnect();
+      instance.current = null;
+      editor?.dispose();
+      model?.dispose();
+    };
+  }, [body, language]);
+  return (
+    <div className="response-editor">
+      <div className="response-editor-toolbar">
+        <span>
+          Response body{' '}
+          <small>
+            {language === 'plaintext' ? 'Text' : language.toUpperCase()}
+          </small>
+        </span>
+        <button
+          type="button"
+          onClick={() =>
+            void instance.current?.getAction('editor.foldAll')?.run()
+          }
+        >
+          Collapse all
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            void instance.current?.getAction('editor.unfoldAll')?.run()
+          }
+        >
+          Expand all
+        </button>
+        <CopyButton text={body} label="Copy entire response" />
+      </div>
+      {error && <p role="status">{error}</p>}
+      <div ref={host} className="response-monaco" hidden={!!error} />
+      {error && (
+        <pre tabIndex={0} className="response-fallback">
+          {body}
+        </pre>
+      )}
+    </div>
+  );
+}

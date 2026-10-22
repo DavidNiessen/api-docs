@@ -18,6 +18,7 @@ test('multipart uploads send real binary files and structured parts while previe
   await page.goto(route);
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   await expect(
     playground.getByRole('button', { name: 'Send request' }),
   ).toBeDisabled();
@@ -109,9 +110,6 @@ test('multipart uploads send real binary files and structured parts while previe
       base64: '',
     },
   ]);
-  await playground
-    .getByRole('button', { name: 'Request', exact: true })
-    .click();
   await expect(
     playground.getByText('2 selected · 8 bytes', { exact: true }),
   ).toBeVisible();
@@ -170,6 +168,7 @@ test('invalid and oversized multipart inputs cannot send and valid upload contro
   await page.goto(route);
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   await playground.getByRole('button', { name: 'JSON', exact: true }).click();
   await playground
     .getByLabel('Request body', { exact: true })

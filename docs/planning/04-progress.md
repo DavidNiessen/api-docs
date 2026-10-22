@@ -17,16 +17,17 @@ Updated: 2026-10-22. **Approximately 73% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
-**Release planning now proposes semantic versions and Conventional Commit changelogs.** A read-only command audits distribution metadata, selects an explicit initial/ancestor baseline or the highest merged release tag, and emits a source-bound JSON proposal plus escaped Markdown notes. It records dirty state and unclassified messages for review. Breaking changes, features, fixes/reverts, performance and prereleases have explicit bump rules; initial versions and stable promotion remain maintainer decisions. The command refuses shallow history, unrelated/invalid references, conflicting target tags, inconsistent versions and oversized inputs. No files, tags or publications are created. The estimate remains 73%; applying version/changelog changes and publication/launch gates remain pending. See [release planning](../releases.md#review-a-release-plan).
+**The playground now has a Scalar-inspired URL bar and a response-only Monaco panel.** Its integrated method/host/path/query/copy/Send bar follows server and parameter edits, resolves destinations independently of body/upload validity, and copies the complete displayed URL. Request snippets move into a collapsible section on the left. Responses use a lazily loaded, read-only Monaco editor with MIME-based highlighting, gutter folding, collapse/expand controls and full-body copying that includes folded content. JSON display preserves precise numeric tokens; copying retains the original decoded body. Missing editor assets fall back to copyable text. The estimate remains 73%; the broader release and launch gates still apply. See [response viewer behavior](../explorer-responses.md).
 
 Validation for this increment:
 
-- Version consistency, formatting, ESLint, Markdown lint, TypeScript and all 361 compiler/component tests passed. The tooling suite now passes 43 tests.
-- Real temporary Git repositories exercise immutable/repeatable planning, annotated tags, explicit ancestors, empty ranges, conflicting/unrelated refs, dirty metadata, shallow clones, version drift and command failure exit codes. Unit cases cover stable/pre-1.0/prerelease recommendations, multiline breaking footers and safe rendered notes/links.
-- The command produced a valid JSON initial proposal and Markdown notes from the actual repository without changing its version or tagging a release. The root dependency audit reports zero vulnerabilities.
-- Reader/request behavior is unchanged. The preceding modal increment passed all 23 browser journeys; those checks were not repeated for repository-only release tooling.
+- Version checks, formatting, ESLint, Markdown lint, TypeScript, 43 tooling tests and all 364 compiler/component tests passed.
+- The full 25-journey browser run passed, followed by two additional passing checks for text/XML/HTML/empty responses and unavailable-editor fallback. Checks cover readonly behavior, syntax colors, actual folding, full raw copying, URL serialization/copying, light/dark accessibility, mobile containment, loaded folding icons and no external editor requests.
+- All 12 packed components installed outside the workspace and passed strict public types, CLI, MDX/plugin workers, doctor, artifact checks and authenticated Node mounts. The final candidate includes the self-hosted editor/worker/font and bundled dependency notices.
+- The dependency audit reports zero vulnerabilities. Monaco's vendored sanitizer is replaced with pinned patched DOMPurify; source-map checks reject the vendored copy or a missing patched dependency. Attribution includes upstream bundled-dependency notices.
+- Desktop/mobile screenshots were inspected. Monaco remains outside the initial reader bundle and is not requested for an empty playground. The rebuilt demo is available to the existing local static reader.
 
-These results apply to the tested local candidate. They do not establish remote CI, registry ownership, signature/provenance validation or production launch acceptance.
+These are local candidate results. Remote CI, independent security/accessibility review, published-registry installation and production launch acceptance remain separate gates.
 
 ## External launch dependencies
 

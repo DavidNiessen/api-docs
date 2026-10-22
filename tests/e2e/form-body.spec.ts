@@ -12,6 +12,7 @@ test('form values, literal encoded drafts and example selection send the active 
   );
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
+  await playground.locator('.playground-request-example > summary').click();
   await expect(
     playground.getByRole('button', { name: 'Form values', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
@@ -74,18 +75,12 @@ test('form values, literal encoded drafts and example selection send the active 
     'application/x-www-form-urlencoded',
   );
   await playground
-    .getByRole('button', { name: 'Request', exact: true })
-    .click();
-  await playground
     .getByRole('button', { name: 'Form values', exact: true })
     .click();
   result = page.waitForResponse('http://127.0.0.1:4010/v1/form-editor');
   await playground.getByRole('button', { name: 'Send request' }).click();
   response = await result;
   expect(response.request().postData()).toBe(expected);
-  await playground
-    .getByRole('button', { name: 'Request', exact: true })
-    .click();
   await playground
     .getByRole('combobox', { name: 'Request example', exact: true })
     .selectOption('named:encoded');

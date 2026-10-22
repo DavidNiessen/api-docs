@@ -4,9 +4,11 @@ The reader accepts API keys, basic credentials, bearer tokens and OAuth authoriz
 
 ## Open the playground
 
-Choose **Try now** beside the endpoint URL or in its request example card. The playground opens over the current documentation, with request fields on the left and code/response panels on the right. On narrow screens the panels stack inside the modal. Add `?playground=open` to an endpoint URL to share the open playground; existing query parameters and fragments are preserved when opening or closing it.
+Choose **Try now** beside the endpoint URL or in its request example card. The playground opens over the current documentation, with request fields and collapsible request snippets on the left and a read-only response editor on the right. On narrow screens the panels stack inside the modal. Add `?playground=open` to an endpoint URL to share the open playground; existing query parameters and fragments are preserved when opening or closing it.
 
 Use the close button, Escape or the backdrop to dismiss the modal. Keyboard focus returns to the control that opened it. Closing discards request drafts, files and credentials, cancels pending authorization, and aborts an in-flight browser request. An API may already have processed a request before cancellation; closing the playground does not undo server changes. Reopening starts a fresh request from the specification examples. The endpoint documentation and request example remain readable without JavaScript; sending requests requires JavaScript.
+
+See the [response viewer and request URL bar](explorer-responses.md) for folding, syntax highlighting and full-response/URL copying.
 
 ## Register a public client
 
