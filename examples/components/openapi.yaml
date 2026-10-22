@@ -333,6 +333,29 @@ components:
         responseOnly: { type: string, readOnly: true }
         optional: { type: string, default: optional-default }
         fixed: { type: string, const: fixed }
+        profile:
+          $ref: '#/components/schemas/NestedProfile'
+    NestedProfile:
+      type: object
+      required: [name, id]
+      properties:
+        name: { type: string }
+        id: { type: integer }
+        privateNote: { type: string, writeOnly: true }
+        responseOnly: { type: string, readOnly: true }
+        address:
+          type: [object, 'null']
+          properties:
+            city: { type: string }
+            zip: { type: string }
+        manager:
+          $ref: '#/components/schemas/NestedProfile'
+        settings:
+          type: object
+          writeOnly: true
+          properties:
+            secret: { type: string }
+
     Colors:
       type: array
       items: { type: string }

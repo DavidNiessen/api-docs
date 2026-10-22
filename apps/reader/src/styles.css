@@ -2558,3 +2558,40 @@ h3 {
     display: none;
   }
 }
+
+.body-object-fields {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.body-nested-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+}
+.body-nested-fields legend {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+}
+.body-nested-modes {
+  display: flex;
+  gap: 4px;
+}
+.body-nested-modes button {
+  padding: 5px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.body-nested-modes button[aria-pressed='true'] {
+  color: var(--heading);
+  background: var(--subtle);
+}
+.body-object-fields .body-checkbox code {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}

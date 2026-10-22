@@ -3,14 +3,12 @@ import {
   parseJsonValue,
   serializeJsonValue,
   setJsonProperty,
-  resolveSchema,
 } from '@api-docs/contracts';
 import type { JsonValueNode, Schema } from '@api-docs/contracts';
+import type { ReactNode } from 'react';
+import { bodyFieldModel, bodyFieldLabel } from '../body-fields.js';
+import type { BodyFieldModel, ObjectBodyValue } from '../body-fields.js';
 
-const object = (value: unknown): Schema =>
-  value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Schema)
-    : {};
 const typeOf = (schema: Schema) =>
   Array.isArray(schema.type)
     ? schema.type.find((value) => value !== 'null')
@@ -48,8 +46,12 @@ function FieldValue({
   value,
   onChange,
   onError,
+  nested,
+  nestedReason,
 }: {
   name: string;
+  nested?: ReactNode;
+  nestedReason?: string | undefined;
   schema: Schema;
   value: JsonValueNode;
   onChange: (value: JsonValueNode) => void;
@@ -67,7 +69,12 @@ function FieldValue({
     report.current(name, '');
   }, [text, name]);
   useEffect(() => () => report.current(name, ''), [name]);
-  const declared = typeOf(schema);
+  const [nestedMode, setNestedMode] = useState<'fields' | 'json'>('fields');
+  const declared =
+    Array.isArray(schema.type) &&
+    schema.type.filter((type) => type !== 'null').length > 1
+      ? undefined
+      : typeOf(schema);
   const nullable =
     (Array.isArray(schema.type) && schema.type.includes('null')) ||
     (schema.nullable === true && typeof schema.type === 'string');
@@ -86,13 +93,20 @@ function FieldValue({
     setDraft(input);
     try {
       const parsed = parseJsonValue(input);
-      const expected = declared === 'integer' ? 'number' : declared;
+      const types = Array.isArray(schema.type)
+        ? schema.type
+        : declared
+          ? [declared]
+          : [];
+      const expected = types.map((type) =>
+        type === 'integer' ? 'number' : type,
+      );
       if (
-        expected &&
-        parsed.kind !== expected &&
+        expected.length &&
+        !expected.includes(parsed.kind) &&
         !(nullable && parsed.kind === 'null')
       )
-        throw new Error(`Enter a JSON ${String(expected)}.`);
+        throw new Error(`Enter a JSON ${expected.join(' or ')}.`);
       onChange(parsed);
       setError('');
       onError(name, '');
@@ -154,8 +168,45 @@ function FieldValue({
               Use null
             </label>
           )}
+          {nested && value.kind === 'object' && (
+            <div
+              role="group"
+              aria-label={`${name} object editor`}
+              className="body-nested-modes"
+            >
+              <button
+                type="button"
+                aria-label={`Edit body ${name} fields`}
+                aria-pressed={nestedMode === 'fields'}
+                onClick={() => {
+                  setNestedMode('fields');
+                  setDraft(text);
+                  setError('');
+                  onError(name, '');
+                }}
+              >
+                Fields
+              </button>
+              <button
+                type="button"
+                aria-label={`Edit body ${name} as JSON`}
+                aria-pressed={nestedMode === 'json'}
+                onClick={() => {
+                  setNestedMode('json');
+                  setDraft(text);
+                  setError('');
+                  onError(name, '');
+                }}
+              >
+                JSON
+              </button>
+            </div>
+          )}
+          {nestedReason && <p className="subtle">{nestedReason}</p>}
           {nullable && value.kind === 'null' ? (
             <code>null</code>
+          ) : nested && nestedMode === 'fields' && value.kind === 'object' ? (
+            nested
           ) : declared === 'string' ||
             (!declared && value.kind === 'string') ? (
             <label>
@@ -224,14 +275,105 @@ function FieldValue({
   );
 }
 
-type BodyModel =
-  | {
-      available: true;
-      value: Extract<JsonValueNode, { kind: 'object' }>;
-      fields: { name: string; schema: Schema }[];
-      required: unknown[];
-    }
-  | { available: false; error: string };
+function ObjectFields({
+  model,
+  path = [],
+  onChange,
+  onError,
+}: {
+  model: Extract<BodyFieldModel, { available: true }>;
+  path?: string[];
+  onChange: (value: ObjectBodyValue) => void;
+  onError: (key: string, error: string) => void;
+}) {
+  const [error, setError] = useState('');
+  const activeErrors = useRef(new Set<string>()),
+    report = useRef(onError);
+  report.current = onError;
+  const reportError = (key: string, error: string) => {
+    if (error) activeErrors.current.add(key);
+    else activeErrors.current.delete(key);
+    onError(key, error);
+  };
+  useEffect(
+    () => () => {
+      for (const key of activeErrors.current) report.current(key, '');
+    },
+    [],
+  );
+
+  return (
+    <div className="body-object-fields">
+      {error && <p role="alert">{error}</p>}
+      {model.fields.map(({ name, schema: field, nested }) => {
+        const fieldPath = [...path, name],
+          label = bodyFieldLabel(fieldPath),
+          key = JSON.stringify(fieldPath);
+        const value = model.value.entries.find(([key]) => key === name)?.[1];
+        const update = (node: JsonValueNode | undefined) =>
+          onChange(setJsonProperty(model.value, name, node));
+        return (
+          <div className="body-field" key={key}>
+            <div className="body-field-heading">
+              <label className="body-checkbox">
+                <input
+                  type="checkbox"
+                  aria-label={`Include body ${label}`}
+                  checked={!!value}
+                  onChange={(event) => {
+                    try {
+                      update(event.target.checked ? seed(field) : undefined);
+                      setError('');
+                      reportError(key, '');
+                    } catch {
+                      setError(
+                        'This field cannot be initialized here. Edit it in JSON.',
+                      );
+                      reportError(key, 'Use JSON to initialize this field.');
+                    }
+                  }}
+                />
+                <code>{name}</code>
+              </label>
+              <small>
+                {String(typeOf(field) ?? 'JSON')}
+                {model.required.includes(name) ? ' · required' : ''}
+              </small>
+            </div>
+            {typeof field.description === 'string' && (
+              <p className="subtle">{field.description}</p>
+            )}
+            {value && (
+              <FieldValue
+                name={label}
+                schema={field}
+                value={value}
+                onChange={update}
+                onError={(_name, error) => reportError(key, error)}
+                nestedReason={
+                  nested && !nested.available ? nested.error : undefined
+                }
+                nested={
+                  nested?.available ? (
+                    <fieldset className="body-nested-fields">
+                      <legend>{label}</legend>
+                      <ObjectFields
+                        model={nested}
+                        path={fieldPath}
+                        onChange={update}
+                        onError={reportError}
+                      />
+                    </fieldset>
+                  ) : undefined
+                }
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function BodyEditor({
   body,
@@ -251,76 +393,14 @@ export function BodyEditor({
   initialMode?: 'json' | 'fields';
 }) {
   const [mode, setMode] = useState<'json' | 'fields'>(initialMode);
-  const [editorError, setEditorError] = useState('');
   const errors = useRef(new Map<string, string>()),
     report = useRef(onError);
   report.current = onError;
   useEffect(() => () => report.current(''), []);
-  const model = useMemo<BodyModel>(() => {
-    try {
-      const value = parseJsonValue(body);
-      if (value.kind !== 'object')
-        throw new Error('Use JSON to edit non-object request bodies.');
-      const actual = resolveSchema(schema, schemas, {
-        ignoreReferenceSiblings: legacy,
-      });
-      if (
-        actual.$ref ||
-        actual.allOf ||
-        actual.oneOf ||
-        actual.anyOf ||
-        actual.if ||
-        actual.then ||
-        actual.else ||
-        actual.not
-      )
-        throw new Error(
-          'Use JSON for composed or conditional request schemas.',
-        );
-      if (
-        actual.type &&
-        !(
-          actual.type === 'object' ||
-          (Array.isArray(actual.type) && actual.type.includes('object'))
-        )
-      )
-        throw new Error('Field editing requires an object request schema.');
-      const properties = Object.entries(object(actual.properties));
-      if (properties.length > 100)
-        throw new Error(
-          'Use JSON for requests with more than 100 declared fields.',
-        );
-      const fields = properties
-        .filter(([, property]) => property !== false)
-        .map(([name, property]) => {
-          const field = resolveSchema(object(property), schemas, {
-            ignoreReferenceSiblings: legacy,
-          });
-          // In 3.1 nullable is an annotation, not a null type.
-          return {
-            name,
-            schema: legacy ? field : { ...field, nullable: false },
-          };
-        })
-        .filter((field) => field.schema.readOnly !== true);
-      if (!fields.length)
-        throw new Error('No editable fields are defined. Use JSON.');
-      return {
-        available: true,
-        value,
-        fields,
-        required: Array.isArray(actual.required) ? actual.required : [],
-      };
-    } catch (error) {
-      return {
-        available: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Use the JSON editor for this body.',
-      };
-    }
-  }, [body, schema, schemas, legacy]);
+  const model = useMemo(
+    () => bodyFieldModel(body, schema, schemas, legacy),
+    [body, schema, schemas, legacy],
+  );
   const available = model.available;
   const shownMode = available ? mode : 'json';
   useEffect(() => {
@@ -329,7 +409,6 @@ export function BodyEditor({
   useEffect(() => {
     if (mode === 'json') {
       errors.current.clear();
-      setEditorError('');
       report.current('');
     }
   }, [mode]);
@@ -378,71 +457,16 @@ export function BodyEditor({
       ) : (
         <fieldset className="body-fields">
           <legend>Request fields</legend>
-          {editorError && <p role="alert">{editorError}</p>}
           <p className="subtle">
-            Collections use JSON. Unknown and read-only values are retained;
-            edit them in JSON. Required fields and schema constraints still
-            apply.
+            Arrays and complex schemas use JSON. Unknown and read-only values
+            are retained; edit them in JSON. Required fields and schema
+            constraints still apply.
           </p>
-          {model.fields.map(({ name, schema: field }) => {
-            const value = model.value.entries.find(
-              ([key]) => key === name,
-            )?.[1];
-            const update = (node: JsonValueNode | undefined) =>
-              onChange(
-                serializeJsonValue(
-                  setJsonProperty(model.value, name, node),
-                  true,
-                ),
-              );
-            return (
-              <div className="body-field" key={name}>
-                <div className="body-field-heading">
-                  <label className="body-checkbox">
-                    <input
-                      type="checkbox"
-                      aria-label={`Include body ${name}`}
-                      checked={!!value}
-                      onChange={(event) => {
-                        try {
-                          update(
-                            event.target.checked ? seed(field) : undefined,
-                          );
-                          setEditorError('');
-                          fieldError(name, '');
-                        } catch {
-                          setEditorError(
-                            'This field cannot be initialized here. Edit it in JSON.',
-                          );
-                          fieldError(
-                            name,
-                            'Use JSON to initialize this field.',
-                          );
-                        }
-                      }}
-                    />
-                    <code>{name}</code>
-                  </label>
-                  <small>
-                    {String(typeOf(field) ?? 'JSON')}
-                    {model.required.includes(name) ? ' · required' : ''}
-                  </small>
-                </div>
-                {typeof field.description === 'string' && (
-                  <p className="subtle">{field.description}</p>
-                )}
-                {value && (
-                  <FieldValue
-                    name={name}
-                    schema={field}
-                    value={value}
-                    onChange={update}
-                    onError={fieldError}
-                  />
-                )}
-              </div>
-            );
-          })}
+          <ObjectFields
+            model={model}
+            onChange={(value) => onChange(serializeJsonValue(value, true))}
+            onError={fieldError}
+          />
           {errors.current.size > 0 && (
             <p className="subtle">
               Fix incomplete field values before sending, or return to JSON to

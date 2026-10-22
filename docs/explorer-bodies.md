@@ -1,16 +1,16 @@
 # Editing JSON request bodies
 
-JSON request bodies open in the raw **JSON** editor. For object schemas with declared properties, choose **Fields** to edit individual values. Strings use text inputs, password/write-only strings are masked, booleans and enums use selectors, and nullable properties have an explicit null control. Numbers retain their original JSON number tokens, including large integer IDs and precise decimals. Arrays and nested objects use JSON editors within their field.
+JSON request bodies open in the raw **JSON** editor. For object schemas with declared properties, choose **Fields** to edit individual values. Strings use text inputs, password/write-only strings are masked, booleans and enums use selectors, and nullable properties have an explicit null control. Numbers retain their original JSON number tokens, including large integer IDs and precise decimals. Nested objects expand into their own controls, including referenced and recursive schemas. Each expanded object has a **Fields / JSON** switch; arrays and unsupported object schemas use JSON within their field. Strings inside write-only objects remain masked in field controls.
 
 Use the include checkbox to add or omit a property. New values use an explicit constant, default or example when available; otherwise the editor starts with an empty value of the declared type. Required labels remain visible. Unknown properties and existing read-only properties are retained when another field changes; edit those values through JSON. Read-only properties are excluded from the field controls. A `const` property displays its fixed value.
 
-Incomplete numeric or collection edits disable **Send request** and replace the snippet with an error. The underlying body keeps its last valid value until the field input is valid. Returning to JSON discards incomplete field drafts and shows that last valid body. Field editing checks JSON syntax and the immediate declared value type; it does not replace full JSON Schema validation or the target API's constraints. Required fields, patterns, bounds and cross-field rules still apply.
+Incomplete numeric or collection edits disable **Send request** and replace the snippet with an error. The underlying body keeps its last valid value until the field input is valid. Returning to JSON discards incomplete field drafts and shows that last valid body. Switching an individual object between Fields and JSON discards incomplete drafts within that object; omitting an object also clears its discarded errors. Valid edits preserve unrelated siblings, unknown properties and read-only values at every level. Field editing checks JSON syntax and the immediate declared value type; it does not replace full JSON Schema validation or the target API's constraints. Required fields, patterns, bounds and cross-field rules still apply.
 
 ## Precision and editing limits
 
 Editing fields uses a JSON syntax tree rather than converting number tokens to JavaScript floating-point numbers. Updating a name does not round an unrelated ID such as `9007199254740993`, a precise decimal or an exponent value. Unknown nested values retain their numeric tokens too. Formatting and equivalent string escapes may change when the body is rewritten.
 
-The field editor accepts at most 1 MiB of UTF-8 JSON, 32 nesting levels, 10,000 values and 100 declared root properties. Duplicate property names require the raw editor. Non-object bodies and composed/conditional root schemas also use JSON; nested collections remain available as JSON values. These boundaries disable field editing rather than truncating the request. OpenAPI 3.0 typed nullable fields and 3.1 null type unions keep their respective meanings.
+The field editor accepts at most 1 MiB of UTF-8 JSON, 32 JSON nesting levels and 10,000 values. Expanded controls share a budget of 100 fields across at most eight object levels, with at most 100 declared properties per object. A nested object that exceeds these limits uses a local JSON editor while ordinary siblings remain editable. Composed/conditional schemas and ambiguous object type unions also use JSON. Non-object roots and duplicate property names require the raw editor. These boundaries never truncate the request. OpenAPI 3.0 typed nullable fields and 3.1 null type unions keep their respective meanings.
 
 ## Sensitive examples
 
@@ -22,6 +22,6 @@ Annotations and known credentials cannot identify every secret. Mark sensitive s
 
 Programmatic clients can pass `{ schema, schemas, openapiVersion }` as the third argument to `redactRequest`, or call `redactJsonBody` directly. Generic request redaction without that context does not perform schema-aware body traversal. The public `parseJsonValue`, `serializeJsonValue` and `setJsonProperty` helpers in `@api-docs/contracts` preserve number tokens for integrations that build their own editors.
 
-See [form-urlencoded bodies](form-bodies.md), [request serialization](request-serialization.md), [OAuth authentication](explorer-auth.md) and [generated snippets](snippets.md) for the remaining request behavior. Multipart uploads remain separate implementation work.
+See [form-urlencoded bodies](form-bodies.md), [request serialization](request-serialization.md), [OAuth authentication](explorer-auth.md) and [generated snippets](snippets.md) for the remaining request behavior.
 
 For binary files with text or JSON parts, use the [multipart editor](multipart-bodies.md). File selections stay separate from logical JSON values and generated source.

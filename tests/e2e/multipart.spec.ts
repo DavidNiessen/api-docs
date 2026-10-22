@@ -29,6 +29,9 @@ test('multipart uploads send real binary files and structured parts while previe
     .getByLabel('Body password', { exact: true })
     .fill('changed-upload-secret');
   await playground
+    .getByRole('button', { name: 'Edit body metadata as JSON', exact: true })
+    .click();
+  await playground
     .getByLabel('Body metadata', { exact: true })
     .fill('{"id":9007199254740993,"privateNote":"changed-private-note"}');
   await playground
