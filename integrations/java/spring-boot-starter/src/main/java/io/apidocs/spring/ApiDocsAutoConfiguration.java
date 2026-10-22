@@ -22,7 +22,7 @@ public class ApiDocsAutoConfiguration {
     if (!properties.getPath().matches("/[a-zA-Z0-9][a-zA-Z0-9/_-]*") || properties.getPath().endsWith("/")) {
       throw new IllegalArgumentException("api-docs.path must be an absolute path without a trailing slash");
     }
-    var publication = new Publication(Path.of(properties.getDirectory()));
+    var publication = new Publication(Path.of(properties.getDirectory()), properties.getArtifactDigest());
     String context = environment.getProperty("server.servlet.context-path",
         environment.getProperty("spring.webflux.base-path", ""));
     String expected = properties.getPublicBasePath() == null ? context + properties.getPath() : properties.getPublicBasePath();

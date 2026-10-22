@@ -1,0 +1,40 @@
+{
+  "manifest": {
+    "schemaVersion": 2,
+    "compilerVersion": "0.1.0",
+    "inputDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+    "files": {
+      "1": "1111111111111111111111111111111111111111111111111111111111111111",
+      "2": "2222222222222222222222222222222222222222222222222222222222222222",
+      "10": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "assets/Z.js": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "assets/a.js": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "routes": ["/", "/guides/start/"],
+    "diagnostics": [
+      {
+        "severity": "warning",
+        "message": "quote \" slash / backslash \\ <>&= café 本 😀     \ud800 \udfff \u0001",
+        "code": "review",
+        "source": "openapi.yaml"
+      }
+    ],
+    "plugins": [
+      {
+        "version": "1.0.0",
+        "name": "é本",
+        "inputs": [
+          {
+            "path": "plugin.mjs",
+            "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
+        "sourceDigest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    ],
+    "artifactDigest": "42b177c8c4cdf584243ee49a25d21a40c10337d1b115ff0e5c2d688c0efd5edc"
+  },
+  "canonical": "{\"compilerVersion\":\"0.1.0\",\"diagnostics\":[{\"code\":\"review\",\"message\":\"quote \\\" slash / backslash \\\\ <>&= café 本 😀     \\ud800 \\udfff \\u0001\",\"severity\":\"warning\",\"source\":\"openapi.yaml\"}],\"files\":{\"1\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"10\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"2\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"assets/Z.js\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"assets/a.js\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"},\"inputDigest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"plugins\":[{\"inputs\":[{\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"path\":\"plugin.mjs\"}],\"name\":\"é本\",\"sourceDigest\":\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"version\":\"1.0.0\"}],\"routes\":[\"/\",\"/guides/start/\"],\"schemaVersion\":2}",
+  "artifactDigest": "42b177c8c4cdf584243ee49a25d21a40c10337d1b115ff0e5c2d688c0efd5edc",
+  "manifestJson": "{\"schemaVersion\":2,\"compilerVersion\":\"0.1.0\",\"inputDigest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"files\":{\"1\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"2\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"10\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"assets/Z.js\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"assets/a.js\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"},\"routes\":[\"/\",\"/guides/start/\"],\"diagnostics\":[{\"severity\":\"warning\",\"message\":\"quote \\\" slash / backslash \\\\ <>&= café 本 😀     \\ud800 \\udfff \\u0001\",\"code\":\"review\",\"source\":\"openapi.yaml\"}],\"plugins\":[{\"version\":\"1.0.0\",\"name\":\"é本\",\"inputs\":[{\"path\":\"plugin.mjs\",\"digest\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}],\"sourceDigest\":\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"}],\"artifactDigest\":\"42b177c8c4cdf584243ee49a25d21a40c10337d1b115ff0e5c2d688c0efd5edc\"}"
+}

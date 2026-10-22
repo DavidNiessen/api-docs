@@ -59,7 +59,9 @@ api-docs:
   path: /docs
 ```
 
-Auto-configuration supports servlet MVC and reactive WebFlux. It verifies the publication's SHA-256 file digests before registering resource handlers. It serves only manifest-listed files and resolves page directories to `index.html`. Root navigation redirects to the index page. The application's Spring Security configuration continues to protect documentation requests.
+Auto-configuration supports servlet MVC and reactive WebFlux. It verifies the portable version 2 manifest identity and every file's SHA-256 digest before registering resource handlers. It serves only manifest-listed files and resolves page directories to `index.html`. Root navigation redirects to the index page. The application's Spring Security configuration continues to protect documentation requests.
+
+Optionally set `api-docs.artifact-digest` to an approved digest from your trusted build/release inventory; a mismatch fails startup. Older version 1 publications must be rebuilt before using this Java adapter. See [manifest verification and migration](artifact-manifest.md).
 
 The publication's `basePath` must equal the application context path plus `api-docs.path`. For a proxy prefix that differs from the application context, set `api-docs.public-base-path` to the exact external path and compile the publication with that same path. Incorrect paths fail startup rather than producing broken assets.
 
@@ -69,7 +71,7 @@ Spring Boot 3.5.16 and 4.1.1 are tested locally on JDK 21, compiling Java 17 byt
 
 ## Generic Java
 
-`api-docs-core` provides a `Publication` that validates an artifact directory and exposes only verified paths and its configured base path. A servlet, JAX-RS service, or other framework can use it with its own authentication and static serving mechanism. It requires no JavaScript engine or embedded web server.
+`api-docs-core` provides a `Publication` that validates an artifact directory and exposes only verified paths, its artifact digest and configured base path. A servlet, JAX-RS service, or other framework can use it with its own authentication and static serving mechanism. The optional constructor digest pins a deployment to an approved artifact. It requires no JavaScript engine or embedded web server.
 
 ## Other languages and runtime environments
 

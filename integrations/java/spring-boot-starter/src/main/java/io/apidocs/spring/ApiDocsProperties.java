@@ -7,6 +7,7 @@ public class ApiDocsProperties {
   private String directory;
   private String path = "/docs";
   private String publicBasePath;
+  private String artifactDigest;
   public boolean isEnabled() { return enabled; }
   public void setEnabled(boolean value) { enabled = value; }
   public String getDirectory() { return directory; }
@@ -15,4 +16,6 @@ public class ApiDocsProperties {
   public void setPath(String value) { path = value; }
   public String getPublicBasePath() { return publicBasePath; }
   public void setPublicBasePath(String value) { publicBasePath = value; }
+  public String getArtifactDigest() { return artifactDigest; }
+  public void setArtifactDigest(String value) { artifactDigest = value; }
 }

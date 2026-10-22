@@ -40,13 +40,15 @@ class ApiDocsIntegrationTest {
   private void exercise(Class<?> application, WebApplicationType type) throws Exception {
     String directory = System.getProperty("apiDocs.fixture");
     assertNotNull(directory, "Prepare the real reader fixture before running Java integration tests");
+    String digest = new io.apidocs.core.Publication(java.nio.file.Path.of(directory)).artifactDigest();
     try (var context = new SpringApplicationBuilder(application).web(type).properties(
         "server.port=0", "api-docs.directory=" + directory, "api-docs.path=/docs",
+        "api-docs.artifact-digest=" + digest,
         "spring.main.banner-mode=off", "logging.level.root=WARN").run()) {
       String base = "http://127.0.0.1:" + context.getEnvironment().getProperty("local.server.port");
       var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
       String credential = "Basic " + Base64.getEncoder().encodeToString("reader:fixture-password".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-      for (String path : new String[]{"/docs/", "/docs/search.json", "/docs/assets/reader.js", "/docs/guides/quickstart/"}) {
+      for (String path : new String[]{"/docs/", "/docs/search.json", "/docs/assets/reader.js", "/docs/guides/quickstart/", "/docs/oauth/callback/", "/docs/assets/oauth-callback.js"}) {
         assertEquals(401, client.send(HttpRequest.newBuilder(URI.create(base + path)).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode());
         var response = client.send(HttpRequest.newBuilder(URI.create(base + path)).header("Authorization", credential).GET().build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), "Failed to serve " + path);

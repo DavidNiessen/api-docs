@@ -154,7 +154,7 @@ export async function writeManifest(
   const files: Record<string, string> = {};
   const walk = async (path: string): Promise<void> => {
     for (const entry of (await readdir(path, { withFileTypes: true })).sort(
-      (a, b) => a.name.localeCompare(b.name),
+      (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
     )) {
       const file = join(path, entry.name);
       if (entry.isDirectory()) await walk(file);
@@ -169,7 +169,7 @@ export async function writeManifest(
   };
   await walk(directory);
   const details: Omit<ArtifactManifest, 'artifactDigest'> = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     compilerVersion: '0.1.0',
     inputDigest: digest(JSON.stringify(site)),
     files,

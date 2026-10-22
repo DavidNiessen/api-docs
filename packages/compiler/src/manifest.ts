@@ -5,9 +5,34 @@ import type { ArtifactManifest } from '@api-docs/contracts';
 import { record } from '@api-docs/spec';
 export const digest = (source: string | Buffer): string =>
   createHash('sha256').update(source).digest('hex');
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value !== null && typeof value === 'object')
+    return `{${Object.keys(value)
+      .sort()
+      .filter((key) => (value as Record<string, unknown>)[key] !== undefined)
+      .map(
+        (key) =>
+          `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`,
+      )
+      .join(',')}}`;
+  const result = JSON.stringify(value);
+  if (result === undefined) throw new Error('Invalid canonical manifest value');
+  return result;
+}
 export function artifactIdentity(
   manifest: Omit<ArtifactManifest, 'artifactDigest'>,
 ): string {
+  const identity = {
+    schemaVersion: manifest.schemaVersion,
+    compilerVersion: manifest.compilerVersion,
+    inputDigest: manifest.inputDigest,
+    files: manifest.files,
+    routes: manifest.routes,
+    diagnostics: manifest.diagnostics,
+    plugins: manifest.plugins ?? [],
+  };
+  if (manifest.schemaVersion === 2) return digest(canonical(identity));
   return digest(
     JSON.stringify({
       schemaVersion: manifest.schemaVersion,
@@ -30,6 +55,8 @@ const safePath = (value: string) =>
   value.length <= 4096 &&
   /^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(value) &&
   value.split('/').every((part) => part.length > 0 && !part.startsWith('.'));
+const only = (value: Record<string, unknown>, keys: string[]) =>
+  Object.keys(value).every((key) => keys.includes(key));
 /** Parse identity-bearing metadata before any path is trusted or cached. */
 export function parseArtifactManifest(value: unknown): ArtifactManifest {
   const manifest = record(value),
@@ -46,7 +73,7 @@ export function parseArtifactManifest(value: unknown): ArtifactManifest {
   ]);
   if (
     Object.keys(manifest).some((key) => !keys.has(key)) ||
-    manifest.schemaVersion !== 1 ||
+    (manifest.schemaVersion !== 1 && manifest.schemaVersion !== 2) ||
     !string(manifest.compilerVersion, 128) ||
     !hash(manifest.inputDigest) ||
     !hash(manifest.artifactDigest) ||
@@ -59,7 +86,7 @@ export function parseArtifactManifest(value: unknown): ArtifactManifest {
     ) ||
     !Array.isArray(manifest.routes) ||
     manifest.routes.length > 100_000 ||
-    manifest.routes.some(
+    Array.from(manifest.routes).some(
       (route) =>
         typeof route !== 'string' ||
         (route !== '/' &&
@@ -69,29 +96,39 @@ export function parseArtifactManifest(value: unknown): ArtifactManifest {
     new Set(manifest.routes).size !== manifest.routes.length ||
     !Array.isArray(manifest.diagnostics) ||
     manifest.diagnostics.length > 10_000 ||
-    manifest.diagnostics.some((value) => {
+    Array.from(manifest.diagnostics).some((value) => {
       const item = record(value);
       return (
         !string(item.code, 200) ||
-        !['warning', 'error'].includes(String(item.severity)) ||
+        typeof item.severity !== 'string' ||
+        !['warning', 'error'].includes(item.severity) ||
         !string(item.message, 12_000) ||
+        (manifest.schemaVersion === 2 &&
+          !only(item, ['code', 'severity', 'message', 'source'])) ||
         (item.source !== undefined && !string(item.source, 4096))
       );
     }) ||
     !Array.isArray(manifest.plugins) ||
     manifest.plugins.length > 32 ||
-    manifest.plugins.some((value) => {
+    Array.from(manifest.plugins).some((value) => {
       const plugin = record(value);
       return (
         !string(plugin.name, 214) ||
         !string(plugin.version, 128) ||
+        (manifest.schemaVersion === 2 &&
+          !only(plugin, ['name', 'version', 'sourceDigest', 'inputs'])) ||
         (plugin.sourceDigest !== undefined && !hash(plugin.sourceDigest)) ||
         (plugin.inputs !== undefined &&
           (!Array.isArray(plugin.inputs) ||
             plugin.inputs.length > 129 ||
-            plugin.inputs.some((value) => {
+            Array.from(plugin.inputs).some((value) => {
               const item = record(value);
-              return !string(item.path, 4096) || !hash(item.digest);
+              return (
+                !string(item.path, 4096) ||
+                !hash(item.digest) ||
+                (manifest.schemaVersion === 2 &&
+                  !only(item, ['path', 'digest']))
+              );
             })))
       );
     })

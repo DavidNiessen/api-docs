@@ -177,7 +177,7 @@ export interface SearchResult extends SearchDocument {
 }
 export interface ArtifactManifest {
   artifactDigest: string;
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   compilerVersion: string;
   inputDigest: string;
   files: Record<string, string>;
