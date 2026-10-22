@@ -952,6 +952,22 @@ h3 {
   display: grid;
   gap: 16px;
 }
+.example-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.example-selector select {
+  max-width: 100%;
+}
+.example-note {
+  color: var(--muted);
+  font-size: 12px;
+}
 .request-fields label {
   display: grid;
   gap: 7px;

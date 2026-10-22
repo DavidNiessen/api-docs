@@ -21,16 +21,15 @@ export function CodeBlock({
         <button
           type="button"
           aria-label="Copy code"
-          onClick={() => {
-            void navigator.clipboard
-              .writeText(code)
-              .then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              })
-              .catch(() =>
-                setError('Clipboard unavailable. Select and copy the code.'),
-              );
+          onClick={async () => {
+            setError('');
+            try {
+              await navigator.clipboard.writeText(code);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            } catch {
+              setError('Clipboard unavailable. Select and copy the code.');
+            }
           }}
         >
           <Icon name={copied ? 'check' : 'copy'} size={15} />

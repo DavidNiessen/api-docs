@@ -6,7 +6,6 @@ import type {
 } from 'react';
 import { createSearchIndex, search } from '@api-docs/search';
 import {
-  exampleFor,
   guideHref,
   operationHref,
   withBase,
@@ -25,7 +24,7 @@ import type {
 import { Icon } from './Icon.js';
 import { Explorer } from './Explorer.js';
 import { SchemaView } from './SchemaView.js';
-import { CodeBlock } from './CodeBlock.js';
+import { MediaExamples } from './MediaExamples.js';
 
 const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
 function scrollFragment(hash: string) {
@@ -734,15 +733,12 @@ export function App({
                   {Object.entries(
                     activeOperation.requestBody?.content ?? {},
                   ).map(([type, media]) => (
-                    <CodeBlock
+                    <MediaExamples
                       key={type}
                       title={`Incoming payload · ${type}`}
-                      code={JSON.stringify(
-                        media.example ??
-                          exampleFor(media.schema, activeApi.schemas),
-                        null,
-                        2,
-                      )}
+                      media={media}
+                      mediaType={type}
+                      schemas={activeApi.schemas}
                     />
                   ))}
                 </aside>
@@ -967,7 +963,14 @@ function OperationDetails({
   const response =
     operation.responses.find((item) => item.status === responseStatus) ??
     operation.responses[0];
-  const responseMedia = Object.entries(response?.content ?? {})[0];
+  const [responseType, setResponseType] = useState(
+    Object.keys(response?.content ?? {})[0] ?? '',
+  );
+  const responseTypes = Object.keys(response?.content ?? {});
+  const mediaType = responseTypes.includes(responseType)
+    ? responseType
+    : (responseTypes[0] ?? '');
+  const responseMedia = response?.content[mediaType];
   return (
     <>
       {operation.security.length > 0 && (
@@ -979,7 +982,11 @@ function OperationDetails({
           <div className="callout">
             <Icon name="shield" />
             <span>
-              Authentication is required.{' '}
+              {operation.security.some(
+                (alternative) => Object.keys(alternative).length === 0,
+              )
+                ? 'Authentication is optional.'
+                : 'Authentication is required.'}{' '}
               {operation.security
                 .map(
                   (alternative) =>
@@ -1057,7 +1064,11 @@ function OperationDetails({
               type="button"
               key={item.status}
               className={responseStatus === item.status ? 'active' : ''}
-              onClick={() => setResponseStatus(item.status)}
+              aria-pressed={responseStatus === item.status}
+              onClick={() => {
+                setResponseStatus(item.status);
+                setResponseType(Object.keys(item.content)[0] ?? '');
+              }}
             >
               <span
                 className={
@@ -1071,19 +1082,27 @@ function OperationDetails({
         <p>{response?.description}</p>
         {responseMedia && (
           <>
-            <span className="media-label">{responseMedia[0]}</span>
-            <SchemaView
-              schema={responseMedia[1].schema}
+            {responseTypes.length > 1 ? (
+              <label className="example-selector">
+                Response content type
+                <select
+                  value={mediaType}
+                  onChange={(event) => setResponseType(event.target.value)}
+                >
+                  {responseTypes.map((type) => (
+                    <option key={type}>{type}</option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <span className="media-label">{mediaType}</span>
+            )}
+            <SchemaView schema={responseMedia.schema} schemas={api.schemas} />
+            <MediaExamples
+              key={`${responseStatus}:${mediaType}`}
+              media={responseMedia}
+              mediaType={mediaType}
               schemas={api.schemas}
-            />
-            <CodeBlock
-              title="Example response"
-              code={JSON.stringify(
-                responseMedia[1].example ??
-                  exampleFor(responseMedia[1].schema, api.schemas),
-                null,
-                2,
-              )}
             />
           </>
         )}

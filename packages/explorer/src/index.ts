@@ -1,9 +1,11 @@
 import type { Operation, Parameter, SecurityScheme } from '@api-docs/contracts';
+import { isJsonMediaType } from '@api-docs/contracts';
 export interface RequestInput {
   server: string;
   parameters: Record<string, string>;
   body?: string;
   contentType?: string;
+  accept?: string;
   credentials?: Record<string, string>;
 }
 export interface PreparedRequest {
@@ -82,7 +84,12 @@ export function prepareRequest(
     );
   let path = operation.path;
   const query = new URLSearchParams();
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const response = operation.responses.find((item) => /^2/.test(item.status));
+  const accept =
+    input.accept ?? Object.keys(response?.content ?? {})[0] ?? '*/*';
+  if (/[\r\n]/.test(accept))
+    throw new Error('Response format cannot contain newlines');
+  const headers: Record<string, string> = { Accept: accept };
   for (const parameter of operation.parameters) {
     const raw = input.parameters[`${parameter.in}:${parameter.name}`] ?? '';
     if (!raw && parameter.required)
@@ -156,10 +163,12 @@ export function prepareRequest(
   for (const [key, value] of query) url.searchParams.append(key, value);
   if (operation.security.length) {
     const alternative =
-      operation.security.find((requirement) =>
-        Object.keys(requirement).every((name) =>
-          Boolean(input.credentials?.[name]),
-        ),
+      operation.security.find(
+        (requirement) =>
+          Object.keys(requirement).length > 0 &&
+          Object.keys(requirement).every((name) =>
+            Boolean(input.credentials?.[name]),
+          ),
       ) ??
       operation.security.find(
         (requirement) => Object.keys(requirement).length === 0,
@@ -192,14 +201,14 @@ export function prepareRequest(
       else throw new Error(`Unsupported authentication method: ${name}`);
     }
   }
-  const body = input.body?.trim();
+  const body = input.body;
   if (body && ['get', 'head'].includes(operation.method))
     throw new Error('GET and HEAD requests cannot have a body in the browser');
   if (!body && operation.requestBody?.required)
     throw new Error('Request body is required');
   if (body) {
     const contentType = input.contentType ?? 'application/json';
-    if (contentType.includes('json')) {
+    if (isJsonMediaType(contentType)) {
       try {
         JSON.parse(body);
       } catch {

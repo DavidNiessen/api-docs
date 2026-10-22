@@ -221,3 +221,10 @@ export {
 } from './theme.js';
 
 export { pageMetadata } from './metadata.js';
+export {
+  exampleChoices,
+  formatExample,
+  isJsonMediaType,
+  hasExternalExamples,
+} from './examples.js';
+export type { ExampleChoice } from './examples.js';

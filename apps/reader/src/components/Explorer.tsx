@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { exampleFor } from '@api-docs/contracts';
+import {
+  exampleChoices,
+  formatExample,
+  hasExternalExamples,
+} from '@api-docs/contracts';
 import type { ApiDocument, Operation } from '@api-docs/contracts';
 import {
   generateSnippet,
@@ -24,8 +28,7 @@ export function Explorer({
       operation.parameters
         .filter((parameter) => parameter.required)
         .map((parameter) => {
-          const value =
-            parameter.example ?? exampleFor(parameter.schema, api.schemas);
+          const value = exampleChoices(parameter, api.schemas)[0]!.value;
           return [
             `${parameter.in}:${parameter.name}`,
             typeof value === 'string' ? value : JSON.stringify(value),
@@ -34,21 +37,35 @@ export function Explorer({
     ),
   );
   const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const responseTypes = [
+    ...new Set(
+      operation.responses
+        .filter((item) => /^2/.test(item.status))
+        .flatMap((item) => Object.keys(item.content)),
+    ),
+  ];
+  const [accept, setAccept] = useState(responseTypes[0] ?? '*/*');
   const [language, setLanguage] = useState<SnippetLanguage>('cURL');
   const mediaTypes = Object.keys(operation.requestBody?.content ?? {});
   const [contentType, setContentType] = useState(
     mediaTypes[0] ?? 'application/json',
   );
-  const [body, setBody] = useState(() => {
-    const media = operation.requestBody?.content[mediaTypes[0] ?? ''];
-    return media
-      ? JSON.stringify(
-          media.example ?? exampleFor(media.schema, api.schemas),
-          null,
-          2,
-        )
-      : '';
-  });
+  const initialMedia = operation.requestBody?.content[mediaTypes[0] ?? ''];
+  const initialChoices = initialMedia
+    ? exampleChoices(initialMedia, api.schemas)
+    : [];
+  const [requestExample, setRequestExample] = useState(
+    initialChoices[0]?.id ?? '',
+  );
+  const [body, setBody] = useState(() =>
+    initialChoices.length
+      ? formatExample(initialChoices[0]!.value, mediaTypes[0]!)
+      : '',
+  );
+  const requestMedia = operation.requestBody?.content[contentType];
+  const requestChoices = requestMedia
+    ? exampleChoices(requestMedia, api.schemas)
+    : [];
   const [tab, setTab] = useState<'request' | 'response'>('request');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -81,6 +98,7 @@ export function Explorer({
           parameters,
           body,
           contentType,
+          accept,
           credentials: placeholderCredentials,
         }),
         error: '',
@@ -98,6 +116,7 @@ export function Explorer({
     parameters,
     body,
     contentType,
+    accept,
     authNames.join(','),
   ]);
   async function execute() {
@@ -109,6 +128,7 @@ export function Explorer({
         parameters,
         body,
         contentType,
+        accept,
         credentials,
       });
     } catch (error) {
@@ -298,13 +318,14 @@ export function Explorer({
                       setContentType(event.target.value);
                       const media =
                         operation.requestBody?.content[event.target.value];
+                      const choices = media
+                        ? exampleChoices(media, api.schemas)
+                        : [];
+                      setRequestExample(choices[0]?.id ?? '');
                       setBody(
-                        JSON.stringify(
-                          media?.example ??
-                            exampleFor(media?.schema ?? {}, api.schemas),
-                          null,
-                          2,
-                        ),
+                        choices.length
+                          ? formatExample(choices[0]!.value, event.target.value)
+                          : '',
                       );
                     }}
                   >
@@ -313,6 +334,41 @@ export function Explorer({
                     ))}
                   </select>
                 </label>
+                {requestChoices.length > 0 &&
+                  (requestChoices.length > 1 ||
+                    requestChoices[0]!.id.startsWith('named:') ||
+                    !requestExample) && (
+                    <label>
+                      Request example
+                      <select
+                        value={requestExample}
+                        onChange={(event) => {
+                          const choice = requestChoices.find(
+                            (item) => item.id === event.target.value,
+                          );
+                          if (choice) {
+                            setRequestExample(choice.id);
+                            setBody(formatExample(choice.value, contentType));
+                          }
+                        }}
+                      >
+                        {!requestExample && (
+                          <option value="">Custom request</option>
+                        )}
+                        {requestChoices.map((choice) => (
+                          <option key={choice.id} value={choice.id}>
+                            {choice.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                {requestMedia && hasExternalExamples(requestMedia) && (
+                  <p className="example-note">
+                    External examples are not loaded. Local values are shown
+                    here.
+                  </p>
+                )}
                 <label>
                   Request body
                   <textarea
@@ -320,10 +376,26 @@ export function Explorer({
                     value={body}
                     spellCheck={false}
                     rows={8}
-                    onChange={(event) => setBody(event.target.value)}
+                    onChange={(event) => {
+                      setRequestExample('');
+                      setBody(event.target.value);
+                    }}
                   />
                 </label>
               </>
+            )}
+            {responseTypes.length > 1 && (
+              <label>
+                Requested response format
+                <select
+                  value={accept}
+                  onChange={(event) => setAccept(event.target.value)}
+                >
+                  {responseTypes.map((type) => (
+                    <option key={type}>{type}</option>
+                  ))}
+                </select>
+              </label>
             )}
           </div>
           <div className="snippet-controls">

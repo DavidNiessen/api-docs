@@ -30,4 +30,6 @@ The compatibility suite covers YAML/JSON parity across both versions, semantic f
 
 ## Authored example checks
 
+The reader and explorer offer inline and named local examples, including explicit `null`, `false`, zero and empty strings. Response examples can be switched by status and media type. External example URLs remain metadata and are never fetched automatically. When no local value exists, the reader shows a generated illustrative example. JSON media types display JSON strings with quotes; serialized text/XML examples preserve their text and whitespace. Selecting an explorer example replaces the editable request body; editing it marks the body as custom. The requested response format controls the `Accept` header independently of the reference response view. Optional authentication permits anonymous requests and uses a complete supplied credential alternative when present.
+
 Run `doctor` for offline schema validation of authored examples, including local references, falsy values, standard formats and directional read/write-only requirements. See the [doctor coverage and limits](doctor.md). Structural import alone does not validate example data.

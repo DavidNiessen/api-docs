@@ -11,3 +11,58 @@ paths:
       responses:
         '200':
           description: Healthy
+  /samples:
+    post:
+      operationId: sampleValues
+      summary: Authored example values
+      description: Inspect named examples and content types without sending a request.
+      tags: [Examples]
+      security:
+        - {}
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: [integer, 'null']
+            examples:
+              empty:
+                summary: No value
+                value: null
+              zero:
+                summary: Zero
+                value: 0
+          text/plain:
+            schema:
+              type: string
+            example: '  keep these spaces  '
+      responses:
+        '200':
+          description: Example response
+          content:
+            application/json:
+              schema:
+                type: [integer, 'null']
+              examples:
+                empty:
+                  summary: No value
+                  value: null
+                zero:
+                  summary: Zero
+                  value: 0
+                remote:
+                  externalValue: https://examples.invalid/payload.json
+            text/plain:
+              schema:
+                type: string
+              example: '  keep these spaces  '
+        '204':
+          description: Empty response
+        '400':
+          description: Invalid request
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
