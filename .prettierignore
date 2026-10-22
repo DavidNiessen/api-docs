@@ -4,3 +4,6 @@ coverage/
 dist/
 playwright-report/
 test-results/
+**/dist/
+**/target/
+.api-docs/

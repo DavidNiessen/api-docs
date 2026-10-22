@@ -1,0 +1,80 @@
+import type { Schema } from './index.js';
+const record = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+const text = (value: unknown): string =>
+  typeof value === 'string' ? value : '';
+export function resolveSchema(
+  schema: Schema,
+  schemas: Record<string, Schema>,
+): Schema {
+  const ref = text(schema.$ref);
+  if (!ref.startsWith('#/components/schemas/')) return schema;
+  return (
+    schemas[
+      ref
+        .slice('#/components/schemas/'.length)
+        .replace(/~1/g, '/')
+        .replace(/~0/g, '~')
+    ] ?? schema
+  );
+}
+
+export function exampleFor(
+  schema: Schema,
+  schemas: Record<string, Schema> = {},
+  depth = 0,
+  seen = new Set<Schema>(),
+): unknown {
+  if (depth > 5 || seen.has(schema)) return null;
+  if (schema.example !== undefined) return schema.example;
+  if (Array.isArray(schema.examples) && schema.examples.length)
+    return schema.examples[0];
+  if (schema.default !== undefined) return schema.default;
+  if (Array.isArray(schema.enum)) return schema.enum[0];
+  const actual = resolveSchema(schema, schemas);
+  if (actual !== schema)
+    return exampleFor(actual, schemas, depth + 1, new Set(seen).add(schema));
+  for (const key of ['oneOf', 'anyOf'])
+    if (Array.isArray(schema[key]) && schema[key].length)
+      return exampleFor(record(schema[key][0]), schemas, depth + 1, seen);
+  if (Array.isArray(schema.allOf))
+    return Object.assign(
+      {},
+      ...schema.allOf.map((child) =>
+        record(exampleFor(record(child), schemas, depth + 1, seen)),
+      ),
+    );
+  const type = Array.isArray(schema.type)
+    ? schema.type.find((item) => item !== 'null')
+    : schema.type;
+  if (type === 'object' || schema.properties)
+    return Object.fromEntries(
+      Object.entries(record(schema.properties)).map(([key, child]) => [
+        key,
+        exampleFor(
+          record(child),
+          schemas,
+          depth + 1,
+          new Set(seen).add(schema),
+        ),
+      ]),
+    );
+  if (type === 'array')
+    return [
+      exampleFor(
+        record(schema.items),
+        schemas,
+        depth + 1,
+        new Set(seen).add(schema),
+      ),
+    ];
+  if (type === 'integer' || type === 'number')
+    return typeof schema.minimum === 'number' ? schema.minimum : 1;
+  if (type === 'boolean') return true;
+  if (schema.format === 'date-time') return '2026-01-01T00:00:00Z';
+  if (schema.format === 'email') return 'reader@example.com';
+  if (schema.format === 'uuid') return '123e4567-e89b-12d3-a456-426614174000';
+  return 'string';
+}
