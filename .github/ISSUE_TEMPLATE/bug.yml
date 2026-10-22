@@ -1,0 +1,28 @@
+name: Bug report
+description: Report incorrect behavior with a reproducible example.
+title: 'fix: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please use the private reporting process in SECURITY.md for vulnerabilities.
+  - type: input
+    id: version
+    attributes:
+      label: Version and deployment mode
+      placeholder: CLI/static, server, Spring Boot or Node adapter
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and observed behavior
+      description: Include a minimal synthetic spec/config and the exact command. Remove credentials and private data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true

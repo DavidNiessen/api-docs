@@ -42,4 +42,6 @@ The `Repository quality` workflow runs on branch pushes, PRs (including title ed
 
 Dependabot checks npm dependencies and GitHub Actions weekly. Actions are pinned by commit SHA. Maintainers must enable branch rules requiring `Quality` and review; repository files do not activate those settings.
 
-Release automation, packaged Java/Node test matrices, security scanning, licensing, and community governance are tracked in the [launch plan](docs/planning/03-delivery-and-launch.md). No production release or package publication is configured at this stage.
+CI also runs PostgreSQL/server and Studio browser integration tests and a Java 17/21/25 × Spring Boot 3.5/4.1 consumer matrix. Dependency audits block moderate or higher known advisories. See [governance](GOVERNANCE.md), [security reporting](SECURITY.md), and the [code of conduct](CODE_OF_CONDUCT.md). Contributions are licensed under Apache-2.0; no separate CLA or DCO sign-off is required.
+
+Release automation, container scanning, and package publication are still tracked in the [launch plan](docs/planning/03-delivery-and-launch.md). No production release or package publication is configured at this stage.

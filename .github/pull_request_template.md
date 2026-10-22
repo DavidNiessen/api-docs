@@ -14,3 +14,4 @@ Describe checks actually run and their results. Distinguish unrun checks and kno
 - [ ] I ran `npm ci --ignore-scripts` and `npm run check`.
 - [ ] Documentation and relevant tests match the change.
 - [ ] No credentials, private data, or unrelated generated files are included.
+- [ ] I have permission to contribute this work under Apache-2.0 and have included required third-party notices.
