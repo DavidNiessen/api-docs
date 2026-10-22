@@ -117,7 +117,11 @@ const frontmatter = z
 export async function loadGuides(
   root: string,
   directory: string,
-  options: { trustContent?: boolean; basePath?: string } = {},
+  options: {
+    trustContent?: boolean;
+    basePath?: string;
+    only?: ReadonlySet<string>;
+  } = {},
 ): Promise<Guide[]> {
   const guides: Guide[] = [];
   const slugs = new Set<string>();
@@ -139,6 +143,7 @@ export async function loadGuides(
         continue;
       }
       if (!/\.mdx?$/.test(child.name)) continue;
+      if (options.only && !options.only.has(file)) continue;
       if (guides.length >= 10000) throw new Error('Guide count exceeds 10000');
       const mdx = child.name.endsWith('.mdx');
       if (mdx && !options.trustContent)
@@ -159,7 +164,7 @@ export async function loadGuides(
         );
       const meta = metadata.data;
       const source = match ? raw.slice(match[0].length) : raw;
-      const slug = relative(resolve(root, directory), file)
+      const slug = relative(directoryPath, file)
         .replace(/\.mdx?$/, '')
         .split(/[\\/]/)
         .map(slugify)
@@ -187,6 +192,7 @@ export async function loadGuides(
         headings: rendered.headings,
         text: rendered.text,
         source: relative(root, file),
+        sourceBytes: Buffer.byteLength(raw),
       });
     }
   };

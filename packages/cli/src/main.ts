@@ -6,7 +6,12 @@ import { resolve, join } from 'node:path';
 import { watch } from 'node:fs';
 import { compileProject } from '@api-docs/compiler';
 import { loadSpec } from '@api-docs/spec';
-import { buildSite, createStaticServer, stageArtifact } from './index.js';
+import {
+  buildSite,
+  createStaticServer,
+  stageArtifact,
+  createDevelopmentBuilder,
+} from './index.js';
 const program = new Command()
   .name('api-docs')
   .description(
@@ -136,11 +141,13 @@ buildOptions(
       },
     ) => {
       const root = resolve(project);
-      const result = await buildSite(root, options);
+      const builder = createDevelopmentBuilder(root, options);
+      const result = await builder.build();
       const app = await createStaticServer(result.directory);
       await app.listen({ port: Number(options.port), host: options.host });
       let running = false;
       let pending = false;
+      const changes = new Set<string>();
       let timer: ReturnType<typeof setTimeout> | undefined;
       const rebuild = async () => {
         if (running) {
@@ -149,8 +156,12 @@ buildOptions(
         }
         running = true;
         try {
-          await buildSite(root, options);
-          console.log('Documentation rebuilt. Refresh to see changes.');
+          const files = [...changes];
+          changes.clear();
+          const built = await builder.build(files);
+          console.log(
+            `${built.mode === 'incremental' ? 'Changed guides' : 'Documentation'} rebuilt. Refresh to see changes.`,
+          );
         } catch (error) {
           console.error(
             error instanceof Error ? error.message : 'Build failed',
@@ -169,6 +180,7 @@ buildOptions(
           /(^|[/\\])(\.api-docs|node_modules|\.git)([/\\]|$)/.test(filename)
         )
           return;
+        changes.add(filename);
         clearTimeout(timer);
         timer = setTimeout(() => {
           void rebuild();

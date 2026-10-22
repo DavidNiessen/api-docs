@@ -124,7 +124,7 @@ export function createPageData(site: SiteData, inputPath: string): SiteData {
       .map((guide) =>
         guide === activeGuide
           ? guide
-          : { ...guide, html: '', text: '', headings: [] },
+          : { ...guide, sourceBytes: 0, html: '', text: '', headings: [] },
       ),
     diagnostics: [],
     config: {

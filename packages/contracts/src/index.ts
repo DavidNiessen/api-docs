@@ -78,6 +78,7 @@ export interface ApiDocument {
   servers: string[];
 }
 export interface Guide {
+  sourceBytes?: number;
   order: number;
   slug: string;
   title: string;

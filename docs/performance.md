@@ -50,4 +50,12 @@ The script accepts only loopback HTTP targets without embedded credentials, quer
 
 ## Remaining performance gates
 
-The full-build, memory, warm search and tested server delivery budgets pass on the recorded fixtures. Incremental guide rebuild timing and controlled browser LCP/CLS/interaction runs still require dedicated evidence before a production release claim. Avoid extrapolating these results to different hardware, content sizes, plugin behavior, or private-network APIs.
+The full-build, memory, warm search and tested server delivery budgets pass on the recorded fixtures. Incremental Markdown timing is recorded below. Controlled browser LCP/CLS/interaction runs and dependency-aware caching for trusted extension code still require dedicated evidence before a production release claim. Avoid extrapolating these results to different hardware, content sizes, plugin behavior, or private-network APIs.
+
+## Incremental Markdown build evidence
+
+A warm development-builder run on the same four-CPU Linux/Node 24.19.0 environment used 10,000 operations, 50,000 schema nodes and one authored guide. The full verified build took **92.45 seconds**. Twenty guide-body edits measured **202.08 ms p95**, passing the two-second target. The complete process, including the retained development graph and all updates, peaked at **941.5 MiB RSS**; warm search p95 was **13.17 ms** across 100 samples. Endpoint HTML was **97.8 KiB**. These are separate observed runs; earlier fixtures had no authored guide.
+
+`dev` retains a verified graph and file hashes. A plain Markdown body edit with unchanged title, group, order, description and route updates its guide/root HTML and JSON, affected search shards, full compatibility data and the publication manifest. Files are replaced atomically and the manifest is written last. Tests compare the resulting artifact digest and every file digest against a clean full build, preserve unchanged API page timestamps, exercise parser errors, and reject output symlinks. A separately replaced output invalidates the cache.
+
+Navigation/configuration/specification/asset changes and projects containing trusted MDX or plugins use a full rebuild. This conservative path avoids reusing code with undeclared dependencies. The cache belongs to a running preview process, assumes it owns its output, and is not shared between projects or authorization partitions. Publication staging continues to verify every file, including unchanged cached files. The incremental path does not replace the fully verified production build or make local preview edits a multi-file transactional publication.

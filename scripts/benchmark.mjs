@@ -1,7 +1,7 @@
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { buildSite } from '@api-docs/cli';
+import { createDevelopmentBuilder } from '@api-docs/cli';
 import { createSearchIndex, search } from '@api-docs/search';
 const count = Number(process.argv[2] ?? 10000);
 if (!Number.isInteger(count) || count < 100 || count > 10000)
@@ -53,8 +53,13 @@ await writeFile(
   resolve(root, 'docs.config.yaml'),
   'name: Scale fixture\nspecs:\n  - id: scale\n    path: openapi.json\n',
 );
+await mkdir(resolve(root, 'guides'));
+const guide =
+  '---\ntitle: Scale guide\n---\n\n## Overview\n\nInitial guide body.\n';
+await writeFile(resolve(root, 'guides/overview.md'), guide);
+const builder = createDevelopmentBuilder(root);
 const start = performance.now();
-const built = await buildSite(root);
+const built = await builder.build();
 const duration = performance.now() - start;
 const index = createSearchIndex(built.site);
 const samples = [];
@@ -71,6 +76,19 @@ const page = await readFile(
     `resource-${count - 1}`,
   ),
 );
+const incremental = [];
+for (let update = 0; update < 20; update++) {
+  const start = performance.now();
+  await writeFile(
+    resolve(root, 'guides/overview.md'),
+    guide + `\nUpdate ${update}.\n`,
+  );
+  const result = await builder.build(['guides/overview.md']);
+  if (result.mode !== 'incremental')
+    throw new Error('Guide update unexpectedly used the full build path');
+  incremental.push(performance.now() - start);
+}
+incremental.sort((a, b) => a - b);
 const report = {
   operations: count,
   schemaNodes: count * 5,
@@ -78,6 +96,8 @@ const report = {
   peakRssMiB: +(process.resourceUsage().maxRSS / 1024).toFixed(1),
   searchP95Ms: +samples[94].toFixed(2),
   sampleCount: samples.length,
+  incrementalGuideP95Ms: +incremental[18].toFixed(2),
+  incrementalSamples: incremental.length,
   endpointHtmlKiB: +(page.length / 1024).toFixed(1),
   node: process.version,
   vcpusAvailable: (await import('node:os')).availableParallelism(),
@@ -90,6 +110,7 @@ console.log(JSON.stringify(report, null, 2));
 if (
   report.fullBuildSeconds > 120 ||
   report.peakRssMiB > 2048 ||
-  report.searchP95Ms > 100
+  report.searchP95Ms > 100 ||
+  report.incrementalGuideP95Ms > 2000
 )
   process.exitCode = 1;

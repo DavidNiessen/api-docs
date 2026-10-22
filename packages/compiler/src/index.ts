@@ -30,6 +30,7 @@ export async function compileProject(
   configFile = 'docs.config.yaml',
   options: { trustPlugins?: boolean; trustContent?: boolean } = {},
 ): Promise<SiteData> {
+  root = await realpath(root);
   const file = await confinedPath(root, configFile);
   const config = parseConfig(
     parseSource(await readTextFile(file, 1024 * 1024), configFile),
@@ -78,6 +79,65 @@ export async function compileProject(
     }));
   }
   return site;
+}
+/** Reuse the API graph only when a plain Markdown body changes without affecting shared navigation. */
+export async function compileGuideUpdate(
+  root: string,
+  site: SiteData,
+  changes: string[],
+): Promise<SiteData | undefined> {
+  if (
+    !changes.length ||
+    site.config.plugins.length ||
+    site.guides.some(
+      (guide) =>
+        guide.source.endsWith('.mdx') || guide.sourceBytes === undefined,
+    )
+  )
+    return undefined;
+  root = await realpath(root);
+  const known = new Set(
+    site.guides.map((guide) => resolve(root, guide.source)),
+  );
+  const files = new Set<string>();
+  for (const path of changes) {
+    const candidate = resolve(root, path);
+    if (!candidate.endsWith('.md') || !known.has(candidate)) return undefined;
+    try {
+      files.add(await confinedPath(root, candidate));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+      throw error;
+    }
+  }
+  const changed = await loadGuides(root, site.config.guides, {
+    only: files,
+    basePath: site.config.basePath,
+  });
+  if (changed.length !== files.size) return undefined;
+  const navigation = (guide: SiteData['guides'][number]) =>
+    JSON.stringify([
+      guide.source,
+      guide.slug,
+      guide.title,
+      guide.description,
+      guide.group,
+      guide.order,
+    ]);
+  const replacements = new Map(changed.map((guide) => [guide.source, guide]));
+  for (const guide of site.guides) {
+    const next = replacements.get(guide.source);
+    if (next && navigation(next) !== navigation(guide)) return undefined;
+  }
+  const guides = site.guides.map(
+    (guide) => replacements.get(guide.source) ?? guide,
+  );
+  if (
+    guides.reduce((total, guide) => total + (guide.sourceBytes ?? 0), 0) >
+    64 * 1024 * 1024
+  )
+    throw new Error('Guide sources exceed 64 MiB total');
+  return { ...site, guides };
 }
 export async function writeManifest(
   directory: string,

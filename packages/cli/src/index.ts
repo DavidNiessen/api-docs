@@ -7,8 +7,9 @@ import {
   rm,
   stat,
   open,
+  realpath,
 } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
@@ -18,14 +19,16 @@ import {
   safeOutput,
   writeManifest,
   verifyArtifact,
+  compileGuideUpdate,
+  artifactIdentity,
   loadPublicAssets,
   digest,
 } from '@api-docs/compiler';
 import { guideHref, operationHref, createPageData } from '@api-docs/contracts';
-import type { SiteData } from '@api-docs/contracts';
+import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
 import { createSearchIndex } from '@api-docs/search';
-import { confinedPath } from '@api-docs/spec';
+import { confinedPath, readTextFile } from '@api-docs/spec';
 export interface BuildOptions {
   config?: string;
   output?: string;
@@ -35,7 +38,7 @@ export interface BuildOptions {
 export async function buildSite(
   root: string,
   options: BuildOptions = {},
-): Promise<{ directory: string; site: SiteData }> {
+): Promise<{ directory: string; site: SiteData; manifest: ArtifactManifest }> {
   const project = resolve(root);
   const site = await compileProject(
     project,
@@ -162,7 +165,7 @@ export async function buildSite(
       join(stage, 'robots.txt'),
       `User-agent: *\n${indexed ? 'Allow: /' : 'Disallow: /'}\n${sitemap ? `Sitemap: ${sitemap}\n` : ''}`,
     );
-    await writeManifest(stage, site, [...pages.keys()]);
+    const manifest = await writeManifest(stage, site, [...pages.keys()]);
     await verifyArtifact(stage);
     await rm(previous, { recursive: true });
     await rename(directory, previous);
@@ -173,7 +176,7 @@ export async function buildSite(
       throw error;
     }
     await rm(previous, { recursive: true });
-    return { directory, site };
+    return { directory, site, manifest };
   } catch (error) {
     await rm(stage, { recursive: true, force: true });
     // Preserve a remaining backup if restoring the prior publication failed.
@@ -265,4 +268,130 @@ export async function stageArtifact(
   } finally {
     await rm(stage, { recursive: true, force: true });
   }
+}
+
+/** Stateful preview builder; a full verified build establishes the reusable file hashes. */
+export function createDevelopmentBuilder(
+  root: string,
+  options: BuildOptions = {},
+) {
+  const canonicalRoot = realpath(resolve(root));
+  let state: Awaited<ReturnType<typeof buildSite>> | undefined;
+  let queue: Promise<void> = Promise.resolve();
+  async function execute(changes: string[]) {
+    const project = await canonicalRoot;
+    if (state) {
+      try {
+        const current = JSON.parse(
+          await readTextFile(join(state.directory, 'manifest.json')),
+        ) as ArtifactManifest;
+        if (current.artifactDigest !== state.manifest.artifactDigest)
+          state = undefined;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+          state = undefined;
+        else throw error;
+      }
+    }
+    const next = state
+      ? await compileGuideUpdate(project, state.site, changes)
+      : undefined;
+    if (!state || !next) {
+      state = await buildSite(project, options);
+      return { ...state, mode: 'full' as const };
+    }
+    const prior = state;
+    const changed = next.guides.filter(
+      (guide) =>
+        guide !==
+        prior.site.guides.find((previous) => previous.source === guide.source),
+    );
+    const paths = new Set(changed.map((guide) => guideHref(guide)));
+    if (changed.some((guide) => guide.source === next.guides[0]?.source))
+      paths.add('/');
+    const updates = new Map<string, string>();
+    for (const path of paths) {
+      const page = createPageData(next, path);
+      const base = path === '/' ? '' : path.slice(1);
+      updates.set(
+        base + 'index.html',
+        renderDocument(page, path, { title: pageMetadataTitle(next, path) }),
+      );
+      updates.set(base + 'page-data.json', JSON.stringify(page));
+    }
+    const serialized = JSON.stringify(next);
+    updates.set('site.json', serialized);
+    const index = createSearchIndex(next);
+    updates.set('search.json', JSON.stringify(index));
+    for (let offset = 0; offset < index.length; offset += 500)
+      updates.set(
+        `search/${offset / 500}.json`,
+        JSON.stringify(index.slice(offset, offset + 500)),
+      );
+    const files = { ...prior.manifest.files };
+    for (const [file, value] of updates) {
+      if (!Object.hasOwn(files, file))
+        throw new Error(`Incremental output changed its route set: ${file}`);
+      const hash = digest(value);
+      if (files[file] === hash) updates.delete(file);
+      else files[file] = hash;
+    }
+    const manifest: ArtifactManifest = {
+      ...prior.manifest,
+      inputDigest: digest(serialized),
+      files,
+      artifactDigest: '',
+    };
+    manifest.artifactDigest = artifactIdentity(manifest);
+    const lockPath = join(dirname(prior.directory), '.build.lock');
+    const lock = await open(lockPath, 'wx');
+    let temporary: string | undefined;
+    try {
+      temporary = await safeOutput(
+        project,
+        `.api-docs/preview-${randomUUID()}`,
+      );
+      for (const [file, value] of updates) {
+        const staged = join(temporary, file);
+        await mkdir(dirname(staged), { recursive: true });
+        await writeFile(staged, value);
+      }
+      await writeFile(
+        join(temporary, 'manifest.json'),
+        JSON.stringify(manifest, null, 2),
+      );
+      // Files are replaced atomically; the manifest is committed last. Publishing
+      // still runs the complete checksum verification, including unchanged files.
+      for (const file of [...updates.keys(), 'manifest.json']) {
+        const target = join(prior.directory, file);
+        await safeOutput(project, relative(project, dirname(target)));
+        await rename(join(temporary, file), target);
+      }
+      state = { directory: prior.directory, site: next, manifest };
+      return { ...state, mode: 'incremental' as const };
+    } catch (error) {
+      state = undefined;
+      throw error;
+    } finally {
+      await lock.close();
+      await rm(lockPath, { force: true });
+      if (temporary) await rm(temporary, { recursive: true, force: true });
+    }
+  }
+  return {
+    build(changes: string[] = []) {
+      const result = queue.then(() => execute(changes));
+      queue = result.then(
+        () => undefined,
+        () => undefined,
+      );
+      return result;
+    },
+  };
+}
+function pageMetadataTitle(site: SiteData, path: string): string {
+  return path === '/'
+    ? (site.guides[0]?.title ?? site.config.name)
+    : (site.guides.find((guide) => guideHref(guide) === path)?.title ??
+        site.config.name);
 }

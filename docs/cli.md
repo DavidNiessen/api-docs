@@ -66,3 +66,7 @@ The protocol stages through operator-controlled storage rather than accepting ar
 ## Trusted guide execution
 
 Build, export, validate and dev accept `--trust-content` for reviewed MDX. It is separate from `--trust-plugins`. Markdown needs neither flag. See the [authoring and component reference](authoring.md) for execution boundaries, frontmatter, reusable components and source limits.
+
+## Incremental local preview
+
+After the initial verified build, `dev` reuses its API graph for plain Markdown body edits whose navigation metadata stays unchanged. It updates the affected pages, search data and manifest, then asks you to refresh the browser. Navigation, configuration, spec, assets, plugins and trusted MDX changes use a full rebuild. Do not edit generated preview files manually. Staging and publishing always verify the complete artifact. See the [measured limits and invalidation behavior](performance.md).
