@@ -14,7 +14,10 @@ export type MultipartFiles = Record<string, readonly MultipartFile[]>;
 export type MultipartPart = {
   name: string;
   contentType: string;
-} & ({ kind: 'text'; value: string } | { kind: 'file'; file: MultipartFile });
+} & (
+  | { kind: 'text'; value: string; collection?: boolean }
+  | { kind: 'file'; file: MultipartFile }
+);
 export const MULTIPART_LIMITS = Object.freeze({
   parts: 100,
   bytes: 32 * 1024 * 1024,
@@ -201,6 +204,7 @@ export function createMultipartParts(
       add({
         name,
         kind: 'text',
+        ...(value.kind === 'array' ? { collection: true } : {}),
         contentType,
         value: isJsonMediaType(contentType)
           ? serializeJsonValue(node)
@@ -239,7 +243,11 @@ export function createMultipartParts(
   }
   if (Array.isArray(schema.required))
     for (const name of schema.required)
-      if (typeof name === 'string' && !present.has(name))
+      if (
+        typeof name === 'string' &&
+        property(name).readOnly !== true &&
+        !present.has(name)
+      )
         throw new Error(`Required multipart field is missing: ${name}`);
   validateMultipartParts(parts);
   return parts;

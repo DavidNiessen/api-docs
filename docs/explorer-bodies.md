@@ -23,3 +23,5 @@ Annotations and known credentials cannot identify every secret. Mark sensitive s
 Programmatic clients can pass `{ schema, schemas, openapiVersion }` as the third argument to `redactRequest`, or call `redactJsonBody` directly. Generic request redaction without that context does not perform schema-aware body traversal. The public `parseJsonValue`, `serializeJsonValue` and `setJsonProperty` helpers in `@api-docs/contracts` preserve number tokens for integrations that build their own editors.
 
 See [form-urlencoded bodies](form-bodies.md), [request serialization](request-serialization.md), [OAuth authentication](explorer-auth.md) and [generated snippets](snippets.md) for the remaining request behavior. Multipart uploads remain separate implementation work.
+
+For binary files with text or JSON parts, use the [multipart editor](multipart-bodies.md). File selections stay separate from logical JSON values and generated source.

@@ -21,6 +21,7 @@ import {
   createMultipartParts,
   toFetchRequest,
   generateSnippet,
+  redactRequest,
 } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
@@ -29,7 +30,7 @@ const uploadRequest = {
   method: 'POST',
   headers: {},
   multipart: createMultipartParts(
-    '{"id":9007199254740993}',
+    '{"id":9007199254740993,"password":"installed-upload-secret"}',
     {
       attachment: [
         {
@@ -41,12 +42,32 @@ const uploadRequest = {
     {
       schema: {
         type: 'object',
-        properties: { attachment: { type: 'string', format: 'binary' } },
+        properties: {
+          attachment: { type: 'string', format: 'binary' },
+          password: { type: 'string', writeOnly: true },
+        },
       },
     },
   ),
 };
 const multipart = toFetchRequest(uploadRequest);
+const uploadPreview = redactRequest(
+  uploadRequest,
+  {},
+  {
+    schema: { type: 'object', properties: { password: { writeOnly: true } } },
+    schemas: {},
+  },
+);
+assert(!JSON.stringify(uploadPreview).includes('installed-upload-secret'));
+assert(
+  uploadPreview.multipart.some(
+    (part) =>
+      part.kind === 'text' &&
+      part.name === 'id' &&
+      part.value === '9007199254740993',
+  ),
+);
 for (const language of ['cURL', 'JavaScript', 'TypeScript', 'Python', 'Java']) {
   const code = generateSnippet(uploadRequest, language);
   assert(code.includes('YOUR_FILE_1'));

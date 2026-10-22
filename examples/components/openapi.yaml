@@ -262,6 +262,59 @@ paths:
               example: { data: [] }
         '401':
           description: Authentication required
+  /multipart-editor:
+    post:
+      operationId: uploadDocuments
+      summary: Upload documents
+      description: Send binary files alongside text values and JSON metadata.
+      tags: [Examples]
+      servers:
+        - url: http://127.0.0.1:4010/v1
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, documents, responseOnly]
+              properties:
+                title: { type: string }
+                password: { type: string, format: password, writeOnly: true }
+                metadata:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    privateNote: { type: string, writeOnly: true }
+                tags: { type: array, items: { type: string } }
+                documents:
+                  type: array
+                  items: { type: string, format: binary }
+                  description: Select one or more local files.
+                responseOnly: { type: string, readOnly: true }
+            examples:
+              standard:
+                summary: Documents with metadata
+                value:
+                  title: Example upload
+                  password: fixture-upload-password
+                  metadata: { id: 1, privateNote: fixture-private-note }
+                  tags: [one, two]
+                  documents: [select-a-local-file]
+              minimal:
+                summary: Minimal upload
+                value: { title: Minimal, documents: [select-a-local-file] }
+          application/json:
+            schema: { type: object, properties: { title: { type: string } } }
+            example: { title: JSON alternative }
+      responses:
+        '200':
+          description: Received multipart parts
+          content:
+            application/json:
+              schema: { type: object }
+        '400': { description: Invalid upload }
 components:
   schemas:
     BodyInput:

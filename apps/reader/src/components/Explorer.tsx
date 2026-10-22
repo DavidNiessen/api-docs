@@ -5,7 +5,7 @@ import {
   hasExternalExamples,
   isJsonMediaType,
 } from '@api-docs/contracts';
-import type { ApiDocument, Operation } from '@api-docs/contracts';
+import type { ApiDocument, Operation, Media } from '@api-docs/contracts';
 import {
   generateSnippet,
   prepareRequest,
@@ -14,18 +14,44 @@ import {
   encodeFormBody,
   isFormMediaType,
   toFetchRequest,
+  isMultipartMediaType,
 } from '@api-docs/explorer';
-import type { PreparedRequest, SnippetLanguage } from '@api-docs/explorer';
+import type {
+  PreparedRequest,
+  SnippetLanguage,
+  MultipartFiles,
+} from '@api-docs/explorer';
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
 import { AuthField } from './AuthField.js';
 import { BodyEditor } from './BodyEditor.js';
 import { FormBodyEditor } from './FormBodyEditor.js';
+import { MultipartBodyEditor } from './MultipartBodyEditor.js';
+import { multipartExampleBody } from '../multipart-input.js';
 const bodyInputFormat = (
   type: string,
   value: unknown,
 ): 'json' | 'serialized' =>
-  isFormMediaType(type) && typeof value !== 'string' ? 'json' : 'serialized';
+  isMultipartMediaType(type) ||
+  (isFormMediaType(type) && typeof value !== 'string')
+    ? 'json'
+    : 'serialized';
+function exampleBody(
+  value: unknown,
+  type: string,
+  media: Media | undefined,
+  api: ApiDocument,
+): string {
+  const body = formatExample(value, type);
+  return isMultipartMediaType(type) && media
+    ? multipartExampleBody(
+        body,
+        media,
+        api.schemas,
+        api.openapiVersion?.startsWith('3.0') ?? false,
+      )
+    : body;
+}
 export function Explorer({
   api,
   operation,
@@ -88,13 +114,14 @@ export function Explorer({
   );
   const [body, setBody] = useState(() =>
     initialChoices.length
-      ? formatExample(initialChoices[0]!.value, mediaTypes[0]!)
+      ? exampleBody(initialChoices[0]!.value, mediaTypes[0]!, initialMedia, api)
       : '',
   );
   const [bodyFormat, setBodyFormat] = useState<'json' | 'serialized'>(() =>
     bodyInputFormat(mediaTypes[0] ?? '', initialChoices[0]?.value),
   );
   const [bodyRevision, setBodyRevision] = useState(0);
+  const [files, setFiles] = useState<MultipartFiles>({});
   const [bodyFormError, setBodyFormError] = useState('');
   const requestMedia = operation.requestBody?.content[contentType];
   const requestChoices = requestMedia
@@ -134,6 +161,7 @@ export function Explorer({
         parameters,
         body,
         bodyFormat,
+        files,
         contentType,
         accept,
         credentials: placeholderCredentials,
@@ -177,6 +205,7 @@ export function Explorer({
     accept,
     bodyFormError,
     bodyFormat,
+    files,
     credentials,
     authNames.join(','),
   ]);
@@ -195,6 +224,7 @@ export function Explorer({
         parameters,
         body,
         bodyFormat,
+        files,
         contentType,
         accept,
         credentials,
@@ -306,6 +336,10 @@ export function Explorer({
                 onChange={(event) => {
                   setServer(event.target.value);
                   setCredentials({});
+                  if (isMultipartMediaType(contentType)) {
+                    setFiles({});
+                    setBodyRevision((current) => current + 1);
+                  }
                 }}
                 spellCheck={false}
               />
@@ -398,9 +432,15 @@ export function Explorer({
                       );
                       setBodyRevision((current) => current + 1);
                       setBodyFormError('');
+                      setFiles({});
                       setBody(
                         choices.length
-                          ? formatExample(choices[0]!.value, event.target.value)
+                          ? exampleBody(
+                              choices[0]!.value,
+                              event.target.value,
+                              media,
+                              api,
+                            )
                           : '',
                       );
                     }}
@@ -429,7 +469,15 @@ export function Explorer({
                             );
                             setBodyRevision((current) => current + 1);
                             setBodyFormError('');
-                            setBody(formatExample(choice.value, contentType));
+                            setFiles({});
+                            setBody(
+                              exampleBody(
+                                choice.value,
+                                contentType,
+                                requestMedia,
+                                api,
+                              ),
+                            );
                           }
                         }}
                       >
@@ -450,7 +498,25 @@ export function Explorer({
                     here.
                   </p>
                 )}
-                {isFormMediaType(contentType) && requestMedia ? (
+                {isMultipartMediaType(contentType) && requestMedia ? (
+                  <MultipartBodyEditor
+                    key={JSON.stringify([contentType, bodyRevision])}
+                    body={body}
+                    media={requestMedia}
+                    schemas={api.schemas}
+                    legacy={api.openapiVersion?.startsWith('3.0') ?? false}
+                    files={files}
+                    onFiles={(value) => {
+                      setRequestExample('');
+                      setFiles(value);
+                    }}
+                    onChange={(value) => {
+                      setRequestExample('');
+                      setBody(value);
+                    }}
+                    onError={setBodyFormError}
+                  />
+                ) : isFormMediaType(contentType) && requestMedia ? (
                   <FormBodyEditor
                     key={JSON.stringify([contentType, bodyRevision])}
                     body={body}
@@ -531,7 +597,9 @@ export function Explorer({
                 redactRequest(
                   preview.request,
                   credentials,
-                  isJsonMediaType(contentType) && requestMedia
+                  (isJsonMediaType(contentType) ||
+                    isMultipartMediaType(contentType)) &&
+                    requestMedia
                     ? {
                         schema: requestMedia.schema,
                         schemas: api.schemas,
@@ -588,7 +656,11 @@ export function Explorer({
         <button
           type="button"
           className="button-primary"
-          disabled={busy || !!bodyFormError}
+          disabled={
+            busy ||
+            !!bodyFormError ||
+            (isMultipartMediaType(contentType) && !!preview.error)
+          }
           onClick={() => {
             void execute();
           }}

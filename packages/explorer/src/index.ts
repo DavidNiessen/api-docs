@@ -15,6 +15,7 @@ import {
   multipartBody,
 } from './multipart.js';
 import type { MultipartFiles, MultipartPart } from './multipart.js';
+import { redactMultipartParts } from './redact-multipart.js';
 export interface RequestInput {
   server: string;
   parameters: Record<string, string>;
@@ -260,22 +261,11 @@ export function redactRequest(
     ),
     ...(request.multipart
       ? {
-          multipart: request.multipart.map((part): MultipartPart =>
-            part.kind === 'file'
-              ? {
-                  name: scrub(part.name),
-                  kind: 'file',
-                  contentType: scrub(part.contentType),
-                  file: { filename: 'upload.bin', data: new Blob([]) },
-                }
-              : {
-                  name: scrub(part.name),
-                  kind: 'text',
-                  contentType: scrub(part.contentType),
-                  value: isJsonMediaType(part.contentType)
-                    ? JSON.stringify('YOUR_PART_VALUE')
-                    : 'YOUR_PART_VALUE',
-                },
+          multipart: redactMultipartParts(
+            request.multipart,
+            bodyContext,
+            sensitive,
+            scrub,
           ),
         }
       : {}),

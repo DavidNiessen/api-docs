@@ -2119,3 +2119,40 @@ h3 {
   margin-top: 28px;
   font-size: 12px;
 }
+
+.multipart-file {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--subtle);
+  padding: 12px;
+  margin: 12px 0;
+}
+.multipart-file input[type='file'] {
+  max-width: 100%;
+  font-size: 11px;
+  padding: 8px;
+}
+.multipart-file input::file-selector-button {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 9px;
+  margin-right: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.multipart-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.multipart-selection button {
+  min-height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 8px;
+}

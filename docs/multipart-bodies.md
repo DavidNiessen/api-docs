@@ -1,6 +1,14 @@
 # Multipart request bodies
 
-The explorer SDK prepares bounded, binary-safe `multipart/form-data` requests. All five SDK snippet generators support uploads. Reader upload controls remain a pending increment; the reader currently reports unsupported multipart input rather than sending a misleading request.
+The reader and explorer SDK prepare bounded, binary-safe `multipart/form-data` requests. All five snippet generators support uploads.
+
+## Reader inputs
+
+The playground separates local file selectors from text values. Declared binary arrays accept multiple files; each selected file becomes its own part. Use Fields or JSON for text/JSON values, including exact numeric tokens. Examples can describe a file field but cannot select a visitor's local file: binary example placeholders are removed from the text draft, and required uploads remain disabled until a file is chosen. Do not place binary fields or encoded file contents into the text JSON object.
+
+The reader caps its controls at 100 declared properties. It blocks invalid JSON, missing required parts, unsupported codecs and requests above the aggregate size/part limits. Response-only properties are not required in requests. Each file field has a clear control; changing the API server, content type, example or operation clears file selections. Request/response tab changes retain them. The reader does not persist selections across navigation or reload and sends files directly to the API only after Send request and the normal mutating-request confirmation.
+
+Previews retain ordinary text/plain and JSON values while redacting password/write-only annotations, nested JSON values and known credentials. File bytes and original filenames are always replaced. Opaque non-JSON structures use a whole-part placeholder because their nested values cannot be safely interpreted by the JSON schema redactor. Missing, invalid or excessive redaction contexts fail closed. This annotation-based protection still requires reviewing an example before executing it.
 
 ## SDK
 
@@ -33,7 +41,7 @@ const response = await fetch(request.url, {
 
 Text primitives use UTF-8 `text/plain`; objects use JSON. Explicit per-field `encoding.contentType` selects one concrete media type. Non-JSON structured fields require already serialized text. JSON parts have a content type and no filename; they are not disguised as uploaded files. File parts default to `application/octet-stream`; an explicit encoding can select another type. No content sniffing, base64 decoding or XML conversion occurs. Exact numeric tokens in logical JSON remain intact.
 
-`createMultipartParts(body, files, media, options)` exposes preparation independently. `MULTIPART_LIMITS` publishes the 100-part, 32-MiB aggregate and 1,024-byte field-name/filename limits. The aggregate limit includes conservative space for headers and boundaries. Logical JSON also obeys the shared [JSON input limits](explorer-bodies.md). Oversized requests fail before file bytes are read. Single-file fields reject multiple files; required fields need at least one emitted part. Empty arrays emit no part. A binary field cannot also appear in the logical text object. GET/HEAD uploads and files supplied for other body media types fail explicitly.
+`createMultipartParts(body, files, media, options)` exposes preparation independently. `MULTIPART_LIMITS` publishes the 100-part, 32-MiB aggregate and 1,024-byte field-name/filename limits. The aggregate limit includes conservative space for headers and boundaries. Logical JSON also obeys the shared [JSON input limits](explorer-bodies.md). Oversized requests fail before file bytes are read. Single-file fields reject multiple files; required request fields need at least one emitted part, while read-only properties are exempt. Empty arrays emit no part. A binary field cannot also appear in the logical text object. GET/HEAD uploads and files supplied for other body media types fail explicitly.
 
 ## Boundaries and safety
 
@@ -41,7 +49,7 @@ The initial codec supports direct object roots and content-based encoding. Compo
 
 Field names reject controls, double quotes and backslashes to avoid ambiguous Content-Disposition parsing. Filenames must be basenames without controls or path separators; quoted filenames escape `"` as `%22`, matching browser multipart behavior. Ordinary Unicode names and filenames remain UTF-8. Check a server's decoding behavior if it relies on unusual filename characters.
 
-`redactRequest` removes all multipart text values and replaces uploaded bytes and filenames with empty generic placeholders in its returned preview. The actual prepared request is unchanged. This deliberately conservative multipart redaction currently does not preserve non-sensitive text fields. `generateSnippet` supports the same cURL, JavaScript, TypeScript, Python and Java targets as ordinary requests. JSON-part placeholders remain valid JSON strings. Schema-aware multipart previews and reader controls remain required before this is a complete reader feature.
+`redactRequest` accepts the same optional `BodyRedaction` context for multipart as JSON requests. With a valid context it reconstructs logical arrays, applies conservative annotation redaction and preserves exact JSON tokens. Uploaded bytes and filenames are always replaced; opaque parts and failures use placeholders. Without a context, all text values are replaced conservatively. The actual prepared request is unchanged. `createMultipartParts` records `collection: true` on repeated logical array parts; preserve that metadata when transforming requests. Manually constructed array parts must provide it when their schema cannot establish the grouping. `generateSnippet` supports cURL, JavaScript, TypeScript, Python and Java. JSON-part placeholders remain syntactically valid JSON strings.
 
 ## Executable snippets
 

@@ -43,6 +43,7 @@ const server = createServer(async (request, response) => {
   const id = url.pathname.split('/')[3];
   let body = {},
     rawBody = '';
+  let rawBytes = Buffer.alloc(0);
   try {
     let size = 0;
     const chunks = [];
@@ -55,18 +56,47 @@ const server = createServer(async (request, response) => {
       chunks.push(chunk);
     }
     if (chunks.length) {
-      rawBody = Buffer.concat(chunks).toString();
+      rawBytes = Buffer.concat(chunks);
+      rawBody = rawBytes.toString();
       body = request.headers['content-type']?.startsWith(
         'application/x-www-form-urlencoded',
       )
         ? Object.fromEntries(new URLSearchParams(rawBody))
-        : JSON.parse(rawBody);
+        : request.headers['content-type']?.startsWith('multipart/form-data')
+          ? {}
+          : JSON.parse(rawBody);
     }
   } catch {
     send(400, { error: 'invalid_json' });
     return;
   }
-  if (
+  if (url.pathname === '/v1/multipart-editor' && request.method === 'POST') {
+    try {
+      const form = await new Response(rawBytes, {
+        headers: { 'Content-Type': request.headers['content-type'] ?? '' },
+      }).formData();
+      const parts = [];
+      for (const [name, value] of form)
+        parts.push(
+          typeof value === 'string'
+            ? { name, value }
+            : {
+                name,
+                filename: value.name,
+                contentType: value.type,
+                base64: Buffer.from(await value.arrayBuffer()).toString(
+                  'base64',
+                ),
+              },
+        );
+      send(200, {
+        parts,
+        jsonPart: rawBody.includes('\r\nContent-Type: application/json\r\n'),
+      });
+    } catch {
+      send(400, { error: 'invalid_multipart' });
+    }
+  } else if (
     ['/v1/body-editor', '/v1/form-editor'].includes(url.pathname) &&
     request.method === 'POST'
   ) {
