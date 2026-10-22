@@ -46,7 +46,7 @@ export function MediaExamples({
       )}
       <CodeBlock
         code={formatExample(example.value, mediaType)}
-        title={title}
+        title={example.id === 'generated' ? `${title} · generated` : title}
         language={
           isJsonMediaType(mediaType)
             ? 'json'

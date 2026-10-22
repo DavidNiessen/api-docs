@@ -807,7 +807,10 @@ h3 {
 }
 .deprecated-label {
   font-size: 10px;
-  color: #bc8a32;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 .parameter-row p,
 .schema-field p {
@@ -823,8 +826,41 @@ h3 {
   color: var(--muted);
   line-height: 1.8;
 }
-.schema-leaf > .type-label:only-child {
-  display: none;
+.schema-constraints {
+  margin: 8px 0;
+}
+.schema-constraints > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 4px 0;
+}
+.schema-constraints dt {
+  font-weight: 500;
+}
+.schema-constraints dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.schema-enum {
+  margin: 8px 0;
+}
+.schema-child,
+.schema-array > details {
+  margin: 10px 0;
+}
+.schema-child summary,
+.schema-array > details > summary {
+  cursor: pointer;
+  font-size: 11px;
+}
+.schema-child > .schema-view,
+.schema-array > details > .schema-view,
+.schema-variants > details > .schema-view {
+  border-left: 1px solid var(--border);
+  margin: 10px 0 10px 3px;
+  padding-left: 14px;
 }
 .schema-leaf code {
   display: inline-block;

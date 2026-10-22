@@ -35,6 +35,10 @@ test('named examples, explicit null, media types and custom request values are u
   expect(await response.locator('pre').textContent()).toBe(
     '  keep these spaces  ',
   );
+  await expect(response.locator('.schema-view > .type-label')).toBeVisible();
+  await expect(response.locator('.schema-view > .type-label')).toHaveText(
+    'string',
+  );
   await response.getByRole('button', { name: '204', exact: true }).click();
   await expect(response.locator('pre')).toHaveCount(0);
   await response.getByRole('button', { name: '200', exact: true }).click();

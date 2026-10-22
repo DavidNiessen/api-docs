@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolve } from 'node:path';
 import {
+  exampleFor,
   exampleChoices,
   formatExample,
   hasExternalExamples,
@@ -10,6 +11,17 @@ import { loadSpec } from '@api-docs/spec';
 import { prepareRequest } from '@api-docs/explorer';
 
 describe('authored example presentation', () => {
+  it('generates null and avoids forbidden properties or array items', () => {
+    expect(exampleFor({ type: 'null' })).toBeNull();
+    expect(exampleFor({ type: ['null'] })).toBeNull();
+    expect(
+      exampleFor({
+        type: 'object',
+        properties: { forbidden: false, name: { const: 'present' } },
+      }),
+    ).toEqual({ name: 'present' });
+    expect(exampleFor({ type: 'array', items: false })).toEqual([]);
+  });
   it.each([null, false, 0, ''])('preserves the inline value %j', (value) => {
     expect(exampleChoices({ schema: {}, example: value })).toEqual([
       { id: 'inline', label: 'Example', value },

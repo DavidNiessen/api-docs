@@ -1,0 +1,24 @@
+openapi: 3.0.4
+info:
+  title: Legacy schema examples
+  version: v1
+paths:
+  /nullable:
+    get:
+      operationId: nullableLegacy
+      summary: Legacy nullable schema
+      description: OpenAPI 3.0 nullable semantics apply to nested schemas too.
+      tags: [Examples]
+      responses:
+        '200':
+          description: Nullable value
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    nullable: true
+        '400':
+          description: Invalid request

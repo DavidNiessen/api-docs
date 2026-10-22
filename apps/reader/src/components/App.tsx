@@ -1026,7 +1026,13 @@ function OperationDetails({
                   {parameter.description ||
                     `The ${parameter.name} ${location} parameter.`}
                 </p>
-                <SchemaView schema={parameter.schema} schemas={api.schemas} />
+                <SchemaView
+                  schema={parameter.schema}
+                  schemas={api.schemas}
+                  legacyNullable={
+                    api.openapiVersion?.startsWith('3.0') === true
+                  }
+                />
               </div>
             ))}
           </section>
@@ -1047,7 +1053,13 @@ function OperationDetails({
             ([type, media]) => (
               <div key={type}>
                 <span className="media-label">{type}</span>
-                <SchemaView schema={media.schema} schemas={api.schemas} />
+                <SchemaView
+                  schema={media.schema}
+                  schemas={api.schemas}
+                  legacyNullable={
+                    api.openapiVersion?.startsWith('3.0') === true
+                  }
+                />
               </div>
             ),
           )}
@@ -1097,7 +1109,11 @@ function OperationDetails({
             ) : (
               <span className="media-label">{mediaType}</span>
             )}
-            <SchemaView schema={responseMedia.schema} schemas={api.schemas} />
+            <SchemaView
+              schema={responseMedia.schema}
+              schemas={api.schemas}
+              legacyNullable={api.openapiVersion?.startsWith('3.0') === true}
+            />
             <MediaExamples
               key={`${responseStatus}:${mediaType}`}
               media={responseMedia}

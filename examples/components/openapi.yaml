@@ -61,7 +61,72 @@ paths:
           description: Empty response
         '400':
           description: Invalid request
+  /schemas:
+    get:
+      operationId: inspectSchemas
+      summary: Inspect schema constraints
+      description: Read boolean schemas, composition, tuples, dictionaries and nullable arrays.
+      tags: [Examples]
+      responses:
+        '200':
+          description: Schema gallery
+          content:
+            application/json:
+              example: { id: 0 }
+              schema:
+                type: object
+                minProperties: 1
+                maxProperties: 20
+                required: [id]
+                additionalProperties: false
+                properties:
+                  id:
+                    $ref: '#/components/schemas/Identifier'
+                  forbidden: false
+                  free: true
+                  nullableAnnotation:
+                    type: string
+                    nullable: true
+                  nullableList:
+                    type: [array, 'null']
+                    minItems: 1
+                    maxItems: 3
+                    items: { type: integer, minimum: 0 }
+                  dictionary:
+                    type: object
+                    minProperties: 1
+                    additionalProperties:
+                      $ref: '#/components/schemas/Identifier'
+                  tuple:
+                    type: array
+                    prefixItems:
+                      - { type: string }
+                      - false
+                    items: false
+                  choice:
+                    type: string
+                    minLength: 2
+                    allOf:
+                      - { enum: [alpha, beta] }
+                      - { not: { const: bad } }
+                    anyOf:
+                      - { const: alpha }
+                      - { const: beta }
+                  values:
+                    type: [string, 'null', boolean, number]
+                    enum: [null, 'null', false, 0]
+                    default: false
+        '400':
+          description: Invalid request
 components:
+  schemas:
+    Identifier:
+      type: integer
+      description: A nonnegative numeric identifier.
+      minimum: 0
+      maximum: 1000
+      readOnly: true
+      deprecated: true
   securitySchemes:
     bearer:
       type: http

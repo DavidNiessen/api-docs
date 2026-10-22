@@ -82,32 +82,37 @@ export function exampleFor(
       ),
     );
   const type = Array.isArray(schema.type)
-    ? schema.type.find((item) => item !== 'null')
+    ? (schema.type.find((item) => item !== 'null') ?? 'null')
     : schema.type;
   if (type === 'object' || schema.properties)
     return Object.fromEntries(
-      Object.entries(record(schema.properties)).map(([key, child]) => [
-        key,
-        exampleFor(
-          record(child),
-          schemas,
-          depth + 1,
-          new Set(seen).add(schema),
-        ),
-      ]),
+      Object.entries(record(schema.properties))
+        .filter(([, child]) => child !== false)
+        .map(([key, child]) => [
+          key,
+          exampleFor(
+            record(child),
+            schemas,
+            depth + 1,
+            new Set(seen).add(schema),
+          ),
+        ]),
     );
   if (type === 'array')
-    return [
-      exampleFor(
-        record(schema.items),
-        schemas,
-        depth + 1,
-        new Set(seen).add(schema),
-      ),
-    ];
+    return schema.items === false
+      ? []
+      : [
+          exampleFor(
+            record(schema.items),
+            schemas,
+            depth + 1,
+            new Set(seen).add(schema),
+          ),
+        ];
   if (type === 'integer' || type === 'number')
     return typeof schema.minimum === 'number' ? schema.minimum : 1;
   if (type === 'boolean') return true;
+  if (type === 'null') return null;
   if (schema.format === 'date-time') return '2026-01-01T00:00:00Z';
   if (schema.format === 'email') return 'reader@example.com';
   if (schema.format === 'uuid') return '123e4567-e89b-12d3-a456-426614174000';
