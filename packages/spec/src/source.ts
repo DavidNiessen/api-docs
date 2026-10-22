@@ -1,4 +1,5 @@
 import { open, realpath } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { parseDocument } from 'yaml';
 
@@ -31,7 +32,12 @@ export async function readBoundedFile(
   filename: string,
   limit = 16 * 1024 * 1024,
 ): Promise<Buffer> {
-  const file = await open(filename, 'r');
+  const file = await open(
+    filename,
+    constants.O_RDONLY |
+      (constants.O_NONBLOCK ?? 0) |
+      (constants.O_NOFOLLOW ?? 0),
+  );
   try {
     const info = await file.stat();
     if (!info.isFile())

@@ -1,6 +1,7 @@
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { execFileSync } from 'node:child_process';
 import { createDevelopmentBuilder } from '@api-docs/cli';
 import { createSearchIndex, search } from '@api-docs/search';
 const count = Number(process.argv[2] ?? 10000);
@@ -90,6 +91,13 @@ for (let update = 0; update < 20; update++) {
 }
 incremental.sort((a, b) => a - b);
 const report = {
+  commit: execFileSync('git', ['rev-parse', 'HEAD'], {
+    encoding: 'utf8',
+  }).trim(),
+  sourceWorkingTreeDirty:
+    execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim()
+      .length > 0,
+  fullBuildArtifactDigest: built.manifest.artifactDigest,
   operations: count,
   schemaNodes: count * 5,
   fullBuildSeconds: +(duration / 1000).toFixed(2),

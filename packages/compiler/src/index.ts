@@ -1,19 +1,19 @@
-import {
-  readFile,
-  mkdir,
-  writeFile,
-  readdir,
-  realpath,
-  lstat,
-} from 'node:fs/promises';
+import { mkdir, writeFile, readdir, realpath, lstat } from 'node:fs/promises';
 import { join, resolve, relative, sep } from 'node:path';
-import { createHash } from 'node:crypto';
+import {
+  digest,
+  artifactIdentity,
+  parseArtifactManifest,
+  digestFile,
+} from './manifest.js';
+export { digest, artifactIdentity, parseArtifactManifest } from './manifest.js';
 import {
   loadSpec,
   parseConfig,
   parseSource,
   confinedPath,
   readTextFile,
+  readBoundedFile,
 } from '@api-docs/spec';
 import { loadGuides, renderMarkdown } from '@api-docs/content';
 import { runPluginFiles } from '@api-docs/plugin-sdk';
@@ -22,8 +22,6 @@ export { loadPublicAssets } from './assets.js';
 export { auditDocumentation } from './doctor.js';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 
-export const digest = (source: string | Buffer): string =>
-  createHash('sha256').update(source).digest('hex');
 export async function compileProject(
   root: string,
   configFile = 'docs.config.yaml',
@@ -160,10 +158,13 @@ export async function writeManifest(
     )) {
       const file = join(path, entry.name);
       if (entry.isDirectory()) await walk(file);
-      else if (entry.name !== 'manifest.json')
-        files[relative(directory, file).split(sep).join('/')] = digest(
-          await readFile(file),
+      else if (!entry.isFile())
+        throw new Error(
+          'Artifact output cannot contain symlinks or special files',
         );
+      else if (entry.name !== 'manifest.json')
+        files[relative(directory, file).split(sep).join('/')] =
+          await digestFile(file);
     }
   };
   await walk(directory);
@@ -180,46 +181,26 @@ export async function writeManifest(
     ...details,
     artifactDigest: artifactIdentity(details),
   };
+  parseArtifactManifest(manifest);
   await writeFile(
     join(directory, 'manifest.json'),
     JSON.stringify(manifest, null, 2),
   );
   return manifest;
 }
-export function artifactIdentity(
-  manifest: Omit<ArtifactManifest, 'artifactDigest'>,
-): string {
-  return digest(
-    JSON.stringify({
-      schemaVersion: manifest.schemaVersion,
-      compilerVersion: manifest.compilerVersion,
-      inputDigest: manifest.inputDigest,
-      files: Object.fromEntries(
-        Object.entries(manifest.files).sort(([a], [b]) => a.localeCompare(b)),
-      ),
-      routes: manifest.routes,
-      diagnostics: manifest.diagnostics,
-      plugins: manifest.plugins,
-    }),
-  );
-}
 export async function verifyArtifact(
   directory: string,
 ): Promise<ArtifactManifest> {
-  const manifest = JSON.parse(
-    await readFile(join(directory, 'manifest.json'), 'utf8'),
-  ) as ArtifactManifest;
-  if (
-    manifest.schemaVersion !== 1 ||
-    !manifest.files ||
-    !Array.isArray(manifest.routes)
-  )
-    throw new Error('Invalid artifact manifest');
-  if (artifactIdentity(manifest) !== manifest.artifactDigest)
-    throw new Error('Artifact manifest identity mismatch');
+  const manifest = parseArtifactManifest(
+    JSON.parse(
+      new TextDecoder('utf-8', { fatal: true }).decode(
+        await readBoundedFile(await confinedPath(directory, 'manifest.json')),
+      ),
+    ),
+  );
   for (const [path, hash] of Object.entries(manifest.files)) {
     const file = await confinedPath(directory, path);
-    if (digest(await readFile(file)) !== hash)
+    if ((await digestFile(file)) !== hash)
       throw new Error(`Artifact checksum mismatch: ${path}`);
   }
   return manifest;

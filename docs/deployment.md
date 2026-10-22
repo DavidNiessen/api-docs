@@ -61,3 +61,11 @@ Verify readiness, public pages, private page/search denial, authenticated access
 ## Kubernetes template
 
 `deploy/kubernetes.yaml` is a starting template, not a turnkey managed cluster installer. Supply a `ConfigMap` named `api-docs` with `public-url`, a `Secret` named `api-docs` with `database-url` (runtime role) and `root-token`, and a PVC named `api-docs-artifacts`. Provision PostgreSQL and run the migration job separately with the owner connection and `DB_RUNTIME_ROLE`. Replace `api-docs:local` with your reviewed registry image digest. Configure a TLS Ingress, encrypted storage, backup jobs and network policies according to the cluster's provider. The current template uses one replica and a Recreate rollout; shared multi-replica storage and cluster recovery remain unvalidated release gates.
+
+## Publication verification boundaries
+
+Compiler output, CLI staging, Node adapters and the management server share manifest validation. Schema version 1 metadata must have the supported fields, valid SHA-256 identities, canonical relative file paths without traversal/hidden segments, valid routes, and typed diagnostic/plugin records. Manifest reads are bounded to 16 MiB before JSON parsing. Metadata limits are 200,000 files, 100,000 routes, 10,000 diagnostics and 32 plugins; the byte limit can be reached sooner.
+
+Small payload files use a bounded buffer of at most 1 MiB plus a growth sentinel. Larger files are hashed in 64 KiB chunks. A size change or checksum mismatch fails verification. Source/manifest/payload reads require regular files; POSIX nonblocking opens reject named pipes rather than waiting for a writer. Build output cannot contain symlinks or special files.
+
+Artifacts must remain immutable after staging. These checks establish content integrity; publisher authentication and protected deployment/release procedures establish who may activate it. Keep generated static roots free of unrelated files. The standalone preview server serves its generated directory; immutable staged server publications additionally enforce the verified manifest's file allowlist on reader requests.

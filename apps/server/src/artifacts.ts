@@ -1,6 +1,5 @@
-import { artifactIdentity } from '@api-docs/compiler';
+import { parseArtifactManifest } from '@api-docs/compiler';
 import { confinedPath, readTextFile } from '@api-docs/spec';
-import type { ArtifactManifest } from '@api-docs/contracts';
 interface CachedPublication {
   readonly directory: string;
   readonly hasFile: (path: string) => boolean;
@@ -62,18 +61,8 @@ export class PublicationManifestCache {
     const bytes = Buffer.byteLength(source);
     if (bytes > this.maxBytes)
       throw new Error('Publication manifest exceeds cache budget');
-    const manifest = JSON.parse(source) as ArtifactManifest;
-    if (
-      manifest.schemaVersion !== 1 ||
-      !manifest.files ||
-      Array.isArray(manifest.files) ||
-      !Array.isArray(manifest.routes) ||
-      manifest.artifactDigest !== id ||
-      artifactIdentity(manifest) !== id ||
-      Object.values(manifest.files).some(
-        (hash) => typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash),
-      )
-    )
+    const manifest = parseArtifactManifest(JSON.parse(source));
+    if (manifest.artifactDigest !== id)
       throw new Error('Invalid publication manifest identity');
     const files = new Set(Object.keys(manifest.files));
     const value = Object.freeze({
