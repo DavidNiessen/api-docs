@@ -29,6 +29,15 @@ paths:
                     type: array
                     items:
                       type: object
+                      required: [id]
                       properties:
                         id:
                           type: string
+                        status:
+                          type: string
+                          enum: [active, paused]
+                          description: Aktueller Projektstatus.
+                        legacyId:
+                          type: string
+                          deprecated: true
+                          description: Verwende stattdessen id.

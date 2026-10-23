@@ -183,6 +183,8 @@ const translatedConfig = parseConfig({
         'settings.apply': '{name} anwenden',
         'appearance.radius': '{value}px Radius',
         'classic.page': 'Seite {page} von {pages}',
+        'schema.variant': 'Variante {number}',
+        'lifecycle.page': 'Seite {page} von {pages}',
       },
     },
   },
@@ -193,7 +195,7 @@ assert.equal(
   'Installed testen',
 );
 assert.equal(translated.text('playground.send'), 'Send');
-assert.equal(translated.translated, 4);
+assert.equal(translated.translated, 6);
 assert.equal(
   translated.text('settings.apply', { name: '<saved>' }),
   '<saved> anwenden',
@@ -207,6 +209,11 @@ assert.equal(
   'Seite 2 von 7',
 );
 assert.equal(translated.text('classic.retry'), 'Retry endpoint list');
+assert.equal(translated.text('schema.variant', { number: 2 }), 'Variante 2');
+assert.equal(
+  translated.text('lifecycle.page', { page: 3, pages: 4 }),
+  'Seite 3 von 4',
+);
 const languageRoutes = { locales: ['en', 'de'], defaultLocale: 'en' };
 assert.equal(
   localizePath(languageRoutes, '/guides/start/', 'de'),

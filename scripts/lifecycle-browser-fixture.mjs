@@ -39,11 +39,18 @@ await writeFile(
   `export default { name: 'plain-text', version: '1.0.0', pluginApi: '1', capabilities: ['snippets'], generateSnippets({ operation }) { return operation.id === 'listWidgets' ? [{ id: 'escaped', label: 'Escaped text', language: 'text', code: '<script>window.sampleExecuted = true</script>\\n<img src=x onerror="window.sampleExecuted=true">' }] : []; } };`,
 );
 const config = new URL('docs.config.yaml', root);
-await writeFile(
-  config,
-  (await readFile(config, 'utf8')) +
-    '\nplugins:\n  - go.mjs\n  - plain-text.mjs\n',
+const configuration = parse(await readFile(config, 'utf8'));
+configuration.plugins = ['go.mjs', 'plain-text.mjs'];
+configuration.locales = ['en', 'de'];
+configuration.defaultLocale = 'en';
+const localized = parse(
+  await readFile(
+    new URL('../examples/localized/docs.config.yaml', import.meta.url),
+    'utf8',
+  ),
 );
+configuration.i18n = { messages: { de: localized.i18n.messages.de } };
+await writeFile(config, JSON.stringify(configuration));
 const built = await buildSite(root.pathname, { trustPlugins: true });
 const server = await createStaticServer(built.directory);
 await server.listen({ host: '127.0.0.1', port: 4176 });

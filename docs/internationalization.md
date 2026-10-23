@@ -1,6 +1,6 @@
 # Reader languages and UI translations
 
-Projects can customize the core reader labels without JavaScript plugins or remote translation services. `defaultLocale` selects the HTML language and the UI message catalog. The current catalog covers navigation/search, personal settings and appearance editing, classic endpoint lists, playground/URL-bar actions, response-editor controls, clipboard feedback and the page footer. Advanced request-form, schema, lifecycle, authentication and administration wording still uses English. Configured locales generate reader routes and a language menu. Guides can have authored locale variants. Missing guide variants and API content use the default-locale sources with an explicit fallback notice when the UI language differs. Source files are never translated automatically.
+Projects can customize the core reader labels without JavaScript plugins or remote translation services. `defaultLocale` selects the HTML language and the UI message catalog. The current catalog covers navigation/search, personal settings and appearance editing, classic endpoint lists, schema-reference and lifecycle guidance, playground/URL-bar actions, response-editor controls, clipboard feedback and the page footer. Advanced request-form, authentication and administration wording still uses English. Configured locales generate reader routes and a language menu. Guides can have authored locale variants. Missing guide variants and API content use the default-locale sources with an explicit fallback notice when the UI language differs. Source files are never translated automatically.
 
 ## Locale routes and content fallback
 
@@ -66,7 +66,15 @@ The `settings.*`, `appearance.*` and `color.*` IDs cover personal preferences an
 
 Message overrides change display text. Theme preset IDs, layout/mode values, exported configuration keys, palette tokens and endpoint paths retain their public values. Saved theme names and authored API titles, tags and descriptions remain literal user/source text. Existing saved preferences are shared across this project's language routes; changing UI language does not rename or discard saved themes. The initial suggested name uses `settings.defaultName` when the settings controls mount.
 
-Dimensions and pagination expose named values (`{value}`, `{page}`, `{pages}`, `{count}`), so translators can reorder labels. Colors/modes in palette labels and contrast explanations are translated separately before insertion. Counts do not currently provide ICU plural rules; use wording that works for all counts, such as `Endpunkte: {count}`. Loading/retry and copy/reset feedback retain semantic state and resolve its current label when rendered. API details, advanced request/authentication/schema forms and Studio administration still have English product wording.
+Dimensions and pagination expose named values (`{value}`, `{page}`, `{pages}`, `{count}`), so translators can reorder labels. Colors/modes in palette labels and contrast explanations are translated separately before insertion. Counts do not currently provide ICU plural rules; use wording that works for all counts, such as `Endpunkte: {count}`. Loading/retry and copy/reset feedback retain semantic state and resolve its current label when rendered. Other API-detail headings, advanced request/authentication forms and Studio administration still have English product wording.
+
+## Schema and lifecycle guidance
+
+`schema.*` IDs cover descriptive type fallbacks, boolean schemas, required/deprecated badges, enum guidance, composition explanations, child attributes, recursion/depth boundaries, tuples and conditional/dictionary labels. JSON Schema keywords and type identifiers, authored property names/descriptions, enum/constant values and reference identities retain their original spelling. Messages and literal values render as escaped text.
+
+`lifecycle.*` IDs cover operation notices and the deprecation center: status/date explanations, migration/replacement links, filters, result context, pagination, empty states and unavailable guidance. The heading uses `navigation.deprecations`. Source operation/API titles, methods, paths, lifecycle messages and ISO dates remain authored values. Named context allows result labels and pagination to reorder their values. Count labels have explicit one/other forms; projects can use wording suitable for all counts where their language needs more plural categories.
+
+Server-rendered pages retain clock-independent declarations and a translated no-JavaScript explanation. After hydration, the same UTC status calculation resolves the selected message. Language prefixes remain on lifecycle filters, pagination, operation/replacement links and local migration guides. Ordinary links and localized reference text work without JavaScript. The German example and browser fixture exercise these controls; independent linguistic review remains required.
 
 ## Named parameters and plain text
 

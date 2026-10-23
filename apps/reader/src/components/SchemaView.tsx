@@ -1,5 +1,6 @@
 import { resolveSchema } from '@api-docs/contracts';
-import type { Schema } from '@api-docs/contracts';
+import type { Schema, UiText } from '@api-docs/contracts';
+import { useUi } from '../ui-translation.js';
 const object = (value: unknown): Schema =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Schema)
@@ -8,12 +9,13 @@ const asSchema = (value: unknown): Schema =>
   typeof value === 'boolean'
     ? { 'x-api-docs-boolean-schema': value }
     : object(value);
-function typeLabel(schema: Schema, legacyNullable: boolean): string {
+function typeLabel(schema: Schema, legacyNullable: boolean, t: UiText): string {
   if (schema['x-api-docs-boolean-schema'] !== undefined)
     return schema['x-api-docs-boolean-schema']
-      ? 'any value'
-      : 'no value allowed';
-  if (schema.$ref) return String(schema.$ref).split('/').pop() ?? 'reference';
+      ? t('schema.anyValue')
+      : t('schema.noValue');
+  if (schema.$ref)
+    return String(schema.$ref).split('/').pop() ?? t('schema.reference');
   const types = Array.isArray(schema.type)
     ? [...schema.type]
     : [
@@ -23,12 +25,12 @@ function typeLabel(schema: Schema, legacyNullable: boolean): string {
             : schema.items || schema.prefixItems
               ? 'array'
               : schema.oneOf
-                ? 'one of'
+                ? t('schema.oneOfType')
                 : schema.anyOf
-                  ? 'any of'
+                  ? t('schema.anyOfType')
                   : schema.allOf
-                    ? 'all of'
-                    : 'any'),
+                    ? t('schema.allOfType')
+                    : t('schema.anyType')),
       ];
   if (
     legacyNullable &&
@@ -73,6 +75,7 @@ function SchemaMetadata({
   schema: Schema;
   hideDeprecated: boolean;
 }) {
+  const t = useUi();
   const keys = constraintKeys.filter(
     (key) =>
       schema[key] !== undefined && !(hideDeprecated && key === 'deprecated'),
@@ -81,7 +84,7 @@ function SchemaMetadata({
     <>
       {Array.isArray(schema.enum) && (
         <div className="schema-enum">
-          Allowed values:{' '}
+          {t('schema.allowed')}{' '}
           {schema.enum.map((value, index) => (
             <code key={index}>{JSON.stringify(value)}</code>
           ))}
@@ -103,22 +106,22 @@ function SchemaMetadata({
   );
 }
 const variants = {
-  oneOf: 'Exactly one variant must match.',
-  anyOf: 'One or more variants must match.',
-  allOf: 'Every variant must match.',
-};
+  oneOf: 'schema.oneOf',
+  anyOf: 'schema.anyOf',
+  allOf: 'schema.allOf',
+} as const;
 const childKeywords = {
-  items: 'Array items',
-  contains: 'Contains matching items',
-  propertyNames: 'Property names',
-  additionalProperties: 'Additional properties',
-  unevaluatedProperties: 'Unevaluated properties',
-  unevaluatedItems: 'Unevaluated items',
-  not: 'Must not match',
-  if: 'Condition',
-  then: 'When the condition matches',
-  else: 'When the condition does not match',
-};
+  items: 'schema.items',
+  contains: 'schema.contains',
+  propertyNames: 'schema.propertyNames',
+  additionalProperties: 'schema.additionalProperties',
+  unevaluatedProperties: 'schema.unevaluatedProperties',
+  unevaluatedItems: 'schema.unevaluatedItems',
+  not: 'schema.not',
+  if: 'schema.if',
+  then: 'schema.then',
+  else: 'schema.else',
+} as const;
 export function SchemaView({
   schema,
   schemas,
@@ -134,19 +137,15 @@ export function SchemaView({
   hideHeading?: boolean;
   legacyNullable?: boolean;
 }) {
+  const t = useUi();
   const ref = typeof schema.$ref === 'string' ? schema.$ref : '';
   if (ref && visited.has(ref))
     return (
       <p className="schema-recursive">
-        Recursive reference: <code>{ref.split('/').pop() ?? 'schema'}</code>
+        {t('schema.recursive')} <code>{ref.split('/').pop() ?? 'schema'}</code>
       </p>
     );
-  if (depth > 6)
-    return (
-      <p className="schema-recursive">
-        Nested schema display stops after 6 levels.
-      </p>
-    );
+  if (depth > 6) return <p className="schema-recursive">{t('schema.depth')}</p>;
   const next = new Set(visited);
   if (ref) next.add(ref);
   const actual = resolveSchema(schema, schemas, {
@@ -159,7 +158,7 @@ export function SchemaView({
       {!hideHeading && (
         <>
           <span className="type-label">
-            {typeLabel(actual, legacyNullable)}
+            {typeLabel(actual, legacyNullable, t)}
           </span>
           {typeof actual.description === 'string' && (
             <p>{actual.description}</p>
@@ -190,13 +189,15 @@ export function SchemaView({
                 <div className="field-heading">
                   <code>{name}</code>
                   <span className="type-label">
-                    {typeLabel(resolved, legacyNullable)}
+                    {typeLabel(resolved, legacyNullable, t)}
                   </span>
                   {required.includes(name) && (
-                    <span className="required">required</span>
+                    <span className="required">{t('schema.required')}</span>
                   )}
                   {resolved.deprecated === true && (
-                    <span className="deprecated-label">deprecated</span>
+                    <span className="deprecated-label">
+                      {t('schema.deprecated')}
+                    </span>
                   )}
                 </div>
                 {typeof resolved.description === 'string' && (
@@ -204,7 +205,7 @@ export function SchemaView({
                 )}
                 {nested ? (
                   <details>
-                    <summary>Show child attributes</summary>
+                    <summary>{t('schema.showChildren')}</summary>
                     <SchemaView
                       schema={property}
                       schemas={schemas}
@@ -233,13 +234,13 @@ export function SchemaView({
         ([keyword, description]) =>
           Array.isArray(actual[keyword]) && (
             <div className="schema-variants" key={keyword}>
-              <p>{description}</p>
+              <p>{t(description)}</p>
               {(actual[keyword] as unknown[]).map((variant, index) => (
                 <details key={index} open={index === 0}>
                   <summary>
-                    Variant {index + 1}{' '}
+                    {t('schema.variant', { number: index + 1 })}{' '}
                     <span className="type-label">
-                      {typeLabel(asSchema(variant), legacyNullable)}
+                      {typeLabel(asSchema(variant), legacyNullable, t)}
                     </span>
                   </summary>
                   <SchemaView
@@ -256,13 +257,13 @@ export function SchemaView({
       )}
       {Array.isArray(actual.prefixItems) && (
         <div className="schema-array">
-          <p>Tuple positions</p>
+          <p>{t('schema.tuple')}</p>
           {actual.prefixItems.map((item, index) => (
             <details key={index}>
               <summary>
-                Position {index + 1}{' '}
+                {t('schema.position', { number: index + 1 })}{' '}
                 <span className="type-label">
-                  {typeLabel(asSchema(item), legacyNullable)}
+                  {typeLabel(asSchema(item), legacyNullable, t)}
                 </span>
               </summary>
               <SchemaView
@@ -281,9 +282,9 @@ export function SchemaView({
           Object.hasOwn(actual, keyword) && (
             <details key={keyword} className="schema-child">
               <summary>
-                {label}{' '}
+                {t(label)}{' '}
                 <span className="type-label">
-                  {typeLabel(asSchema(actual[keyword]), legacyNullable)}
+                  {typeLabel(asSchema(actual[keyword]), legacyNullable, t)}
                 </span>
               </summary>
               <SchemaView
@@ -301,8 +302,8 @@ export function SchemaView({
           <details className="schema-child" key={`${keyword}:${name}`}>
             <summary>
               {keyword === 'patternProperties'
-                ? 'Property pattern'
-                : 'When property is present'}
+                ? t('schema.pattern')
+                : t('schema.dependency')}
               : <code>{name}</code>
             </summary>
             <SchemaView
