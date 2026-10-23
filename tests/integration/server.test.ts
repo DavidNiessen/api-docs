@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { mkdtemp, cp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, cp, readFile, writeFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID, randomBytes } from 'node:crypto';
@@ -30,11 +30,13 @@ let viewer: { id: string; token: string };
 const slug = `test-${randomUUID().slice(0, 8)}`;
 let artifactRoot = '';
 let testSource = '';
+let fixtureRoot: string | undefined;
 let provider: FastifyInstance;
 let issuer = '';
 let nonce = '';
 beforeAll(async () => {
   const root = await mkdtemp(join(tmpdir(), 'api-docs-server-'));
+  fixtureRoot = root;
   const source = join(root, 'source');
   const store = join(root, 'artifacts');
   artifactRoot = store;
@@ -105,9 +107,23 @@ beforeAll(async () => {
   project = created.json<Project>();
 });
 afterAll(async () => {
-  await server?.close();
-  await provider?.close();
-  await repository.close();
+  try {
+    const outcomes = await Promise.allSettled([
+      server?.close(),
+      provider?.close(),
+      repository.close(),
+    ]);
+    const failures = outcomes.filter(
+      (outcome) => outcome.status === 'rejected',
+    );
+    if (failures.length)
+      throw new AggregateError(
+        failures.map((outcome) => outcome.reason),
+        'Fixture shutdown failed',
+      );
+  } finally {
+    if (fixtureRoot) await rm(fixtureRoot, { recursive: true, force: true });
+  }
 });
 describe('self-hosted publication and authorization', () => {
   it('checks readiness and protects project creation', async () => {

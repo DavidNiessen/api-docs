@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
@@ -39,12 +39,16 @@ function fixture(version = '3.1.0'): Record<string, unknown> {
 }
 async function load(spec: Record<string, unknown>, yaml = false) {
   const root = await mkdtemp(join(tmpdir(), 'api-docs-compatibility-'));
-  const path = yaml ? 'openapi.yaml' : 'openapi.json';
-  await writeFile(
-    join(root, path),
-    yaml ? stringify(spec) : JSON.stringify(spec),
-  );
-  return await loadSpec(root, { id: 'events', path });
+  try {
+    const path = yaml ? 'openapi.yaml' : 'openapi.json';
+    await writeFile(
+      join(root, path),
+      yaml ? stringify(spec) : JSON.stringify(spec),
+    );
+    return await loadSpec(root, { id: 'events', path });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 }
 function get(spec: Record<string, unknown>): Record<string, unknown> {
   return (spec.paths as Record<string, Record<string, unknown>>)[
@@ -290,10 +294,14 @@ describe('OpenAPI compatibility and semantic validation', () => {
   });
   it('bounds file reads and rejects malformed UTF-8 before parsing', async () => {
     const root = await mkdtemp(join(tmpdir(), 'api-docs-bounded-read-'));
-    const file = join(root, 'input');
-    await writeFile(file, '123456789');
-    await expect(readTextFile(file, 8)).rejects.toThrow(/exceeds/);
-    await writeFile(file, Buffer.from([0xff, 0xfe]));
-    await expect(readTextFile(file)).rejects.toThrow();
+    try {
+      const file = join(root, 'input');
+      await writeFile(file, '123456789');
+      await expect(readTextFile(file, 8)).rejects.toThrow(/exceeds/);
+      await writeFile(file, Buffer.from([0xff, 0xfe]));
+      await expect(readTextFile(file)).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

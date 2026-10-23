@@ -17,6 +17,12 @@ Updated: 2026-10-23. **Approximately 96% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**Acceptance fixtures now clean up their own temporary files.** The server integration suite retains its exact allocated root, waits for all server/provider/database shutdown attempts, reports shutdown failures and removes the root in a `finally` block. Compatibility-load and bounded-read fixtures likewise remove their exact temporary directories after success or rejection. This prevents roughly 50 MiB of server artifacts accumulating per ordinary integration run; no shared artifact store or database is selected for filesystem deletion.
+
+All 83 real PostgreSQL/API cases pass against a new disposable database, all 16 compatibility cases pass, and strict types plus changed-file ESLint/Prettier checks pass. The disposable database and role are removed after the run. Production code is unchanged from the preceding validated authentication increment below. The estimate remains approximately 96%, pre-release; hosted quality and Pages deployment are being verified after maintainer setup.
+
+## Previous authentication-message increment
+
 **Authentication, credential reuse and relay feedback now use the typed reader message catalog.** Public-client settings, credential inputs, popup controls, expiry/clearing notices, server and transport selection, access rechecks and controlled relay failures support project-authored translations. Semantic error/status codes preserve English diagnostic defaults and resolve through the current locale at render time. Wire identities and values stay literal; SDK validation diagnostics retain their English fallback. The German fixture now exercises bearer/public PKCE alternatives and an optional authenticated relay.
 
 The browser acceptance also found and fixed an expiry-feedback race: the credential store could clear a remembered token before its field displayed the expiry notice. Both expiry paths now report the same state. Credential storage, destination binding, cancellation and explicit retry policy remain unchanged. Seven new source cases cover translated/escaped forms, exact public-client values, fallback diagnostics and real HTTP denial/rate-limit/failure mapping. Two new browser journeys cover real PKCE, memory-only secrets, expiry/clear feedback, explicit relay retries, original response copying and mobile accessibility.
