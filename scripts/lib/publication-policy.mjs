@@ -187,6 +187,79 @@ export function validatePublicationEnvironment(environment, branchPolicies) {
   };
 }
 
+/** Public ruleset metadata must prove that reviewed source and release tags stay protected. */
+export function validatePublicationRulesets(branch, tags) {
+  for (const [ruleset, target, include] of [
+    [branch, 'branch', ['refs/heads/master', '~DEFAULT_BRANCH']],
+    [tags, 'tag', ['refs/tags/v*']],
+  ]) {
+    assert.equal(
+      ruleset.enforcement,
+      'active',
+      'Release rulesets must be active.',
+    );
+    assert.equal(ruleset.target, target);
+    assert(
+      Array.isArray(ruleset.bypass_actors),
+      'Inspect the actual ruleset bypass configuration.',
+    );
+    assert(
+      ruleset.bypass_actors.every(
+        (actor) =>
+          actor.actor_type === 'RepositoryRole' &&
+          actor.actor_id === 5 &&
+          ['always', 'pull_request'].includes(actor.bypass_mode),
+      ),
+      'Only the repository administrator role may bypass release rules.',
+    );
+    const refs = ruleset.conditions?.ref_name;
+    assert(
+      Array.isArray(refs?.include) &&
+        refs.include.some((value) => include.includes(value)),
+    );
+    assert(Array.isArray(refs.exclude) && refs.exclude.length === 0);
+    assert(Array.isArray(ruleset.rules));
+  }
+  const branchTypes = new Set(branch.rules.map((rule) => rule.type));
+  for (const type of ['pull_request', 'non_fast_forward', 'deletion'])
+    assert(branchTypes.has(type), `Missing master protection: ${type}.`);
+  assert.equal(
+    branch.rules.find((rule) => rule.type === 'pull_request')?.parameters
+      ?.required_review_thread_resolution,
+    true,
+    'Resolve PR conversations before merging.',
+  );
+  const status = branch.rules.find(
+    (rule) => rule.type === 'required_status_checks',
+  )?.parameters;
+  assert.equal(
+    status?.strict_required_status_checks_policy,
+    true,
+    'master requires up-to-date status checks.',
+  );
+  assert(
+    status.required_status_checks?.some(
+      (check) => check.context === 'Quality' && check.integration_id === 15368,
+    ),
+    'Require the Quality check from the GitHub Actions app.',
+  );
+  const tagTypes = new Set(tags.rules.map((rule) => rule.type));
+  assert(
+    tagTypes.has('update') && tagTypes.has('deletion'),
+    'Release tags must reject updates and deletions.',
+  );
+  return {
+    branchRulesetId: branch.id,
+    tagRulesetId: tags.id,
+    requiredCheck: 'Quality',
+    checksAppId: 15368,
+    administratorBypasses: {
+      branch: branch.bypass_actors.length,
+      tags: tags.bypass_actors.length,
+    },
+  };
+}
+
 /** Publish selected dependencies before dependants, rejecting duplicates and cycles. */
 export function npmPublicationOrder(metadata) {
   assert(

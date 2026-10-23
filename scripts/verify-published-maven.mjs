@@ -15,6 +15,7 @@ import {
 import {
   javaEnvironment,
   prepareJavaPublications,
+  saveJavaCandidate,
   testJavaConsumers,
 } from './lib/java-consumers.mjs';
 
@@ -108,6 +109,8 @@ try {
       (entry) => entry.passed && entry.offlineCompilationPassed,
     ),
   );
+  candidate.report.passed = true;
+  await saveJavaCandidate(candidate);
   await writeFile(
     join(output, 'result.json'),
     JSON.stringify(

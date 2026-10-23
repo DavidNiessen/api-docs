@@ -70,7 +70,7 @@ export async function packNpmCandidates() {
         await cp(join(repository, file), join(stage, file));
       await writeFile(
         join(stage, 'README.md'),
-        `# ${metadata.name}\n\nSelf-hosted API documentation platform component.\n\nThis is a development candidate, not a stable production release. Registry namespaces and release approval are pending.\n\nSee the [project documentation](https://github.com/DavidNiessen/api-docs#readme), [integration guide](https://github.com/DavidNiessen/api-docs/blob/master/docs/integrations.md) and [candidate packaging instructions](https://github.com/DavidNiessen/api-docs/blob/master/docs/releases.md).\n\nLicensed under Apache-2.0; see LICENSE and NOTICE.\n`,
+        `# ${metadata.name}\n\nSelf-hosted API documentation platform component, version ${metadata.version}.\n\nSee the [project documentation](https://github.com/DavidNiessen/api-docs#readme), [integration guide](https://github.com/DavidNiessen/api-docs/blob/master/docs/integrations.md) and [release and distribution instructions](https://github.com/DavidNiessen/api-docs/blob/master/docs/releases.md) for support status and verification.\n\nLicensed under Apache-2.0; see LICENSE and NOTICE.\n`,
       );
       const packageMetadata = { ...metadata };
       delete packageMetadata.scripts;

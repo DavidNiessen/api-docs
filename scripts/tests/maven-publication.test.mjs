@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import {
   inspectMavenPublication,
+  inspectMavenPublicKey,
   mavenPublicationFiles,
   publishCentralBundle,
   runSigningTool,
@@ -124,6 +125,20 @@ test('actual ephemeral OpenPGP signatures bind the exact copied Maven bytes and 
     .find((line) => line.startsWith('fpr:'))
     .split(':')[9];
   const key = await run(['--armor', '--export-secret-keys', fingerprint]);
+  const publicKey = await run(['--armor', '--export', fingerprint]);
+  assert.equal(
+    (await inspectMavenPublicKey(Buffer.from(publicKey.stdout), fingerprint))
+      .fingerprint,
+    fingerprint,
+  );
+  await assert.rejects(
+    inspectMavenPublicKey(Buffer.from(publicKey.stdout), 'A'.repeat(40)),
+    /disagree/,
+  );
+  await assert.rejects(
+    inspectMavenPublicKey(Buffer.from(key.stdout), fingerprint),
+    /public signing key/,
+  );
   for (const file of files) await writeFile(join(root, file.name), bytes);
   const output = join(root, 'result');
   const bundle = await signMavenBundle(
@@ -150,6 +165,15 @@ test('actual ephemeral OpenPGP signatures bind the exact copied Maven bytes and 
       path,
     ]);
     verifyGpgStatus(verified.stdout, fingerprint);
+    for (const state of ['EXPSIG', 'EXPKEYSIG', 'REVKEYSIG'])
+      assert.throws(
+        () =>
+          verifyGpgStatus(
+            verified.stdout + `\n[GNUPG:] ${state} fixture\n`,
+            fingerprint,
+          ),
+        /Expired/,
+      );
   }
   const first = join(output, 'bundle', files[0].path);
   await writeFile(first, 'tampered after signing');

@@ -1,4 +1,4 @@
-name: Review publication plan
+name: Review or publish verified distributions
 
 on:
   workflow_dispatch:
@@ -12,9 +12,16 @@ on:
         type: string
         default: '1'
         required: true
+      confirm-publication:
+        description: Publish exact accepted distributions after protected environment approval
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+
+env:
+  NODE_USE_ENV_PROXY: '1'
 
 concurrency:
   group: publication-${{ github.ref }}
@@ -22,7 +29,7 @@ concurrency:
 
 jobs:
   plan:
-    name: Verify immutable candidates and prepare a publication plan
+    name: Verify candidates and review publication policy
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -39,35 +46,12 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: node scripts/check-release-source.mjs --publication
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+      - uses: ./.github/actions/verify-publication
         with:
-          github-token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          run-id: ${{ inputs.candidate-run-id }}
-          name: release-npm-${{ inputs.candidate-run-id }}-${{ inputs.candidate-run-attempt }}
-          path: .api-docs/release-assets/npm/
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
-        with:
-          github-token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          run-id: ${{ inputs.candidate-run-id }}
-          name: release-java-${{ inputs.candidate-run-id }}-${{ inputs.candidate-run-attempt }}
-          path: .api-docs/release-assets/java/
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
-        with:
-          github-token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          run-id: ${{ inputs.candidate-run-id }}
-          name: release-container-${{ inputs.candidate-run-id }}-${{ inputs.candidate-run-attempt }}
-          path: .api-docs/release-assets/container/
-      - name: Verify successful upstream run, source, provenance and namespace policy
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CANDIDATE_RUN_ID: ${{ inputs.candidate-run-id }}
-          CANDIDATE_RUN_ATTEMPT: ${{ inputs.candidate-run-attempt }}
-        run: node scripts/check-publication.mjs "$CANDIDATE_RUN_ID" "$CANDIDATE_RUN_ATTEMPT"
-      - name: Retain reviewable publication plan and signature-verification results
+          candidate-run-id: ${{ inputs.candidate-run-id }}
+          candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
+          require-approval: ${{ inputs.confirm-publication }}
+      - name: Retain publication evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -78,7 +62,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
-      - name: Display publication blockers without publishing
+      - name: Display the exact plan and outstanding decisions
         run: |
           node --input-type=module <<'NODE'
           import {readFile, appendFile} from 'node:fs/promises';
@@ -89,10 +73,295 @@ jobs:
             `npm: ${plan.npm.packages.length} packages, ${plan.npm.version}, tag ${plan.npm.tag}.`,
             `Maven: ${plan.maven.groupId}:${plan.maven.version}.`,
             `Container: ${plan.container.repository}:${plan.container.tag}.`,
-            '',
-            ...plan.blockers.map((text) => `- ${text}`),
-            '',
-            'This read-only workflow neither approves nor publishes distributions.',
+            '', ...plan.blockers.map((text) => `- ${text}`), '',
+            'Publication requires explicit confirmation, approved policy and protected environment approval.',
           ];
           await appendFile(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
           NODE
+
+  publish-npm:
+    name: Publish accepted npm distributions
+    needs: plan
+    if: inputs.confirm-publication
+    environment: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/verify-publication
+        with:
+          candidate-run-id: ${{ inputs.candidate-run-id }}
+          candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
+          require-approval: 'true'
+      - name: Publish exact npm archives with native provenance
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/publish-npm.mjs
+      - name: Retain publication evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publication-npm-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .api-docs/publication/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish-maven:
+    name: Publish accepted maven distributions
+    needs: plan
+    if: inputs.confirm-publication
+    environment: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/verify-publication
+        with:
+          candidate-run-id: ${{ inputs.candidate-run-id }}
+          candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
+          require-approval: 'true'
+      - name: Sign exact Java files, validate and publish Central deployment
+        env:
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+          MAVEN_SIGNING_KEY: ${{ secrets.MAVEN_SIGNING_KEY }}
+          MAVEN_SIGNING_PASSPHRASE: ${{ secrets.MAVEN_SIGNING_PASSPHRASE }}
+        run: node scripts/publish-maven.mjs
+      - name: Retain publication evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publication-maven-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .api-docs/publication/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish-container:
+    name: Publish accepted container distributions
+    needs: plan
+    if: inputs.confirm-publication
+    environment: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      attestations: write
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/verify-publication
+        with:
+          candidate-run-id: ${{ inputs.candidate-run-id }}
+          candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
+          require-approval: 'true'
+      - name: Push only the accepted Docker archive
+        id: container
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: node scripts/publish-container.mjs
+      - name: Authenticate the OCI attestation upload
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Attest promotion of the exact previously tested image
+        uses: actions/attest@daf44fb950173508f38bd2406030372c1d1162b1 # v3.0.0
+        with:
+          subject-name: ${{ steps.container.outputs.repository }}
+          subject-digest: ${{ steps.container.outputs.digest }}
+          predicate-type: https://github.com/DavidNiessen/api-docs/attestations/promotion/v1
+          predicate-path: .api-docs/publication/promotion-predicate.json
+          push-to-registry: true
+      - name: Retain publication evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publication-container-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .api-docs/publication/container-result.json
+            .api-docs/publication/promotion-predicate.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  verify-npm:
+    name: Fresh public npm consumer
+    needs: publish-npm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/verify-publication
+        with:
+          candidate-run-id: ${{ inputs.candidate-run-id }}
+          candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
+          require-approval: 'true'
+      - name: Verify public bytes, signatures and installed behavior
+        run: node scripts/verify-published-npm.mjs
+      - name: Retain publication evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: public-consumer-npm-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .api-docs/published-consumers/npm/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  verify-maven:
+    name: Fresh public maven consumer
+    needs: publish-maven
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/verify-publication
+        with:
+          candidate-run-id: ${{ inputs.candidate-run-id }}
+          candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
+          require-approval: 'true'
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build only JavaScript tooling and documentation assets
+        run: npm run build
+      - name: Verify public bytes, signatures and installed behavior
+        run: node scripts/verify-published-maven.mjs
+      - name: Retain publication evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: public-consumer-maven-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .api-docs/published-consumers/maven/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  verify-container:
+    name: Fresh public container consumer
+    needs: publish-container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/verify-publication
+        with:
+          candidate-run-id: ${{ inputs.candidate-run-id }}
+          candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
+          require-approval: 'true'
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: publication-container-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/publication/
+      - name: Verify public bytes, signatures and installed behavior
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/verify-published-container.mjs
+      - name: Retain publication evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: public-consumer-container-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .api-docs/published-consumers/container/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  acceptance:
+    name: Public distribution acceptance
+    needs: [plan, verify-npm, verify-maven, verify-container]
+    if: always() && inputs.confirm-publication
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: Require every public distribution gate
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          NPM_RESULT: ${{ needs.verify-npm.result }}
+          MAVEN_RESULT: ${{ needs.verify-maven.result }}
+          CONTAINER_RESULT: ${{ needs.verify-container.result }}
+        run: |
+          set -euo pipefail
+          for result in "$PLAN_RESULT" "$NPM_RESULT" "$MAVEN_RESULT" "$CONTAINER_RESULT"; do
+            test "$result" = success || { echo '::error::Every public distribution must pass'; exit 1; }
+          done
+          echo 'Exact accepted npm, Maven and OCI bytes passed fresh public consumer acceptance. Review the retained receipts before announcing the release.' >> "$GITHUB_STEP_SUMMARY"

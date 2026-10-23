@@ -7,6 +7,7 @@ import {
   publicationPlan,
   validateCandidateRun,
   validatePublicationEnvironment,
+  validatePublicationRulesets,
 } from '../lib/publication-policy.mjs';
 import { readWorkspacePackages } from '../lib/workspaces.mjs';
 
@@ -25,6 +26,105 @@ const source = {
   packages: ['@api-docs/contracts', '@api-docs/cli'],
   mavenGroup: 'dev.niessen',
 };
+
+const masterRules = {
+  id: 12,
+  target: 'branch',
+  enforcement: 'active',
+  bypass_actors: [],
+  conditions: { ref_name: { include: ['refs/heads/master'], exclude: [] } },
+  rules: [
+    {
+      type: 'pull_request',
+      parameters: {
+        required_review_thread_resolution: true,
+        required_approving_review_count: 0,
+      },
+    },
+    { type: 'non_fast_forward' },
+    { type: 'deletion' },
+    {
+      type: 'required_status_checks',
+      parameters: {
+        strict_required_status_checks_policy: true,
+        required_status_checks: [{ context: 'Quality', integration_id: 15368 }],
+      },
+    },
+  ],
+};
+const tagRules = {
+  id: 13,
+  target: 'tag',
+  enforcement: 'active',
+  bypass_actors: [],
+  conditions: { ref_name: { include: ['refs/tags/v*'], exclude: [] } },
+  rules: [{ type: 'update' }, { type: 'deletion' }],
+};
+
+test('actual repository rulesets must protect reviewed master and immutable version tags', () => {
+  assert.deepEqual(validatePublicationRulesets(masterRules, tagRules), {
+    branchRulesetId: 12,
+    tagRulesetId: 13,
+    requiredCheck: 'Quality',
+    checksAppId: 15368,
+    administratorBypasses: { branch: 0, tags: 0 },
+  });
+  const branch = structuredClone(masterRules);
+  branch.conditions.ref_name.include = ['~DEFAULT_BRANCH'];
+  validatePublicationRulesets(branch, tagRules);
+  branch.bypass_actors = [
+    { actor_id: 5, actor_type: 'RepositoryRole', bypass_mode: 'always' },
+  ];
+  assert.equal(
+    validatePublicationRulesets(branch, tagRules).administratorBypasses.branch,
+    1,
+  );
+});
+
+test('inactive, bypassed, excluded, mutable or unchecked release rulesets fail approval', () => {
+  for (const mutate of [
+    (branch) => {
+      branch.enforcement = 'disabled';
+    },
+    (branch) => {
+      branch.bypass_actors = [{ actor_id: 1, bypass_mode: 'always' }];
+    },
+    (branch) => {
+      branch.conditions.ref_name.exclude = ['refs/heads/master'];
+    },
+    (branch) => {
+      branch.rules[0].parameters.required_review_thread_resolution = false;
+    },
+    (branch) => {
+      branch.rules = branch.rules.filter(
+        (rule) => rule.type !== 'pull_request',
+      );
+    },
+    (branch) => {
+      branch.rules.at(-1).parameters.required_status_checks[0].context =
+        'unrelated check';
+    },
+    (branch) => {
+      branch.rules.at(-1).parameters.required_status_checks[0].integration_id =
+        999;
+    },
+    (branch) => {
+      branch.rules.at(-1).parameters.strict_required_status_checks_policy =
+        false;
+    },
+    (_branch, tags) => {
+      tags.rules = [{ type: 'deletion' }];
+    },
+    (_branch, tags) => {
+      tags.conditions.ref_name.include = ['refs/tags/unrelated*'];
+    },
+  ]) {
+    const branch = structuredClone(masterRules),
+      tags = structuredClone(tagRules);
+    mutate(branch, tags);
+    assert.throws(() => validatePublicationRulesets(branch, tags));
+  }
+});
 
 test('the default policy lists pending ownership and reviews without approving publication', () => {
   const plan = publicationPlan(policy, context, source);

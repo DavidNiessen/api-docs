@@ -7,10 +7,12 @@ import {
   publicationPlan,
   validateCandidateRun,
   validatePublicationEnvironment,
+  validatePublicationRulesets,
 } from './lib/publication-policy.mjs';
 import { verifyProducerProvenance } from './lib/provenance-verification.mjs';
 import { readRegularFile } from './lib/read-regular-file.mjs';
 import { releaseSource } from './lib/release-assets.mjs';
+import { inspectMavenPublicKey } from './lib/maven-publication.mjs';
 import {
   readRepositoryFile,
   readWorkspacePackages,
@@ -36,7 +38,7 @@ async function api(path) {
   try {
     const result = await exec(
       'gh',
-      ['api', `repos/${source.repository}/${path}`],
+      ['api', `repos/${source.repository}${path ? '/' + path : ''}`],
       { timeout: 30_000, maxBuffer: 4 * 1024 * 1024 },
     );
     return JSON.parse(result.stdout);
@@ -71,14 +73,47 @@ const policy = JSON.parse(
   await readRegularFile(join(root, 'release-policy.json')),
 );
 const plan = publicationPlan(policy, context, { packages, mavenGroup });
-let environment;
+let environment, repositoryProtection, signingIdentity;
 if (requireApproval) {
   assert.equal(plan.policyApproved, true, plan.blockers.join(' '));
+  signingIdentity = await inspectMavenPublicKey(
+    await readRegularFile(join(root, 'release-signing-key.asc'), 1024 * 1024),
+    plan.maven.signingKeyFingerprint,
+  );
   const [protection, tags] = await Promise.all([
     api('environments/release'),
     api('environments/release/deployment-branch-policies'),
   ]);
   environment = validatePublicationEnvironment(protection, tags);
+  assert.equal(
+    (await api('')).default_branch,
+    'master',
+    'Review release source against the protected default master branch.',
+  );
+  const rulesets = await api('rulesets?includes_parents=true');
+  const branch = rulesets.filter(
+    (rule) => rule.name === 'Protect master' && rule.target === 'branch',
+  );
+  const releaseTags = rulesets.filter(
+    (rule) => rule.name === 'Protect release tags' && rule.target === 'tag',
+  );
+  assert.equal(
+    branch.length,
+    1,
+    'Configure the Protect master branch ruleset.',
+  );
+  assert.equal(
+    releaseTags.length,
+    1,
+    'Configure the Protect release tags tag ruleset.',
+  );
+  for (const rule of [branch[0], releaseTags[0]])
+    assert(Number.isSafeInteger(rule.id) && rule.id > 0);
+  const [branchRules, tagRules] = await Promise.all([
+    api(`rulesets/${branch[0].id}`),
+    api(`rulesets/${releaseTags[0].id}`),
+  ]);
+  repositoryProtection = validatePublicationRulesets(branchRules, tagRules);
 }
 assert.deepEqual(
   await releaseSource(root, process.env, { workflow: 'release-publish.yml' }),
@@ -94,6 +129,8 @@ await writeFile(
       publicationRunAttempt: source.runAttempt,
       proof,
       ...(environment ? { environmentProtection: environment } : {}),
+      ...(repositoryProtection ? { repositoryProtection } : {}),
+      ...(signingIdentity ? { signingIdentity } : {}),
     },
     null,
     2,

@@ -119,6 +119,18 @@ export async function runSigningTool(
 
 export function verifyGpgStatus(stdout, fingerprint) {
   assert.match(fingerprint, fingerprintPattern);
+  assert(
+    stdout.split('\n').some((line) => line.startsWith('[GNUPG:] GOODSIG ')),
+    'Missing good detached signature status.',
+  );
+  assert(
+    !stdout
+      .split('\n')
+      .some((line) =>
+        /^\[GNUPG:\] (?:BADSIG|ERRSIG|EXPSIG|EXPKEYSIG|REVKEYSIG) /.test(line),
+      ),
+    'Expired, revoked or invalid Maven signature.',
+  );
   const signatures = stdout
     .split('\n')
     .filter((line) => line.startsWith('[GNUPG:] VALIDSIG '));
@@ -132,6 +144,57 @@ export function verifyGpgStatus(stdout, fingerprint) {
     fields[2] === fingerprint || fields.at(-1) === fingerprint,
     'Maven signature uses a different primary key.',
   );
+}
+
+/** Fail planning before any registry write if the reviewed public key is missing or mismatched. */
+export async function inspectMavenPublicKey(key, fingerprint) {
+  assert.match(fingerprint, fingerprintPattern);
+  const text = key.toString('utf8');
+  assert(
+    text.startsWith('-----BEGIN PGP PUBLIC KEY BLOCK-----') &&
+      !text.includes('-----BEGIN PGP PRIVATE KEY BLOCK-----'),
+    'Commit only the reviewed armored public signing key.',
+  );
+  const home = await mkdtemp(join(tmpdir(), 'ad-pubkey-'));
+  try {
+    const result = await runSigningTool(
+      'gpg',
+      [
+        '--homedir',
+        home,
+        '--batch',
+        '--no-tty',
+        '--with-colons',
+        '--fingerprint',
+        '--import-options',
+        'show-only',
+        '--dry-run',
+        '--import',
+      ],
+      { input: key },
+    );
+    const lines = result.stdout.split('\n');
+    assert.equal(
+      lines.filter((line) => line.startsWith('pub:')).length,
+      1,
+      'Review exactly one primary Maven signing key.',
+    );
+    assert(
+      !lines.some((line) => line.startsWith('sec:') || line.startsWith('ssb:')),
+      'Private signing keys never belong in source.',
+    );
+    const primary =
+      lines[lines.findIndex((line) => line.startsWith('pub:')) + 1];
+    assert(primary?.startsWith('fpr:'));
+    assert.equal(
+      primary.split(':')[9],
+      fingerprint,
+      'Reviewed public key and publication policy disagree.',
+    );
+    return { fingerprint, publicKeySha256: hash(key) };
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
 }
 
 /** Exact existing archives are signed; Maven never rebuilds or rewrites a POM here. */

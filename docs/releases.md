@@ -115,7 +115,7 @@ The [verified release-candidate workflow](release-provenance.md) reuses the requ
 
 ## Review publication destinations and blockers
 
-The [read-only publication-plan workflow](publication-plans.md) verifies the exact successful candidate run/attempt, remote tag, producer signatures, bytes and proposed namespace policy. It retains reviewable digests and pending owner decisions without registry credentials or writes. Actual namespace/signing setup, registry transports, published installation and protected owner approval remain separate gates.
+The [publication workflow](publication-plans.md) verifies the exact successful candidate run/attempt, remote tag, producer signatures, bytes and namespace policy. Its default read-only run retains reviewable digests and pending owner decisions. Explicit publication requires approved policy, actual branch/tag protections and the protected release environment; separate npm, Maven and OCI publishers promote exact accepted bytes, followed by fresh public consumer verification. Namespace/signing setup, actual end-to-end acceptance and owner approval remain launch gates.
 
 ## Still required before publication
 

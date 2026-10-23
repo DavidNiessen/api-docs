@@ -1,6 +1,6 @@
 # Publication policy and review plans
 
-The manual **Review publication plan** workflow verifies an existing successful release candidate and prepares a reviewable plan. It has read-only repository, Actions and attestation permissions. It uses no registry/signing credentials and publishes nothing. Registry transports are being implemented separately; the workflow does not yet invoke them.
+The manual **Review or publish verified distributions** workflow verifies an existing successful release candidate and prepares a reviewable plan. Its default `confirm-publication: false` run has read-only repository, Actions and attestation permissions, uses no registry/signing credentials and publishes nothing. Explicit confirmation also requires approved source policy, actual repository protections and approval of the protected `release` environment before any publisher starts.
 
 Dispatch `.github/workflows/release-publish.yml` from the same canonical tag used by **Verified release candidate**, supplying its exact run ID and attempt. The source guard requires a clean, release-aligned upstream commit on `master`. The planner checks the actual candidate workflow identity, event, successful completion, source repository/commit and latest attempt; another successful workflow or a fork cannot substitute. It also checks the current remote tag, including annotated tags.
 
@@ -23,7 +23,15 @@ The planner downloads only the candidate's named npm/Java/container bundles. Sha
 
 The output lists every pending decision. `policyApproved` describes only the source policy; `publicationApproved` remains false. A policy file does not establish actual reviewer approval, registry authorization or publication. Version prereleases select npm's `next` tag; stable versions select `latest`. Selected workspace dependencies have a deterministic publication order, with duplicate/cyclic sets rejected.
 
-The additional approval-check mode verifies actual GitHub environment metadata before a publishing job can be queued: a nonempty required-reviewer rule and exactly the `v*` tag policy. It does not treat a policy boolean as evidence that the environment exists. Observed during implementation: current access can list environments but cannot inspect classic branch protection (`403 Resource not accessible by integration`); no `release` environment is configured. Protected repository/tag settings remain owner-controlled launch work.
+The additional approval-check mode verifies actual GitHub environment metadata before a publishing job can be queued: a nonempty required-reviewer rule and exactly the `v*` tag policy. It also checks active rulesets named `Protect master` and `Protect release tags`: reviewed PRs with resolved conversations, up-to-date `Quality` checks from GitHub Actions, no force pushes/deletions on the default `master` branch, and no version-tag updates/deletions. Only the repository administrator role may appear in a bypass list; those counts are recorded for review. It does not treat a policy boolean as evidence that these settings exist. Observed during implementation: current access can list environments/rulesets but cannot inspect classic branch protection (`403 Resource not accessible by integration`); the rulesets and tag-only `release` environment now exist, with administrator-role bypasses and the correct GitHub Actions check. PR conversation resolution and the environment reviewer rule are still missing. Completing these settings remains owner-controlled launch work.
+
+## Protected execution
+
+Leave confirmation disabled to review the verified plan. To publish, dispatch the same tag with the same successful candidate run/attempt and `confirm-publication: true`. The plan first verifies all source-policy decisions, the reviewed public signing key and actual protections. Three separate publishing jobs then require the `release` environment, re-download/re-verify the immutable candidate bytes and producer signatures, and receive only their own registry capabilities. Maven credentials and the optional npm bootstrap token are step-scoped protected environment secrets. Only npm and OCI jobs can request OIDC; only OCI can write GitHub Packages.
+
+Each publisher is followed by its own fresh read-only consumer runner. Those runners have no environment secrets, package-write permission or OIDC capability. The final acceptance job fails on any failed, cancelled or skipped distribution gate. Publication receipts and consumer evidence remain separate from the source policy's `publicationApproved: false`; the protected workflow gate supplies approval. No package is rebuilt during promotion. The workflow does not create a GitHub release announcement automatically.
+
+The workflow implementation and its permissions/argument-boundary checks pass locally. Actual protected publishing and public installation acceptance remain pending. A failed registry can leave other registries already published; inspect retained receipts before retrying, and never announce a successful full release from a partially completed run.
 
 ## Retained evidence
 
@@ -33,13 +41,13 @@ Do not edit a generated plan to bypass checks. Policy, naming or coordinate chan
 
 ## npm transport and fresh consumers
 
-`scripts/publish-npm.mjs` is intended only for the future protected publishing job. It requires a matching approved source policy, same-run plan and verified release environment. It rechecks the complete accepted npm bundle and workspace dependency order, then preflights every immutable public version before the first write. Existing versions must have native npm provenance and matching integrity, size and downloaded SHA-256. A conflicting version fails instead of being overwritten.
+`scripts/publish-npm.mjs` runs only in the protected npm publishing job. It requires a matching approved source policy, same-run plan and verified release environment. It rechecks the complete accepted npm bundle and workspace dependency order, then preflights every immutable public version before the first write. Existing versions must have native npm provenance and matching integrity, size and downloaded SHA-256. A conflicting version fails instead of being overwritten.
 
 New publications use the original tested archives with scripts disabled, public access and native npm provenance. Prereleases use `next`; stable versions use `latest`. Trusted publishing uses the protected job's OIDC identity; initial namespace/package bootstrap may instead require `NPM_TOKEN` as a step-scoped environment secret. Its value never enters command arguments, files or retained receipts. A temporary owner-only npm configuration contains only the literal environment-variable reference and is removed on success or failure. Partial receipts make completed immutable versions visible for a retry. This is not an atomic transaction across packages or registries.
 
 `scripts/verify-published-npm.mjs` belongs on a separate fresh read-only runner without signing, registry-write or OIDC credentials. It checks public registry archives against the accepted bundle, installs exact package names/versions into an external consumer using an empty cache, rejects workspace links, runs npm signature/provenance verification and the dependency audit, reinstalls offline from its new lockfile, and executes the installed CLI, public-type and authenticated Express/Fastify journeys. It retains its lockfile, SBOM and bounded verification output.
 
-Transport command/security tests and a real read-only public registry request pass locally. They do not establish that this project's packages are published or that a fresh public install passes. Those gates remain pending until ownership, protected workflow integration and explicit publication approval are in place.
+Transport command/security tests and a real read-only public registry request pass locally. They do not establish that this project's packages are published or that a fresh public install passes. Those gates remain pending until ownership, actual protected workflow acceptance and explicit publication approval are in place.
 
 ## Maven Central transport and fresh consumers
 

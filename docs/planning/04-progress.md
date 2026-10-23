@@ -17,6 +17,12 @@ Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**The release workflow now connects all three exact-byte publishers to protected approval and independent public consumers.** Default runs stay read-only. Explicit confirmation first requires approved source policy, actual active branch/tag rulesets with recorded administrator-only bypasses and a tag-only reviewer environment. Separate npm, Maven and OCI jobs receive only their own publishing capabilities; fresh consumer runners have only read permissions. The OCI job signs a promotion predicate. A final acceptance gate rejects any failed, cancelled or skipped distribution. GitHub release announcements remain a separate owner decision.
+
+All **158 tooling tests**, workflow syntax, lint and formatting checks pass locally. New checks cover default-deny publishing, registry-specific permissions, isolated consumers, actual protection metadata, predicate identity and shell argument boundaries. All 12 installed archive consumers also pass. Signing preflight rejects private, missing or mismatched source keys, and signature checks reject expired/revoked statuses. Actual clean-tag producer signing, protected registry publication, fresh public installations and independent launch reviews remain pending. The estimate stays approximately **97%, pre-release**.
+
+## Previous container-publication increment
+
 **Container promotion now preserves the tested image ID and has an anonymous public verification path.** The transport loads the accepted archive without rebuilding, rejects conflicting immutable tags and binds the registry manifest digest/config to producer evidence. A separate promotion predicate supports keyless signing without claiming the publisher built the image. Public acceptance uses anonymous registry credentials, an empty Docker configuration, a digest pull, constrained attestation verification and an owned read-only runtime probe with failure cleanup. Protected workflow integration and actual public publishing remain pending.
 
 All **152 tooling tests** pass. Read-only anonymous GHCR manifest/config verification passes against a public runner image. The new managed-daemon helper and restricted runtime/cleanup probe pass against the retained local `0.1.0` image; this is not a new-image or public-project publication claim. Completion remains approximately **97%, pre-release**.

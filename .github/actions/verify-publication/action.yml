@@ -1,0 +1,54 @@
+name: Verify immutable publication candidates
+description: Download exact upstream candidates and verify source, provenance and optional approval policy
+inputs:
+  candidate-run-id:
+    description: Successful release candidate run ID
+    required: true
+  candidate-run-attempt:
+    description: Exact successful run attempt
+    required: true
+  require-approval:
+    description: Require approved source policy and actual protected release environment
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - run: node scripts/check-release-source.mjs --publication
+      shell: bash
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+      with:
+        github-token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.candidate-run-id }}
+        name: release-npm-${{ inputs.candidate-run-id }}-${{ inputs.candidate-run-attempt }}
+        path: .api-docs/release-assets/npm/
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+      with:
+        github-token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.candidate-run-id }}
+        name: release-java-${{ inputs.candidate-run-id }}-${{ inputs.candidate-run-attempt }}
+        path: .api-docs/release-assets/java/
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+      with:
+        github-token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.candidate-run-id }}
+        name: release-container-${{ inputs.candidate-run-id }}-${{ inputs.candidate-run-attempt }}
+        path: .api-docs/release-assets/container/
+    - name: Verify successful upstream run, exact source, producer signatures and policy
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        CANDIDATE_RUN_ID: ${{ inputs.candidate-run-id }}
+        CANDIDATE_RUN_ATTEMPT: ${{ inputs.candidate-run-attempt }}
+        REQUIRE_APPROVAL: ${{ inputs.require-approval }}
+      run: |
+        set -euo pipefail
+        args=("$CANDIDATE_RUN_ID" "$CANDIDATE_RUN_ATTEMPT")
+        case "$REQUIRE_APPROVAL" in
+          true) args+=(--require-approval) ;;
+          false) ;;
+          *) echo '::error::require-approval must be true or false'; exit 1 ;;
+        esac
+        node scripts/check-publication.mjs "${args[@]}"
