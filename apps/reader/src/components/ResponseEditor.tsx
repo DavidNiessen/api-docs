@@ -6,6 +6,7 @@ import 'monaco-editor/languages/definitions/xml/register.js';
 import 'monaco-editor/languages/definitions/html/register.js';
 import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
 import { responseDisplay, responseLanguage } from '../response-view.js';
+import { useUi } from '../ui-translation.js';
 import { CopyButton } from './CopyButton.js';
 
 // Only the standalone editor and selected tokenizers are loaded, without language services.
@@ -43,6 +44,7 @@ export default function ResponseEditor({
   body: string;
   contentType: string;
 }) {
+  const t = useUi();
   const host = useRef<HTMLDivElement>(null);
   const instance = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [error, setError] = useState('');
@@ -64,7 +66,7 @@ export default function ResponseEditor({
         theme: theme(),
         readOnly: true,
         domReadOnly: true,
-        ariaLabel: 'Response body',
+        ariaLabel: t('response.body'),
         accessibilitySupport: 'on',
         automaticLayout: true,
         minimap: { enabled: false },
@@ -90,9 +92,7 @@ export default function ResponseEditor({
         attributeFilter: ['data-theme'],
       });
     } catch {
-      setError(
-        'The response editor could not load. The full response is shown below.',
-      );
+      setError(t('response.unavailable'));
     }
     return () => {
       observer?.disconnect();
@@ -100,12 +100,12 @@ export default function ResponseEditor({
       editor?.dispose();
       model?.dispose();
     };
-  }, [body, language]);
+  }, [body, language, t]);
   return (
     <div className="response-editor">
       <div className="response-editor-toolbar">
         <span>
-          Response body{' '}
+          {t('response.body')}{' '}
           <small>
             {language === 'plaintext' ? 'Text' : language.toUpperCase()}
           </small>
@@ -116,7 +116,7 @@ export default function ResponseEditor({
             void instance.current?.getAction('editor.foldAll')?.run()
           }
         >
-          Collapse all
+          {t('response.collapse')}
         </button>
         <button
           type="button"
@@ -124,9 +124,9 @@ export default function ResponseEditor({
             void instance.current?.getAction('editor.unfoldAll')?.run()
           }
         >
-          Expand all
+          {t('response.expand')}
         </button>
-        <CopyButton text={body} label="Copy entire response" />
+        <CopyButton text={body} label={t('response.copy')} />
       </div>
       {error && <p role="status">{error}</p>}
       <div ref={host} className="response-monaco" hidden={!!error} />

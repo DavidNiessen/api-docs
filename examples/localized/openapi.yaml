@@ -1,0 +1,34 @@
+openapi: 3.1.0
+info:
+  title: Projekte
+  version: v1
+servers:
+  - url: http://127.0.0.1:4010/v1
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+paths:
+  /projects:
+    get:
+      operationId: listProjects
+      summary: Projekte auflisten
+      tags: [Projekte]
+      responses:
+        '200':
+          description: Projekte
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string

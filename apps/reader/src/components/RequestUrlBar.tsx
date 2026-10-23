@@ -1,4 +1,5 @@
 import { CopyButton } from './CopyButton.js';
+import { useUi } from '../ui-translation.js';
 import { Icon } from './Icon.js';
 
 export function RequestUrlBar({
@@ -16,11 +17,12 @@ export function RequestUrlBar({
   onSend: () => void;
   onCancel: () => void;
 }) {
+  const t = useUi();
   const target = url ? new URL(url) : undefined;
   return (
     <div className="playground-target request-url-bar">
       <span className={`method-badge ${method}`}>{method}</span>
-      <code aria-label="Request URL" title={url}>
+      <code aria-label={t('playground.requestUrl')} title={url}>
         {target ? (
           <>
             <span className="url-origin">{target.origin}</span>
@@ -30,23 +32,23 @@ export function RequestUrlBar({
             </span>
           </>
         ) : (
-          'Complete the server and request parameters'
+          t('playground.incompleteUrl')
         )}
       </code>
-      <CopyButton text={url} label="Copy request URL" disabled={!url} />
+      <CopyButton text={url} label={t('playground.copyUrl')} disabled={!url} />
       <button
         type="button"
         className="url-send"
-        aria-label="Send request"
+        aria-label={t('playground.sendLabel')}
         disabled={disabled || busy || !url}
         onClick={onSend}
       >
         <Icon name="arrow" size={14} />
-        {busy ? 'Sending…' : 'Send'}
+        {t(busy ? 'playground.sending' : 'playground.send')}
       </button>
       {busy && (
         <button type="button" className="url-cancel" onClick={onCancel}>
-          Cancel
+          {t('playground.cancel')}
         </button>
       )}
     </div>

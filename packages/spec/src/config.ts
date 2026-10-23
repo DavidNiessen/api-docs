@@ -1,11 +1,13 @@
 import { z } from 'zod';
-import type { ProjectConfig } from '@api-docs/contracts';
+import type { UiMessageKey, ProjectConfig } from '@api-docs/contracts';
 import {
   contrastRatio,
   resolvePalette,
   themePresets,
   safeFeedbackUrl,
   isRelayEndpoint,
+  defaultUiMessages,
+  validUiMessage,
 } from '@api-docs/contracts';
 
 const safePath = z
@@ -151,8 +153,36 @@ export const configSchema = z
         z.string().regex(/^\/(?!\/)[a-zA-Z0-9/_-]*$/),
       )
       .prefault({}),
+    i18n: z
+      .object({
+        messages: z
+          .record(
+            z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/),
+            z.partialRecord(
+              z.enum(
+                Object.keys(defaultUiMessages) as [
+                  UiMessageKey,
+                  ...UiMessageKey[],
+                ],
+              ),
+              z.string().max(512),
+            ),
+          )
+          .refine(
+            (value) => Object.keys(value).length <= 16,
+            'At most 16 UI locales are supported',
+          ),
+      })
+      .strict()
+      .optional(),
     locales: z
       .array(z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/))
+      .min(1)
+      .max(16)
+      .refine(
+        (values) => new Set(values).size === values.length,
+        'Duplicate locales are not allowed',
+      )
       .default(['en']),
     defaultLocale: z.string().default('en'),
     plugins: z.array(safePath).default([]),
@@ -257,6 +287,30 @@ export const configSchema = z
               path: ['theme', 'colors', mode, foreground],
               message: `${foreground} must reach 4.5:1 contrast against ${background}`,
             });
+    }
+    for (const [locale, messages] of Object.entries(
+      config.i18n?.messages ?? {},
+    )) {
+      if (
+        !config.locales.some(
+          (configured) =>
+            configured === locale || configured.startsWith(locale + '-'),
+        )
+      )
+        context.addIssue({
+          code: 'custom',
+          path: ['i18n', 'messages', locale],
+          message:
+            'UI messages must target a configured locale or its base language',
+        });
+      for (const [key, value] of Object.entries(messages))
+        if (!validUiMessage(key as UiMessageKey, value!))
+          context.addIssue({
+            code: 'custom',
+            path: ['i18n', 'messages', locale, key],
+            message:
+              'Use nonempty plain text with the original named placeholders',
+          });
     }
     if (!config.locales.includes(config.defaultLocale))
       context.addIssue({

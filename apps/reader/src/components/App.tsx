@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -21,6 +22,7 @@ import {
   readableAccent,
   resolvePalette,
   pageMetadata,
+  createUiTranslation,
 } from '@api-docs/contracts';
 import type {
   ApiDocument,
@@ -29,6 +31,7 @@ import type {
   SearchResult,
   Theme,
 } from '@api-docs/contracts';
+import { UiContext } from '../ui-translation.js';
 import { Icon } from './Icon.js';
 import { Playground } from './Playground.js';
 import type { PlaygroundHandle } from './Playground.js';
@@ -146,6 +149,11 @@ export function App({
   const config = themeDraft
     ? { ...site.config, theme: themeDraft }
     : site.config;
+  const ui = useMemo(
+    () => createUiTranslation(config.defaultLocale, config.i18n),
+    [config.defaultLocale, config.i18n],
+  );
+  const t = ui.text;
   const palette = resolvePalette(
     config.theme,
     theme === 'dark' ? 'dark' : 'light',
@@ -405,7 +413,7 @@ export function App({
     ),
   ];
   const results = searchResults;
-  return (
+  const view = (
     <div
       className={`docs-shell density-${config.theme.density} font-${config.theme.font} code-${config.theme.codeTheme}`}
       style={
@@ -441,11 +449,11 @@ export function App({
     >
       {loading && (
         <div className="page-loading" role="status">
-          Loading documentation…
+          {t('navigation.loading')}
         </div>
       )}
       <a href="#main-content" className="skip-link">
-        Skip to content
+        {t('navigation.skip')}
       </a>
       <header className="site-header">
         <div className="header-main">
@@ -476,11 +484,11 @@ export function App({
           <button
             className="search-trigger"
             type="button"
-            aria-label="Search documentation"
+            aria-label={t('search.label')}
             onClick={() => openSearch()}
           >
             <Icon name="search" size={17} />
-            <span>Search documentation…</span>
+            <span>{t('search.placeholder')}</span>
             <kbd>⌘ K</kbd>
           </button>
           <div className="header-actions">
@@ -489,8 +497,8 @@ export function App({
                 <button
                   type="button"
                   className="icon-button"
-                  aria-label="Forget saved API credentials"
-                  title="Forget saved API credentials"
+                  aria-label={t('credentials.forget')}
+                  title={t('credentials.forget')}
                   onClick={(event) => {
                     const search = event.currentTarget
                       .closest('header')
@@ -517,17 +525,17 @@ export function App({
               <button
                 type="button"
                 className="theme-editor-trigger"
-                aria-label="Customize appearance"
+                aria-label={t('theme.customize')}
                 onClick={() => setThemeEditorOpen(true)}
               >
                 <Icon name="settings" size={16} />
-                <span>Customize</span>
+                <span>{t('theme.customizeShort')}</span>
               </button>
             )}
             <button
               type="button"
               className="icon-button theme-toggle"
-              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+              aria-label={t(theme === 'light' ? 'theme.dark' : 'theme.light')}
               onClick={() => {
                 const next = theme === 'light' ? 'dark' : 'light';
                 setTheme(next);
@@ -543,7 +551,7 @@ export function App({
             <button
               type="button"
               className="icon-button mobile-menu"
-              aria-label="Toggle navigation"
+              aria-label={t('navigation.toggle')}
               aria-expanded={mobileNav}
               onClick={() => setMobileNav(!mobileNav)}
             >
@@ -551,14 +559,14 @@ export function App({
             </button>
           </div>
         </div>
-        <nav className="header-tabs" aria-label="Documentation sections">
+        <nav className="header-tabs" aria-label={t('navigation.sections')}>
           <a
             className={!activeOperation && !lifecyclePage ? 'active' : ''}
             href={href(site.guides[0] ? guideHref(site.guides[0]) : '/')}
             data-doc-route
           >
             <Icon name="book" size={16} />
-            Documentation
+            {t('navigation.docs')}
           </a>
           {firstApi && activeApi && (
             <a
@@ -567,7 +575,7 @@ export function App({
               data-doc-route
             >
               <Icon name="code" size={16} />
-              API Reference
+              {t('navigation.api')}
             </a>
           )}
           {(site.lifecycle?.total ?? 0) > 0 && (
@@ -578,23 +586,23 @@ export function App({
               aria-current={lifecyclePage ? 'page' : undefined}
             >
               <Icon name="info" size={16} />
-              Deprecations
+              {t('navigation.deprecations')}
             </a>
           )}
           <span className="header-version">
             <span className="live-dot" />
-            Built for developers
+            {t('navigation.builtFor')}
           </span>
         </nav>
       </header>
       <div className="docs-layout">
         <aside
           className={`sidebar ${mobileNav ? 'is-open' : ''}`}
-          aria-label="Documentation navigation"
+          aria-label={t('navigation.sidebar')}
         >
           {site.apis.length > 1 ? (
             <label className="version-select">
-              API version
+              {t('navigation.version')}
               <select
                 value={selectedApi}
                 onChange={(event) => {
@@ -625,7 +633,7 @@ export function App({
           ) : (
             <div className="sidebar-project">
               <Icon name="globe" size={16} />
-              <span>Developer resources</span>
+              <span>{t('navigation.resources')}</span>
               {activeApi && (
                 <span className="version-pill">{activeApi.version}</span>
               )}
@@ -705,7 +713,9 @@ export function App({
               onClick={openSearch}
             >
               <Icon name="search" size={14} />
-              Search all {site.navigationTotal} pages
+              {t('navigation.searchAll', {
+                count: site.navigationTotal ?? 0,
+              })}
             </button>
           )}
           <div className="sidebar-bottom">
@@ -739,7 +749,7 @@ export function App({
             <>
               <article className="article api-article">
                 <div className="breadcrumb">
-                  API Reference
+                  {t('navigation.api')}
                   <Icon name="chevron" size={12} />
                   {activeOperation.tags[0] ?? activeApi.title}
                 </div>
@@ -800,13 +810,13 @@ export function App({
                     <button
                       type="button"
                       className="try-now"
-                      aria-label="Try this endpoint"
+                      aria-label={t('playground.tryEndpoint')}
                       aria-haspopup="dialog"
                       onClick={(event) =>
                         playground.current?.open(event.currentTarget)
                       }
                     >
-                      Try now <Icon name="arrow" size={14} />
+                      {t('playground.try')} <Icon name="arrow" size={14} />
                     </button>
                   )}
                 </div>
@@ -861,7 +871,7 @@ export function App({
             <>
               <article className="article guide-article">
                 <div className="breadcrumb">
-                  Documentation
+                  {t('navigation.docs')}
                   <Icon name="chevron" size={12} />
                   {activeGuide.group}
                 </div>
@@ -886,7 +896,9 @@ export function App({
                       >
                         <Icon name="book" />
                         <strong>{guide.title}</strong>
-                        <span>{guide.description || 'Continue reading'}</span>
+                        <span>
+                          {guide.description || t('navigation.continue')}
+                        </span>
                         <Icon name="arrow" />
                       </a>
                     ))}
@@ -900,7 +912,7 @@ export function App({
               <aside className="page-toc">
                 <h2>
                   <Icon name="menu" size={14} />
-                  On this page
+                  {t('navigation.onPage')}
                 </h2>
                 <nav>
                   {activeGuide.headings
@@ -936,13 +948,10 @@ export function App({
           ) : (
             <article className="article">
               <div className="eyebrow">404</div>
-              <h1>Page not found</h1>
-              <p>
-                This page may have moved. Try search or return to the
-                documentation.
-              </p>
+              <h1>{t('navigation.notFound')}</h1>
+              <p>{t('navigation.notFoundHelp')}</p>
               <a className="button-primary" href={href('/')} data-doc-route>
-                Back to documentation
+                {t('navigation.back')}
                 <Icon name="arrow" />
               </a>
             </article>
@@ -966,7 +975,7 @@ export function App({
       <dialog
         className="search-dialog"
         ref={dialog}
-        aria-label="Search documentation"
+        aria-label={t('search.label')}
         onClick={(event) => {
           if (event.target === dialog.current) dialog.current?.close();
         }}
@@ -975,40 +984,40 @@ export function App({
           <Icon name="search" />
           <input
             autoFocus
-            aria-label="Search documentation"
-            placeholder="Search documentation…"
+            aria-label={t('search.label')}
+            placeholder={t('search.placeholder')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
           <button
             type="button"
             onClick={() => dialog.current?.close()}
-            aria-label="Close search"
+            aria-label={t('search.close')}
           >
             <kbd>Esc</kbd>
           </button>
         </div>
         <div className="search-filters">
           <label>
-            Content
+            {t('search.content')}
             <select
-              aria-label="Search content type"
+              aria-label={t('search.type')}
               value={searchKind}
               onChange={(event) => setSearchKind(event.target.value)}
             >
-              <option value="">All content</option>
-              <option value="guide">Guides</option>
-              <option value="operation">API endpoints</option>
+              <option value="">{t('search.allContent')}</option>
+              <option value="guide">{t('search.guides')}</option>
+              <option value="operation">{t('search.endpoints')}</option>
             </select>
           </label>
           <label>
-            API version
+            {t('navigation.version')}
             <select
-              aria-label="Search API version"
+              aria-label={t('search.version')}
               value={searchVersion}
               onChange={(event) => setSearchVersion(event.target.value)}
             >
-              <option value="">All versions</option>
+              <option value="">{t('search.allVersions')}</option>
               {[
                 ...new Set(
                   searchIndex.map((entry) => entry.version).filter(Boolean),
@@ -1018,7 +1027,7 @@ export function App({
               ))}
             </select>
           </label>
-          {searchLoading && <small role="status">Loading search…</small>}
+          {searchLoading && <small role="status">{t('search.loading')}</small>}
         </div>
         <div className="search-results">
           {query ? (
@@ -1048,24 +1057,26 @@ export function App({
             ) : (
               <div className="search-empty">
                 <Icon name="search" size={28} />
-                <h3>No matching results</h3>
-                <p>Try a different term, endpoint, or parameter name.</p>
+                <h3>{t('search.empty')}</h3>
+                <p>{t('search.emptyHelp')}</p>
               </div>
             )
           ) : (
             <div className="search-empty">
               <Icon name="spark" size={28} />
-              <h3>What would you like to build?</h3>
-              <p>Search guides, endpoints, and parameters.</p>
+              <h3>{t('search.start')}</h3>
+              <p>{t('search.startHelp')}</p>
             </div>
           )}
         </div>
         <div className="search-dialog-footer">
-          Local search · Your queries stay in your browser<span>⌘ K</span>
+          {t('search.privacy')}
+          <span>⌘ K</span>
         </div>
       </dialog>
     </div>
   );
+  return <UiContext.Provider value={ui}>{view}</UiContext.Provider>;
 }
 function OperationDetails({
   api,

@@ -18,6 +18,11 @@ export default defineConfig({
   },
   webServer: [
     {
+      command: 'node scripts/localized-browser-fixture.mjs',
+      url: 'http://127.0.0.1:4177/health/ready',
+      reuseExistingServer: false,
+    },
+    {
       command: 'node scripts/lifecycle-browser-fixture.mjs',
       url: 'http://127.0.0.1:4176/health/ready',
       reuseExistingServer: false,

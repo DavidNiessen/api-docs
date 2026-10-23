@@ -1,5 +1,6 @@
 import { feedbackHref } from '@api-docs/contracts';
 import type { ProjectConfig } from '@api-docs/contracts';
+import { useUi } from '../ui-translation.js';
 import { Icon } from './Icon.js';
 
 export function PageFooter({
@@ -11,13 +12,14 @@ export function PageFooter({
   config: ProjectConfig;
   path: string;
 }) {
+  const t = useUi();
   const feedback = feedbackHref(config, path);
   return (
     <footer className="article-footer">
       <div>
         <Icon name="code" size={15} />
         <span>
-          Source: <code>{source}</code>
+          {t('footer.source')} <code>{source}</code>
         </span>
       </div>
       {feedback && (
@@ -28,12 +30,12 @@ export function PageFooter({
           rel="noopener noreferrer"
           referrerPolicy="no-referrer"
         >
-          {config.feedback?.label ?? 'Report an issue'}
+          {config.feedback?.label ?? t('footer.feedback')}
           <Icon name="arrow" size={13} />
-          <span className="sr-only"> (opens in a new tab)</span>
+          <span className="sr-only">{t('footer.newTab')}</span>
         </a>
       )}
-      <span>Built with api-docs</span>
+      <span>{t('footer.builtWith')}</span>
     </footer>
   );
 }

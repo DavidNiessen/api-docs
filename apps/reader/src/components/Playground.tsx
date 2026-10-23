@@ -1,5 +1,6 @@
 import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { ComponentProps, Ref } from 'react';
+import { useUi } from '../ui-translation.js';
 import { Explorer } from './Explorer.js';
 
 type Props = Pick<
@@ -18,6 +19,7 @@ export interface PlaygroundHandle {
 
 /** A native modal keeps the underlying documentation inert and traps focus. */
 export function Playground({ ref, ...props }: Props) {
+  const t = useUi();
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -42,7 +44,7 @@ export function Playground({ ref, ...props }: Props) {
     document.documentElement.style.overflow = 'hidden';
     element.showModal();
     element
-      .querySelector<HTMLButtonElement>('[aria-label="Close playground"]')
+      .querySelector<HTMLButtonElement>('[data-close-playground]')
       ?.focus();
     return () => {
       element.close();
@@ -83,7 +85,7 @@ export function Playground({ ref, ...props }: Props) {
       <dialog
         ref={dialog}
         className="playground-dialog"
-        aria-label={`${props.operation.summary} playground`}
+        aria-label={t('playground.dialog', { title: props.operation.summary })}
         onCancel={(event) => {
           event.preventDefault();
           update(false);

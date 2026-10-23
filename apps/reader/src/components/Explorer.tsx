@@ -36,6 +36,7 @@ import { multipartExampleBody } from '../multipart-input.js';
 import { credentialScope } from '../credential-session.js';
 import type { CredentialSession } from '../credential-session.js';
 import { useCredentials } from '../use-credentials.js';
+import { useUi } from '../ui-translation.js';
 import { useRelay } from '../use-relay.js';
 import { RelayError, sendViaRelay } from '../relay-transport.js';
 import { RelayControls } from './RelayControls.js';
@@ -50,12 +51,11 @@ const snippetLanguages: readonly SnippetLanguage[] = [
   'Java',
 ];
 function ResponseFallback({ body }: { body: string }) {
+  const t = useUi();
   return (
     <div className="response-editor">
-      <p role="status">
-        The editor is unavailable. The full response is shown below.
-      </p>
-      <CopyButton text={body} label="Copy entire response" />
+      <p role="status">{t('response.unavailable')}</p>
+      <CopyButton text={body} label={t('response.copy')} />
       <pre tabIndex={0} className="response-fallback">
         {body}
       </pre>
@@ -108,6 +108,7 @@ export function Explorer({
   oauthClients?:
     Record<string, { clientId: string; issuer: string }> | undefined;
 }) {
+  const t = useUi();
   const relay = useRelay(relayEndpoint, !previewOnly);
   const [origin, setOrigin] = useState('');
   useEffect(() => setOrigin(location.origin), []);
@@ -335,7 +336,10 @@ export function Explorer({
     if (
       ['POST', 'PUT', 'PATCH', 'DELETE', 'TRACE'].includes(request.method) &&
       !window.confirm(
-        `Send ${request.method} to ${new URL(request.url).origin}? This may modify data.`,
+        t('playground.confirm', {
+          method: request.method,
+          origin: new URL(request.url).origin,
+        }),
       )
     )
       return;
@@ -489,7 +493,7 @@ export function Explorer({
             onClick={onOpen}
             aria-haspopup="dialog"
           >
-            Try now <Icon name="arrow" size={14} />
+            {t('playground.try')} <Icon name="arrow" size={14} />
           </button>
         </div>
         {preview.request || operation.codeSamples?.length ? (
@@ -504,7 +508,7 @@ export function Explorer({
   return (
     <aside
       className="explorer playground-workspace"
-      aria-label="API playground"
+      aria-label={t('playground.label')}
     >
       <header className="playground-heading">
         <RequestUrlBar
@@ -524,8 +528,9 @@ export function Explorer({
         <button
           type="button"
           className="icon-button"
-          aria-label="Close playground"
+          aria-label={t('playground.close')}
           onClick={onClose}
+          data-close-playground
           autoFocus
         >
           <Icon name="close" size={18} />
@@ -878,8 +883,11 @@ export function Explorer({
               : 'Requests are sent directly from your browser.'}
           </p>
         </section>
-        <section className="playground-output" aria-label="API response">
-          <div className="response-panel-heading">Response</div>
+        <section
+          className="playground-output"
+          aria-label={t('response.region')}
+        >
+          <div className="response-panel-heading">{t('response.title')}</div>
           <MockResponseControls
             api={api}
             operation={operation}
@@ -927,7 +935,7 @@ export function Explorer({
                   )}
                 </div>
                 <Suspense
-                  fallback={<p role="status">Loading response editor…</p>}
+                  fallback={<p role="status">{t('response.loading')}</p>}
                 >
                   <ResponseEditor
                     body={response.body}
@@ -935,15 +943,15 @@ export function Explorer({
                   />
                 </Suspense>
                 <details>
-                  <summary>Response headers</summary>
+                  <summary>{t('response.headers')}</summary>
                   <pre>{response.headers}</pre>
                 </details>
               </>
             ) : (
               <div className="response-empty">
                 <Icon name="terminal" size={30} />
-                <h3>Your response will appear here</h3>
-                <p>Send a request to try this endpoint.</p>
+                <h3>{t('response.empty')}</h3>
+                <p>{t('response.emptyHelp')}</p>
               </div>
             )}
           </div>

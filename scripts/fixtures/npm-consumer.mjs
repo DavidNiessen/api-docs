@@ -25,6 +25,7 @@ import {
   objectFieldSchema,
   feedbackHref,
   isRelayEndpoint,
+  createUiTranslation,
 } from '@api-docs/contracts';
 import {
   redactJsonBody,
@@ -63,6 +64,20 @@ assert.equal(
   }).explorer.relay,
   '/api/projects/installed/relay',
 );
+const translatedConfig = parseConfig({
+  name: 'Installed messages',
+  specs: [{ id: 'fixture', path: 'openapi.yaml' }],
+  locales: ['de'],
+  defaultLocale: 'de',
+  i18n: { messages: { de: { 'playground.dialog': '{title} testen' } } },
+});
+const translated = createUiTranslation('de', translatedConfig.i18n);
+assert.equal(
+  translated.text('playground.dialog', { title: 'Installed' }),
+  'Installed testen',
+);
+assert.equal(translated.text('playground.send'), 'Send');
+assert.equal(translated.translated, 1);
 const composed = objectFieldSchema(
   {
     allOf: [

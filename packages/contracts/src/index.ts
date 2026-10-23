@@ -139,6 +139,7 @@ export interface Theme {
   density: 'comfortable' | 'compact';
 }
 export interface ProjectConfig {
+  i18n?: import('./i18n.js').UiConfiguration;
   feedback?: { url: string; label?: string; includePage?: boolean };
   explorer?: {
     relay?: string;
@@ -295,3 +296,16 @@ export function isRelayEndpoint(value: string): boolean {
     /^\/api\/projects\/[a-z0-9][a-z0-9-]{0,62}\/relay$/.test(value)
   );
 }
+
+export {
+  defaultUiMessages,
+  createUiTranslation,
+  validUiMessage,
+} from './i18n.js';
+export type {
+  UiMessageKey,
+  UiMessages,
+  UiConfiguration,
+  UiText,
+  UiTranslation,
+} from './i18n.js';

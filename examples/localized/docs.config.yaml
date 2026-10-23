@@ -1,0 +1,61 @@
+schemaVersion: 1
+name: Mehrsprachige API
+basePath: /localized
+locales: [en, de]
+defaultLocale: de
+specs:
+  - id: api
+    path: openapi.yaml
+i18n:
+  messages:
+    de:
+      navigation.skip: Zum Inhalt
+      navigation.docs: Dokumentation
+      navigation.api: API-Referenz
+      navigation.sections: Dokumentationsbereiche
+      navigation.sidebar: Dokumentationsnavigation
+      navigation.toggle: Navigation umschalten
+      navigation.resources: Entwicklerressourcen
+      navigation.builtFor: Für Entwickler
+      navigation.onPage: Auf dieser Seite
+      navigation.continue: Weiterlesen
+      search.label: Dokumentation durchsuchen
+      search.placeholder: Dokumentation durchsuchen…
+      search.close: Suche schließen
+      search.content: Inhalt
+      search.type: Inhaltstyp der Suche
+      search.allContent: Alle Inhalte
+      search.guides: Anleitungen
+      search.endpoints: API-Endpunkte
+      search.version: API-Version durchsuchen
+      search.allVersions: Alle Versionen
+      search.loading: Suche wird geladen…
+      search.empty: Keine passenden Ergebnisse
+      search.start: Was möchtest du entwickeln?
+      search.privacy: Lokale Suche · Deine Suchanfragen bleiben im Browser
+      theme.dark: Zum dunklen Design wechseln
+      theme.light: Zum hellen Design wechseln
+      playground.try: Jetzt testen
+      playground.tryEndpoint: Diesen Endpunkt testen
+      playground.dialog: '{title} testen'
+      playground.label: API testen
+      playground.close: Testfenster schließen
+      playground.requestUrl: Anfrage-URL
+      playground.copyUrl: Anfrage-URL kopieren
+      playground.sendLabel: Anfrage senden
+      playground.send: Senden
+      playground.sending: Wird gesendet…
+      playground.cancel: Abbrechen
+      response.region: API-Antwort
+      response.title: Antwort
+      response.body: Antwortinhalt
+      response.empty: Deine Antwort erscheint hier
+      response.emptyHelp: Sende eine Anfrage, um diesen Endpunkt zu testen.
+      response.loading: Antworteditor wird geladen…
+      response.headers: Antwort-Header
+      response.copy: Vollständige Antwort kopieren
+      response.collapse: Alles einklappen
+      response.expand: Alles ausklappen
+      copy.success: Kopiert
+      footer.source: 'Quelle:'
+      footer.builtWith: Erstellt mit api-docs
