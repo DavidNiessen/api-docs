@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated: 2026-10-23. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
 ## Current milestone status
 
@@ -16,6 +16,14 @@ Updated: 2026-10-23. **Approximately 97% complete; pre-release.** This is an eng
 | M7 — Launch              | Local automated validation and documented performance experiments                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Independent pilots, security/accessibility review, complete license/distribution audit, protected release approval and registry installation verification |
 
 ## Latest completed increment
+
+**Publication plans now verify successful candidate identity and authentic producer bytes before listing destinations and blockers.** A read-only tag workflow checks the exact upstream candidate workflow/attempt and remote tag, shares signature/hash verification with candidate acceptance, and evaluates public namespace, signing and launch-review decisions. It keeps policy decisions separate from publication approval. A further approval-check mode validates the actual reviewer/tag environment configuration. Dependency ordering is checked against all public workspaces. See [publication plans](../publication-plans.md).
+
+All **136 tooling cases** pass, including eight new policy/verification cases and expanded release-source workflow-identity checks. Tests cover command constraints and failure handling; actual GitHub OIDC/signature acceptance still requires a clean-tag run. Registry transports, published installation and protected release approval remain pending; the estimate stays approximately **97%, pre-release**.
+
+Hosted [Quality run 40034353999](https://github.com/DavidNiessen/api-docs/actions/runs/40034353999) passes every job at `4042c8f`, including both CodeQL languages, both package managers, source/browser, all Java combinations and deployment/image security. The parser/receipt fixes are merged into `master`. The new planning/verification increment remains subject to fresh hosted checks.
+
+## Previous parser-and-receipt increment
 
 **Both package managers now require patched `body-parser` 2.4.0.** The pnpm gate caught High advisory GHSA-27r3-jxmh-p828 in 2.3.0; npm's lock already used 2.4.0. Matching overrides and the pnpm lock now select the patch, and both local advisory audits report zero findings. All 1,049 source cases, 128 tooling cases, strict types, formatting/lint and 12 installed npm components pass. Release image collection also selects its subject from the accepted deployment receipt and cross-checks the inventory/security receipts, removing reliance on a globally named temporary identifier. Fresh hosted source/security and package-manager checks remain required for these fixes.
 

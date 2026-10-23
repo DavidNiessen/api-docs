@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "publicationEnabled": false,
+  "environment": "release",
+  "npm": {
+    "scope": "@api-docs",
+    "ownershipVerified": false
+  },
+  "maven": {
+    "groupId": "dev.niessen",
+    "ownershipVerified": false,
+    "signingKeyFingerprint": null
+  },
+  "container": {
+    "repository": "ghcr.io/davidniessen/api-docs",
+    "ownershipVerified": false
+  },
+  "reviews": {
+    "security": false,
+    "isolation": false,
+    "accessibility": false,
+    "licenses": false,
+    "pilot": false
+  }
+}

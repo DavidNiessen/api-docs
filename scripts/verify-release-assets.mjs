@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { releaseSource, verifyReleaseAssets } from './lib/release-assets.mjs';
+import { verifyProducerProvenance } from './lib/provenance-verification.mjs';
 
 assert.equal(
   process.argv.length,
@@ -15,6 +16,7 @@ for (const kind of ['npm', 'java', 'container']) {
     `${kind}: ${manifest.files.length} exact assets bound to ${context.ref}, run ${context.runId}/${context.runAttempt}.`,
   );
 }
+const proof = await verifyProducerProvenance(process.cwd(), context);
 console.log(
-  'Checksums and source bindings verified. Verify producer attestations separately; this is not publication approval.',
+  `Verified bytes and producer provenance for ${proof.subjects.length} subjects; this is not publication approval.`,
 );
