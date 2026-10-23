@@ -67,6 +67,8 @@ SIGINT/SIGTERM and the JavaScript API's `AbortSignal` cancel the job. An indepen
 
 A killed operator process can leave its private `.api-docs/isolated-<uuid>` staging directory and `.build.lock`. Confirm the corresponding container/volume are gone and no other build is active before removing those specific leftovers. Never delete a surviving `previous-<uuid>` backup until the publication has been recovered and verified. The runner does not silently break publication locks.
 
+Temporary snapshots, export staging and previous-output directories live beside the selected output under `.api-docs`. Nested worker outputs therefore keep their temporary files inside the owning attempt directory. The [separate worker](build-worker.md#failure-shutdown-and-recovery) can reclaim proven-expired attempts after process death.
+
 Interruption during allocation, before the watchdog is armed, can also leave an owned volume or stopped container. The workload starts only after the watchdog handshake. Inspect the affected labels and remove those specific resources during recovery.
 
 Docker access is privileged administrative access to the host. Use a dedicated patched build host, controlled socket access and approved images. Container/kernel isolation is not a VM boundary or a guarantee against kernel vulnerabilities. Host disk capacity, daemon availability, signed worker distribution and deployment-specific hardening remain operator responsibilities.

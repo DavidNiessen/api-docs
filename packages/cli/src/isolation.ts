@@ -10,7 +10,7 @@ import {
   realpath,
   rm,
 } from 'node:fs/promises';
-import { dirname, join, isAbsolute } from 'node:path';
+import { dirname, join, isAbsolute, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -203,6 +203,7 @@ export async function buildIsolatedSite(
     });
   }
   const directory = await safeOutput(root, options.output ?? '.api-docs/site');
+  const workspace = relative(root, dirname(directory));
   const lockPath = join(dirname(directory), '.build.lock');
   const lock = await open(lockPath, 'wx').catch(() => {
     throw new Error(
@@ -211,7 +212,7 @@ export async function buildIsolatedSite(
   });
   let job: string;
   try {
-    job = await safeOutput(root, `.api-docs/isolated-${randomUUID()}`);
+    job = await safeOutput(root, join(workspace, `isolated-${randomUUID()}`));
     await chmod(job, 0o700);
   } catch (error) {
     await lock.close();
@@ -450,7 +451,7 @@ export async function buildIsolatedSite(
     phase = 'publication activation';
     const previous = await safeOutput(
       root,
-      `.api-docs/previous-${randomUUID()}`,
+      join(workspace, `previous-${randomUUID()}`),
     );
     controller.signal.throwIfAborted();
     await activateDirectory(stage, directory, previous);

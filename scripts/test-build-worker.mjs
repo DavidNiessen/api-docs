@@ -9,7 +9,7 @@ import {
   rm,
   writeFile,
 } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { tmpdir, uptime } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { promisify } from 'node:util';
@@ -22,7 +22,7 @@ import { readWorkerConfig } from '../apps/worker/dist/config.js';
 import { createWorkerClient } from '../apps/worker/dist/protocol.js';
 import {
   createIsolatedExecutor,
-  hasBuildStorage,
+  createWorkerStorageAdmission,
 } from '../apps/worker/dist/executor.js';
 import { runWorker } from '../apps/worker/dist/worker.js';
 
@@ -176,8 +176,7 @@ async function run(source, onEvent) {
     signal: AbortSignal.any([controller.signal, AbortSignal.timeout(90000)]),
     control: createWorkerClient(origin, credential, true),
     execute: createIsolatedExecutor(artifactRoot),
-    canStart: (value, reserved) =>
-      hasBuildStorage(value, artifactRoot, reserved),
+    canStart: createWorkerStorageAdmission(artifactRoot, controller.signal),
     // Preserve actual HTTP/leases/containers; shorten only the heartbeat cadence for cancellation acceptance.
     wait: (milliseconds, signal) =>
       delay(milliseconds === 10000 ? 200 : 50, undefined, { signal }),
@@ -356,12 +355,39 @@ try {
     join(recoverable.directory, '.api-docs/worker-jobs'),
   );
   assert.equal(orphanedDirectories.length, 1);
+  await readFile(
+    join(
+      recoverable.directory,
+      '.api-docs/worker-jobs',
+      orphanedDirectories[0],
+      '.build.lock',
+    ),
+  );
+  assert.deepEqual(
+    (await readdir(join(recoverable.directory, '.api-docs'))).filter((name) =>
+      /^(?:isolated|previous)-/.test(name),
+    ),
+    [],
+  );
+  const orphanOwner = JSON.parse(
+    await readFile(
+      join(
+        recoverable.directory,
+        '.api-docs/worker-jobs',
+        orphanedDirectories[0],
+        'worker-owner.json',
+      ),
+      'utf8',
+    ),
+  );
   // Wait the real hard recovery window: never advance PostgreSQL clocks or shorten the old owner's budget.
   const remaining = Date.parse(lost.deadlineAt) - Date.now();
   assert.ok(remaining > 0 && remaining <= 135000);
   await until(
-    async () => Date.now() > Date.parse(lost.deadlineAt) + 100,
-    remaining + 2000,
+    async () =>
+      Date.now() > Date.parse(lost.deadlineAt) + 100 &&
+      Math.floor(uptime() * 1000) > orphanOwner.safeAfterUptimeMs + 100,
+    remaining + 30000,
   );
   assert.equal(await run(recoverable), 'succeeded');
   const recovered = await repository.buildJobs.job(project.id, abandoned.id);
@@ -370,7 +396,7 @@ try {
   assert.equal(recovered.workerId, 'docker-acceptance');
   assert.deepEqual(
     await readdir(join(recoverable.directory, '.api-docs/worker-jobs')),
-    orphanedDirectories,
+    [],
   );
   assert.equal(
     (await repository.project(project.id)).activePublicationId,
@@ -382,7 +408,7 @@ try {
   evidence.checks.push(
     'killed-executable-watchdog-cleanup',
     'real-hard-deadline-expiry-and-second-attempt',
-    'orphaned-output-lock-cannot-block-new-attempt',
+    'expired-owned-workspace-and-lock-reclaimed-before-retry',
   );
   evidence.results.push(recovered.result);
   console.log(JSON.stringify(evidence, null, 2));

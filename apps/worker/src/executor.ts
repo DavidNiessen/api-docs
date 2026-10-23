@@ -5,6 +5,7 @@ import { buildIsolatedSite, stageArtifact } from '@api-docs/cli';
 import { safeOutput } from '@api-docs/compiler';
 import type { BuildLease, BuildResult } from '@api-docs/domain';
 import type { PreparedSource } from './config.js';
+import { markWorkerWorkspace, reclaimWorkerWorkspaces } from './workspaces.js';
 export class SourceApprovalChanged extends Error {}
 export class BuildExecutionDeadline extends Error {}
 export type BuildExecution = Pick<BuildLease, 'job' | 'source'>;
@@ -43,6 +44,22 @@ export async function hasBuildStorage(
   ]);
   return spaces.every((space) => space.bavail * space.bsize >= required);
 }
+/** Periodic local reclamation precedes storage admission, including idle recovery. */
+export function createWorkerStorageAdmission(
+  artifactRoot: string,
+  signal: AbortSignal,
+) {
+  const swept = new Map<string, number>();
+  return async (source: PreparedSource, reservedMiB: number) => {
+    const now = performance.now();
+    const previous = swept.get(source.directory);
+    if (previous === undefined || now - previous >= 60000) {
+      await reclaimWorkerWorkspaces(source.directory, signal);
+      swept.set(source.directory, now);
+    }
+    return hasBuildStorage(source, artifactRoot, reservedMiB);
+  };
+}
 export function createIsolatedExecutor(artifactRoot: string): BuildExecutor {
   return async (lease, source, signal) => {
     if (!sameApproval(lease, source))
@@ -55,6 +72,12 @@ export function createIsolatedExecutor(artifactRoot: string): BuildExecutor {
       join(parent, `job-${lease.job.id}-${lease.job.attempts}-`),
     );
     try {
+      await markWorkerWorkspace(
+        directory,
+        lease.job.id,
+        lease.job.attempts,
+        source.policy.limits.timeoutMs,
+      );
       const build = await buildIsolatedSite(source.directory, {
         image: source.policy.image,
         expectedSourceDigest: source.snapshot.digest,

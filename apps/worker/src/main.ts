@@ -1,7 +1,10 @@
 import { readTextFile } from '@api-docs/spec';
 import { loadWorkerConfig } from './config.js';
 import { createWorkerClient } from './protocol.js';
-import { createIsolatedExecutor, hasBuildStorage } from './executor.js';
+import {
+  createIsolatedExecutor,
+  createWorkerStorageAdmission,
+} from './executor.js';
 import { runWorker } from './worker.js';
 const controller = new AbortController();
 let deadline: ReturnType<typeof setTimeout> | undefined;
@@ -38,8 +41,10 @@ try {
       config.insecureDevelopment,
     ),
     execute: createIsolatedExecutor(config.artifactRoot),
-    canStart: (source, reservedMiB) =>
-      hasBuildStorage(source, config.artifactRoot, reservedMiB),
+    canStart: createWorkerStorageAdmission(
+      config.artifactRoot,
+      controller.signal,
+    ),
     report: (event, jobId) =>
       console.info(JSON.stringify({ event, ...(jobId ? { jobId } : {}) })),
   });
