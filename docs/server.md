@@ -39,6 +39,14 @@ Sign-out immediately cancels workspace requests and clears any displayed token. 
 
 Cancelling a request does not undo an action already accepted by the server. Review publication/build history and audit events after an uncertain response. A token created before navigation may remain valid even though its response was discarded; use its creation audit entry to find the token ID and revoke it if needed. Never put a token in an issue, screenshot or build log.
 
+### Current project permissions
+
+`GET /api/projects/<id-or-slug>/capabilities` requires authenticated viewer membership, including on public projects, and returns `{projectId, publish, manageAccess, readAudit}`. Publishers can publish and read publication history; administrators can additionally manage identity/token access and read audit events. The operator has every project permission. Unknown query fields fail with 400; absent projects return 404 and missing membership returns 401/403. Responses use `Cache-Control: no-store`. This endpoint is available for embedded repositories without a build queue as well.
+
+Studio shows project creation only to the operator, identified by `/api/me`'s existing `operator` flag. Other navigation and mutation forms follow the current project capabilities. Permissions refresh on navigation, every thirty seconds while the page is visible, and through **Refresh projects**. A role reduction removes unavailable forms and returns their active screen to Overview. Losing membership clears the selected project and removes its cached entry; refresh the project list after access is granted again. Invalid or unavailable permission responses withhold privileged forms and expose a retry action.
+
+Capability flags guide the interface; each API request independently checks authorization. An outdated flag cannot grant publication or administration rights. [Build permissions](build-jobs.md#management-http-api) remain separate because source approval is operator-only even for project administrators.
+
 ## Deployment boundary
 
 Terminate TLS at a trusted reverse proxy. The server does not blindly trust forwarded client addresses. Rate limits use the directly connected address; configure the proxy's limits as well. Management/authentication traffic has a separate 300-request/minute bucket; credential-bearing reader traffic has a 12,000-request/minute bucket. Anonymous static traffic does not consume those buckets. Keep the management API private when practical and grant publishers only access to the projects they maintain.

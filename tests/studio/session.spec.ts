@@ -206,12 +206,28 @@ test('permission failures retain the session while revoked credentials clear pri
   });
   expect(issued.status()).toBe(201);
   const token = (await issued.json()) as { id: string; token: string };
+  // Stale advisory permissions cannot grant publication rights on the server.
+  await page.route(
+    `**/api/projects/${project.id}/capabilities`,
+    async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        ...(response.ok()
+          ? {
+              json: {
+                projectId: project.id,
+                publish: true,
+                manageAccess: false,
+                readAudit: false,
+              },
+            }
+          : {}),
+      });
+    },
+  );
   await connect(page, project, token.token);
-  await page
-    .getByRole('button', { name: 'Access control', exact: true })
-    .click();
-  await page.getByLabel('Label', { exact: true }).fill('Forbidden issuance');
-  await page.getByRole('button', { name: 'Create token', exact: true }).click();
+  await page.getByRole('button', { name: 'Publications', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText(/denied|forbidden/i);
   await expect(
     page.getByRole('button', { name: 'Sign out', exact: true }),
@@ -221,7 +237,9 @@ test('permission failures retain the session while revoked credentials clear pri
     { headers: headers() },
   );
   expect(revoked.ok()).toBe(true);
-  await page.getByRole('button', { name: 'Publications', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Refresh projects', exact: true })
+    .click();
   await expect(
     page.getByRole('heading', { name: 'Welcome to your workspace' }),
   ).toBeVisible();

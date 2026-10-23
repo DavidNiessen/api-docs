@@ -173,6 +173,7 @@ it('keeps build metadata private even on public documentation and rechecks scope
   const source = await approve();
   const job = await enqueue(source.id);
   for (const suffix of [
+    '/capabilities',
     '/build-capabilities',
     '/build-sources',
     `/build-sources/${source.id}`,
@@ -194,7 +195,7 @@ it('keeps build metadata private even on public documentation and rechecks scope
       /key_hash|request_hash|lease_token|settled_lease|hostPath/,
     );
   }
-  for (const suffix of ['/builds', '/build-capabilities'])
+  for (const suffix of ['/builds', '/build-capabilities', '/capabilities'])
     expect(
       (await app.inject(`/api/projects/${other.id}${suffix}`)).statusCode,
     ).toBe(401);
@@ -216,9 +217,15 @@ it('keeps build metadata private even on public documentation and rechecks scope
   ).toBe(404);
 });
 it('keeps embedded repositories without a queue usable and leaves build routes unavailable', async () => {
+  let roleLookups = 0;
   const embedded = new Proxy(repository, {
     get(target, name) {
       if (name === 'buildJobs') return undefined;
+      if (name === 'role')
+        return (...args: Parameters<typeof target.role>) => {
+          roleLookups++;
+          return target.role(...args);
+        };
       const value = Reflect.get(target, name);
       return typeof value === 'function' ? value.bind(target) : value;
     },
@@ -232,7 +239,31 @@ it('keeps embedded repositories without a queue usable and leaves build routes u
   });
   try {
     expect((await server.inject('/health/ready')).statusCode).toBe(200);
+    const listed = await server.inject({ url: '/api/projects', headers: auth });
+    expect(listed.statusCode).toBe(200);
+    expect(
+      listed.json<Project[]>().some((item) => item.id === project.id),
+    ).toBe(true);
+    const scoped = await server.inject({
+      url: '/api/projects',
+      headers: viewer.headers,
+    });
+    expect(scoped.statusCode).toBe(200);
+    expect(scoped.json<Project[]>().map((item) => item.id)).toEqual([
+      project.id,
+    ]);
+    expect(roleLookups).toBe(0);
     expect((await server.inject('/api/me')).json().builds).toBe(false);
+    expect(
+      (
+        await server.inject({ url: path() + '/capabilities', headers: auth })
+      ).json(),
+    ).toEqual({
+      projectId: project.id,
+      publish: true,
+      manageAccess: true,
+      readAudit: true,
+    });
     expect(
       (
         await server.inject({
@@ -851,11 +882,31 @@ it('reports project-scoped build controls from current operator, token and assig
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ projectId: project.id, ...expected });
     expect(response.headers['cache-control']).toBe('no-store');
+    const management = await app.inject({
+      url: path() + '/capabilities',
+      headers,
+    });
+    expect(management.statusCode).toBe(200);
+    expect(management.json()).toEqual({
+      projectId: project.id,
+      publish: expected.publish,
+      manageAccess: expected.revokeSource,
+      readAudit: expected.revokeSource,
+    });
+    expect(management.headers['cache-control']).toBe('no-store');
   }
   expect(
     (
       await app.inject({
         url: path() + '/build-capabilities?role=admin',
+        headers: viewer.headers,
+      })
+    ).statusCode,
+  ).toBe(400);
+  expect(
+    (
+      await app.inject({
+        url: path() + '/capabilities?role=admin',
         headers: viewer.headers,
       })
     ).statusCode,
@@ -873,14 +924,30 @@ it('reports project-scoped build controls from current operator, token and assig
     (await app.inject({ url: path() + '/build-capabilities', headers })).json()
       .enqueue,
   ).toBe(true);
+  await repository.setRole(project.id, subject, 'publisher', 'root');
+  expect(
+    (await app.inject({ url: path() + '/capabilities', headers })).json(),
+  ).toEqual({
+    projectId: project.id,
+    publish: true,
+    manageAccess: false,
+    readAudit: false,
+  });
   await repository.setRole(project.id, subject, 'viewer', 'root');
   expect(
     (await app.inject({ url: path() + '/build-capabilities', headers })).json()
       .enqueue,
   ).toBe(false);
+  expect(
+    (await app.inject({ url: path() + '/capabilities', headers })).json()
+      .publish,
+  ).toBe(false);
   await repository.setRole(project.id, subject, null, 'root');
   expect(
     (await app.inject({ url: path() + '/build-capabilities', headers }))
       .statusCode,
+  ).toBe(403);
+  expect(
+    (await app.inject({ url: path() + '/capabilities', headers })).statusCode,
   ).toBe(403);
 });

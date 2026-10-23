@@ -37,7 +37,7 @@
     "demo:api": "node scripts/mock-api.mjs",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "server": "node apps/server/dist/main.js",
-    "test:studio": "playwright test --config playwright.studio.config.ts",
+    "test:studio": "node scripts/test-studio.mjs",
     "benchmark": "node --max-old-space-size=1536 scripts/benchmark.mjs",
     "benchmark:browser": "node scripts/benchmark-browser.mjs",
     "check:versions": "node scripts/check-versions.mjs",

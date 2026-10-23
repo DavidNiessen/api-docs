@@ -10,6 +10,7 @@ import {
 import type { BuildAction } from './Builds.js';
 import { createStudioApi } from './api.js';
 import { createStudioRequestScope } from './request-scope.js';
+import { useProjectCapabilities } from './use-project-capabilities.js';
 import { createRoot } from 'react-dom/client';
 import type { Project, Publication } from '@api-docs/domain';
 import './styles.css';
@@ -40,6 +41,7 @@ function Studio() {
   >({});
   const [artifactDraft, setArtifactDraft] = useState('');
   const [oidc, setOidc] = useState(false);
+  const [operator, setOperator] = useState(false);
   const [subject, setSubject] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selected, setSelected] = useState('');
@@ -63,6 +65,7 @@ function Studio() {
     setProjects([]);
     setSelected('');
     setSubject('');
+    setOperator(false);
     setPublications([]);
     setAudit([]);
     setIssuedToken('');
@@ -77,6 +80,7 @@ function Studio() {
     [transport, connected, selected, tab, requestEpoch],
   );
   const api = scope.api;
+  const access = useProjectCapabilities(connected ? selected : '', api);
   const running = useRef<typeof scope | null>(null);
   useLayoutEffect(() => {
     setBusy(false);
@@ -127,6 +131,7 @@ function Studio() {
   async function refresh() {
     const data = await api<Project[]>('/api/projects');
     setProjects(data);
+    if (selected && !data.some((item) => item.id === selected)) setSelected('');
   }
   async function connect() {
     if (connection.current || logoutRequest.current) return;
@@ -142,6 +147,7 @@ function Studio() {
         subject: string | null;
         oidc: boolean;
         builds?: boolean;
+        operator?: boolean;
       }>('/api/me', 'GET', undefined, signal);
       signal.throwIfAborted();
       setOidc(me.oidc);
@@ -159,6 +165,7 @@ function Studio() {
       );
       signal.throwIfAborted();
       setSubject(me.subject);
+      setOperator(me.operator === true);
       setBuildsAvailable(me.builds === true);
       setProjects(data);
       setSelected(data[0]?.id ?? '');
@@ -224,7 +231,13 @@ function Studio() {
     return () => controller.abort();
   }, []);
   useEffect(() => {
-    if (!connected || !selected || !['Publications', 'Audit log'].includes(tab))
+    if (
+      !connected ||
+      !selected ||
+      (tab === 'Publications' && !access.capabilities?.publish) ||
+      (tab === 'Audit log' && !access.capabilities?.readAudit) ||
+      !['Publications', 'Audit log'].includes(tab)
+    )
       return;
     void work(async () => {
       if (tab === 'Publications')
@@ -238,7 +251,30 @@ function Studio() {
           ),
         );
     });
-  }, [scope]);
+  }, [scope, access.capabilities]);
+  useEffect(() => {
+    if (!selected || !access.denied) return;
+    setProjects((previous) => previous.filter((item) => item.id !== selected));
+    setSelected('');
+    setTab('Overview');
+    setError(
+      'Project access changed. Refresh projects to see your current access.',
+    );
+  }, [selected, access.denied]);
+  useEffect(() => {
+    if (!access.capabilities) return;
+    const allowed = {
+      Publications: access.capabilities.publish,
+      'Access control': access.capabilities.manageAccess,
+      'Audit log': access.capabilities.readAudit,
+    }[tab];
+    if (allowed === false) {
+      setTab('Overview');
+      setMessage(
+        'Your permissions changed. Available actions have been updated.',
+      );
+    }
+  }, [access.capabilities, tab]);
   async function publish(artifactId: string) {
     if (!project) return;
     await api(`/api/projects/${project.id}/artifacts`, 'POST', { artifactId });
@@ -340,13 +376,33 @@ function Studio() {
                 ))}
               </select>
             </label>
+            <button
+              type="button"
+              className="refresh-projects"
+              disabled={busy}
+              onClick={() =>
+                void work(async () => {
+                  await refresh();
+                  access.refresh();
+                  setMessage('Projects refreshed.');
+                })
+              }
+            >
+              Refresh projects
+            </button>
             <nav>
               {[
                 'Overview',
                 ...(buildsAvailable ? ['Builds'] : []),
-                'Publications',
-                'Access control',
-                'Audit log',
+                ...(operator || access.capabilities?.publish
+                  ? ['Publications']
+                  : []),
+                ...(operator || access.capabilities?.manageAccess
+                  ? ['Access control']
+                  : []),
+                ...(operator || access.capabilities?.readAudit
+                  ? ['Audit log']
+                  : []),
               ].map((name) => (
                 <button
                   type="button"
@@ -440,6 +496,19 @@ function Studio() {
                 </a>
               )}
             </div>
+            {access.loading && (
+              <p role="status">Loading project permissions…</p>
+            )}
+            {access.error && !access.denied && (
+              <div className="project-permissions-error">
+                <p role="alert" className="error">
+                  {access.error}
+                </p>
+                <button type="button" onClick={access.refresh}>
+                  Retry permissions
+                </button>
+              </div>
+            )}
             {error && (
               <p role="alert" className="error">
                 {error}
@@ -450,6 +519,12 @@ function Studio() {
                 {message}
               </p>
             )}
+            {!project &&
+              ['Publications', 'Access control', 'Audit log'].includes(tab) && (
+                <section className="panel">
+                  <p>Select a project to view its available actions.</p>
+                </section>
+              )}
             {tab === 'Overview' && (
               <>
                 <div className="stats-grid">
@@ -475,67 +550,69 @@ function Studio() {
                     <small>Authorization covers every asset</small>
                   </div>
                 </div>
-                <section className="panel">
-                  <h2>Create a project</h2>
-                  <p>
-                    Configure a documentation space. Project creation requires
-                    operator access.
-                  </p>
-                  <form
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const form = new FormData(event.currentTarget);
-                      void work(async () => {
-                        const created = await api<Project>(
-                          '/api/projects',
-                          'POST',
-                          {
-                            name: String(form.get('name')),
-                            slug: String(form.get('slug')),
-                            visibility: String(form.get('visibility')),
-                          },
-                        );
-                        await refresh();
-                        setSelected(created.id);
-                        setMessage(
-                          'Project created. Build your publication with basePath /docs/' +
-                            created.slug,
-                        );
-                      });
-                    }}
-                  >
-                    <div className="form-grid">
-                      <label>
-                        Project name
-                        <input
-                          name="name"
-                          required
-                          maxLength={100}
-                          placeholder="Platform API"
-                        />
-                      </label>
-                      <label>
-                        URL slug
-                        <input
-                          name="slug"
-                          required
-                          pattern="[a-z][a-z0-9-]{0,62}"
-                          placeholder="platform"
-                        />
-                      </label>
-                      <label>
-                        Visibility
-                        <select name="visibility">
-                          <option value="private">Private</option>
-                          <option value="public">Public</option>
-                        </select>
-                      </label>
-                    </div>
-                    <button className="primary" disabled={busy}>
-                      Create project →
-                    </button>
-                  </form>
-                </section>
+                {operator && (
+                  <section className="panel">
+                    <h2>Create a project</h2>
+                    <p>
+                      Configure a documentation space. Project creation requires
+                      operator access.
+                    </p>
+                    <form
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const form = new FormData(event.currentTarget);
+                        void work(async () => {
+                          const created = await api<Project>(
+                            '/api/projects',
+                            'POST',
+                            {
+                              name: String(form.get('name')),
+                              slug: String(form.get('slug')),
+                              visibility: String(form.get('visibility')),
+                            },
+                          );
+                          await refresh();
+                          setSelected(created.id);
+                          setMessage(
+                            'Project created. Build your publication with basePath /docs/' +
+                              created.slug,
+                          );
+                        });
+                      }}
+                    >
+                      <div className="form-grid">
+                        <label>
+                          Project name
+                          <input
+                            name="name"
+                            required
+                            maxLength={100}
+                            placeholder="Platform API"
+                          />
+                        </label>
+                        <label>
+                          URL slug
+                          <input
+                            name="slug"
+                            required
+                            pattern="[a-z][a-z0-9-]{0,62}"
+                            placeholder="platform"
+                          />
+                        </label>
+                        <label>
+                          Visibility
+                          <select name="visibility">
+                            <option value="private">Private</option>
+                            <option value="public">Public</option>
+                          </select>
+                        </label>
+                      </div>
+                      <button className="primary" disabled={busy}>
+                        Create project →
+                      </button>
+                    </form>
+                  </section>
+                )}
                 <section className="panel getting-started">
                   <h2>A simple path to great documentation</h2>
                   <ol>
@@ -615,7 +692,7 @@ function Studio() {
                   </p>
                 </section>
               ))}
-            {tab === 'Publications' && (
+            {tab === 'Publications' && access.capabilities?.publish && (
               <>
                 <section className="panel">
                   <h2>Activate a staged artifact</h2>
@@ -723,7 +800,7 @@ function Studio() {
                 </section>
               </>
             )}
-            {tab === 'Access control' && (
+            {tab === 'Access control' && access.capabilities?.manageAccess && (
               <>
                 <section className="panel">
                   <h2>Manage identity access</h2>
@@ -899,7 +976,7 @@ function Studio() {
                 </section>
               </>
             )}
-            {tab === 'Audit log' && (
+            {tab === 'Audit log' && access.capabilities?.readAudit && (
               <section className="panel">
                 <h2>Recent events</h2>
                 {audit.length ? (

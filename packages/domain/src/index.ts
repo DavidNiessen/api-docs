@@ -12,6 +12,12 @@ export interface Project {
   visibility: 'public' | 'private';
   activePublicationId: string | null;
 }
+export interface ProjectCapabilities {
+  projectId: string;
+  publish: boolean;
+  manageAccess: boolean;
+  readAudit: boolean;
+}
 export interface Publication {
   id: string;
   projectId: string;

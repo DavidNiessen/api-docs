@@ -171,7 +171,9 @@ test('Studio uses responsive islands with a persistent accessible navigation wid
     });
   });
   await page.route('http://127.0.0.1:4173/api/me', (route) =>
-    route.fulfill({ json: { subject: 'layout-review', oidc: false } }),
+    route.fulfill({
+      json: { subject: 'layout-review', operator: true, oidc: false },
+    }),
   );
   await page.route('http://127.0.0.1:4173/api/projects', (route) =>
     route.fulfill({ json: [] }),

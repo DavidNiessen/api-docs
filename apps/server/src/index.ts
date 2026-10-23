@@ -19,6 +19,7 @@ import {
 import type {
   Principal,
   Project,
+  ProjectCapabilities,
   Repository,
   Role,
   RelayAuditWriter,
@@ -364,10 +365,7 @@ export async function createServer(options: ServerOptions) {
     const projects = await repository.projects();
     const result = [];
     for (const project of projects) {
-      const assigned = await repository.role(
-        project.id,
-        request.principal.subject,
-      );
+      const assigned = await assignedRole(request, project);
       if (
         can(
           request.principal,
@@ -404,6 +402,27 @@ export async function createServer(options: ServerOptions) {
           subject: request.principal!.subject,
         }),
       );
+    },
+  );
+  app.get<{ Params: { project: string } }>(
+    '/api/projects/:project/capabilities',
+    async (request): Promise<ProjectCapabilities> => {
+      const project = await needProject(
+        request,
+        request.params.project,
+        'viewer',
+        false,
+      );
+      if (Object.keys(request.query as Record<string, unknown>).length)
+        fail(400, 'Unknown capability query field');
+      const assigned = await assignedRole(request, project);
+      const scope = { ...project, visibility: 'private' as const };
+      return {
+        projectId: project.id,
+        publish: can(request.principal, scope, assigned, 'publisher'),
+        manageAccess: can(request.principal, scope, assigned, 'admin'),
+        readAudit: can(request.principal, scope, assigned, 'admin'),
+      };
     },
   );
   app.get<{ Params: { project: string } }>(
