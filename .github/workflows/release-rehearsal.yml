@@ -101,7 +101,7 @@ jobs:
           cache: false
       - run: npm run test:go-snippets
       - run: npm run test:packages
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: npm run test:e2e
       - name: Retain unpublished rehearsal artifacts
         if: always() && steps.prepare.outcome == 'success'
@@ -157,7 +157,7 @@ jobs:
           baseline: ${{ inputs.baseline }}
       - run: npm run build
       - run: npm run test:integration
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: npm run test:studio
 
   java:

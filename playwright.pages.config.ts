@@ -1,6 +1,22 @@
 import { readFileSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
-const site = JSON.parse(readFileSync('.api-docs/pages-demo/site.json', 'utf8'));
+const deployed = process.env.PAGES_DEMO_URL;
+const site = deployed
+  ? undefined
+  : JSON.parse(readFileSync('.api-docs/pages-demo/site.json', 'utf8'));
+const address = new URL(
+  deployed ?? `http://127.0.0.1:4180${site.config.basePath}/`,
+);
+if (
+  (address.protocol !== 'https:' &&
+    !(address.protocol === 'http:' && address.hostname === '127.0.0.1')) ||
+  address.username ||
+  address.password ||
+  address.search ||
+  address.hash
+)
+  throw new Error('PAGES_DEMO_URL must be a credential-free HTTPS site URL.');
+if (!address.pathname.endsWith('/')) address.pathname += '/';
 export default defineConfig({
   testDir: './tests/pages',
   workers: 1,
@@ -10,7 +26,7 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-pages-report', open: 'never' }],
   ],
   use: {
-    baseURL: `http://127.0.0.1:4180${site.config.basePath}/`,
+    baseURL: address.href,
     browserName: 'chromium',
     launchOptions: {
       ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
@@ -21,9 +37,13 @@ export default defineConfig({
     trace: 'retain-on-failure',
     serviceWorkers: 'block',
   },
-  webServer: {
-    command: 'node scripts/pages-demo-browser-fixture.mjs',
-    url: `http://127.0.0.1:4180${site.config.basePath}/`,
-    reuseExistingServer: false,
-  },
+  ...(!deployed
+    ? {
+        webServer: {
+          command: 'node scripts/pages-demo-browser-fixture.mjs',
+          url: address.href,
+          reuseExistingServer: false,
+        },
+      }
+    : {}),
 });

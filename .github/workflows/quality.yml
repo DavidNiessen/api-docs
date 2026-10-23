@@ -85,7 +85,7 @@ jobs:
           node packages/cli/dist/main.js plugin-check deployment.mjs examples/source-plugin --trust-plugins
           node packages/cli/dist/main.js plugin-check go.mjs examples/snippet-plugin --trust-plugins
       - name: Install browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: Test reader and API playground
         id: browser
         run: npm run test:e2e
@@ -127,7 +127,7 @@ jobs:
       - run: npm run build
       - run: npm run demo:pages
       - run: node packages/cli/dist/main.js doctor examples/pages-demo --strict
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: npm run test:pages
       - name: Retain tested static demo
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -178,7 +178,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run build
       - run: npm run test:integration
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: npm run test:studio
   java:
     name: Java ${{ matrix.java }} / Boot ${{ matrix.boot }}

@@ -39,6 +39,8 @@ jobs:
     needs: prepare
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       actions: read
       pages: write
@@ -50,3 +52,40 @@ jobs:
       - name: Deploy tested mock demo
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+  verify:
+    name: Verify hosted mock demo
+    needs: deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      PAGES_DEMO_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - name: Check out the tested browser checks
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install chromium
+      - name: Wait for the public site
+        run: curl --proto '=https' --fail --retry 12 --retry-all-errors --retry-delay 5 --max-time 10 --output /dev/null "$PAGES_DEMO_URL"
+      - name: Exercise the public demo without calling an API server
+        run: npm run test:pages
+      - name: Retain hosted browser results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hosted-demo-browser-${{ github.event.workflow_run.head_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-pages-report/
+            .api-docs/pages-screenshots/
+            test-results/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7

@@ -3,19 +3,20 @@ import type { Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const failures = new WeakMap<Page, string[]>();
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
+  const origin = new URL(baseURL!).origin;
   const errors: string[] = [];
   failures.set(page, errors);
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('request', (request) => {
     if (
       /^https?:/.test(request.url()) &&
-      new URL(request.url()).origin !== 'http://127.0.0.1:4180'
+      new URL(request.url()).origin !== origin
     )
       errors.push('External request: ' + request.url());
   });
   await page.route('**/*', (route) =>
-    new URL(route.request().url()).origin === 'http://127.0.0.1:4180'
+    new URL(route.request().url()).origin === origin
       ? route.continue()
       : route.abort(),
   );

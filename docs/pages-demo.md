@@ -37,7 +37,17 @@ The dedicated browser suite blocks external requests and fails if one is attempt
 
 The **Repository quality** workflow builds and tests the static demo on branch pushes, pull requests and merge queue candidates. Its **Static mock demo** job is required by the aggregate **Quality** check. It uploads the verified site under a name containing that checkout's commit SHA.
 
-After a successful quality run for a **push to master**, **Deploy public demo** downloads that exact run's artifact and deploys it to the `github-pages` environment. It does not rebuild or execute downloaded repository code. Pull requests, forks, failed runs and manual quality dispatches cannot deploy. Actions are pinned by SHA. Only the deployment job receives Pages write and OIDC permissions; artifact preparation uses read permissions.
+After a successful quality run for a **push to master**, **Deploy public demo** downloads that exact run's artifact and deploys it to the `github-pages` environment. Artifact preparation and deployment do not rebuild or execute downloaded repository code. Pull requests, forks, failed runs and manual quality dispatches cannot deploy. Actions are pinned by SHA. Only the deployment job receives Pages write and OIDC permissions; artifact preparation uses read permissions.
+
+A separate **Verify hosted mock demo** job checks out the exact tested source with read-only permissions and no persisted checkout credentials. It waits for the public URL and runs the same five browser journeys against that deployed site, without rebuilding it or starting a local server. It checks direct guide/endpoint routes, mock-only GET/POST/DELETE behavior, complete response copying/folding/fullscreen, classic layout, search, prepared themes, mobile accessibility and content without JavaScript. Browser requests to other origins are rejected and reported. Ubuntu 24.04 hosted runners supply the shared browser libraries; CI downloads the Chromium revision pinned by Playwright without upgrading OS packages or installing extra font bundles. A missing runtime library still fails browser launch. Reports/screenshots are retained for seven days; a failed hosted check makes the deployment workflow fail even if Pages accepted the artifact.
+
+To repeat those checks against the public site after installing the pinned dependencies and Playwright Chromium:
+
+```sh
+PAGES_DEMO_URL=https://davidniessen.github.io/api-docs/ pnpm run test:pages
+```
+
+`PAGES_DEMO_URL` selects an existing HTTPS publication without credentials, query or fragment; the path is normalized to a trailing slash. Explicit loopback HTTP is also supported for acceptance fixtures. Omitting it retains the ordinary local static-preview tests and their verified generated artifact. These tests load public documentation only and never need deployment or API credentials.
 
 Repository maintainers must enable **Settings → Pages → Build and deployment → Source: GitHub Actions** and allow deployments from `master` in the `github-pages` environment. Existing environment approval policies remain effective. Actions billing/spending restrictions must also permit the quality jobs to run. Repository files alone cannot grant this session access to Pages settings or remove billing restrictions.
 

@@ -35,7 +35,7 @@ jobs:
         if: matrix.scenario == 'browser'
         run: |
           npm run demo:build
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Enforce recorded budgets
         env:
           SCENARIO: ${{ matrix.scenario }}
