@@ -11,6 +11,7 @@ import Fastify from 'fastify';
 import { createStaticServer, inspectIsolatedSource } from '@api-docs/cli';
 import { PostgresRepository } from '@api-docs/storage';
 import { verifyArtifact } from '@api-docs/compiler';
+import { validateSiteData } from '@api-docs/plugin-sdk';
 import {
   downloadSpec,
   loadSpec,
@@ -36,6 +37,8 @@ import {
   createUiTranslation,
   localizePath,
   localeRoute,
+  readBuildPolicy,
+  readSourceSnapshotInfo,
 } from '@api-docs/contracts';
 import {
   redactJsonBody,
@@ -52,7 +55,29 @@ import {
 const exec = promisify(execFile);
 const disconnectedStore = new PostgresRepository(
   'postgresql://fixture@127.0.0.1/unused',
-  { statementTimeoutMs: 1000, queryTimeoutMs: 2000 },
+  {
+    statementTimeoutMs: 1000,
+    queryTimeoutMs: 2000,
+    buildQueue: { maxPending: 1 },
+  },
+);
+assert.equal(typeof disconnectedStore.buildJobs.enqueue, 'function');
+assert.equal(typeof disconnectedStore.buildJobs.claim, 'function');
+const installedBuildPolicy = readBuildPolicy({
+  image: 'sha256:' + 'a'.repeat(64),
+});
+assert.equal(installedBuildPolicy.schemaVersion, 1);
+assert.equal(installedBuildPolicy.trustPlugins, false);
+assert.equal(installedBuildPolicy.limits.timeoutMs, 180000);
+assert.throws(() => readBuildPolicy({ image: 'builder:latest' }));
+assert.deepEqual(
+  readSourceSnapshotInfo({
+    digestVersion: 2,
+    digest: 'b'.repeat(64),
+    bytes: 100,
+    files: 1,
+  }),
+  { digestVersion: 2, digest: 'b'.repeat(64), bytes: 100, files: 1 },
 );
 await disconnectedStore.close();
 assert.throws(
@@ -374,8 +399,15 @@ typeImports.push(`import {defineReaderExtension as defineTypedReaderExtension} f
 const typedReaderExtension=defineTypedReaderExtension({id:'typed-reader',version:'1.0.0',pluginApi:'1',capabilities:['page','footer'],activate(context){context.setFooter(page=>{const element=document.createElement('p');element.textContent=page.title;return {element};});}});void typedReaderExtension;`);
 typeImports.push(`import {PostgresRepository as TypedPostgresRepository} from '@api-docs/storage';
 import type {PostgresRepositoryOptions} from '@api-docs/storage';
-const databaseOptions: PostgresRepositoryOptions = {statementTimeoutMs:1000,queryTimeoutMs:2000};
-const typedStore = new TypedPostgresRepository('postgresql://fixture@127.0.0.1/unused',databaseOptions);void typedStore;`);
+import type {BuildJobRepository, BuildLease, BuildQueueLimits} from '@api-docs/domain';
+import type {BuildPolicy, SourceSnapshotInfo} from '@api-docs/contracts';
+const queueLimits:Partial<BuildQueueLimits>={maxPending:1};
+const databaseOptions: PostgresRepositoryOptions = {statementTimeoutMs:1000,queryTimeoutMs:2000,buildQueue:queueLimits};
+const typedStore = new TypedPostgresRepository('postgresql://fixture@127.0.0.1/unused',databaseOptions);
+const typedQueue:BuildJobRepository=typedStore.buildJobs;
+function leasePolicy(lease:BuildLease):BuildPolicy{return lease.source.policy;}
+function leaseSource(lease:BuildLease):SourceSnapshotInfo{return lease.source.snapshot;}
+void [typedQueue,leasePolicy,leaseSource];`);
 typeImports.push(`import {inspectIsolatedSource as typedInspectSource} from '@api-docs/cli';
 import type {IsolatedSourceInfo, IsolatedSourceOptions, IsolatedBuildOptions} from '@api-docs/cli';
 const sourceOptions:IsolatedSourceOptions={sourceMiB:1};
@@ -610,6 +642,7 @@ assert.equal(manifest.compilerVersion, version);
 const installedSite = JSON.parse(
   await readFile(join(directory, 'site.json'), 'utf8'),
 );
+assert.deepEqual(validateSiteData(installedSite), installedSite);
 for (const api of installedSite.apis) {
   assert.match(api.operationIndex, /^api-index\/\d+\/catalog\.json$/);
   assert(Object.hasOwn(manifest.files, api.operationIndex));

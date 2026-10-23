@@ -1,3 +1,10 @@
+import { PostgresBuildJobs, readBuildQueueLimits } from './build-jobs.js';
+import type { SqlClient, SqlDatabase } from './sql.js';
+import {
+  migrations,
+  schemaBootstrap,
+  databaseSchemaVersion,
+} from './migrations.js';
 import pg from 'pg';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -8,6 +15,8 @@ import type {
   Role,
   RelayAudit,
   RelayAuditWriter,
+  BuildJobRepository,
+  BuildQueueLimits,
 } from '@api-docs/domain';
 import { ConflictError } from '@api-docs/domain';
 const projectColumns =
@@ -26,14 +35,9 @@ function timedQuery(
 ): TimedQueryConfig {
   return { text, values: values ?? [], query_timeout: timeout };
 }
-interface SqlClient {
-  query<Row extends pg.QueryResultRow = pg.QueryResultRow>(
-    text: string,
-    values?: unknown[],
-  ): Promise<pg.QueryResult<Row>>;
-}
 export interface PostgresRepositoryOptions {
   migrate?: boolean;
+  buildQueue?: Partial<BuildQueueLimits>;
   /** Per-statement server deadline, including lock waits. Runtime default: 10000 ms; migration: 60000 ms. */
   statementTimeoutMs?: number;
   /** Driver response deadline. Defaults to the statement deadline plus 5000 ms. */
@@ -71,6 +75,7 @@ function databaseTimeouts(options: PostgresRepositoryOptions) {
   return { statement, query };
 }
 export class PostgresRepository implements Repository, RelayAuditWriter {
+  readonly buildJobs: BuildJobRepository;
   private readonly pool: pg.Pool;
   private readonly queryTimeoutMs: number;
   private readonly migrate: boolean;
@@ -80,6 +85,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
     options: PostgresRepositoryOptions = {},
   ) {
     const timeouts = databaseTimeouts(options);
+    const queueLimits = readBuildQueueLimits(options.buildQueue);
     this.migrate = options.migrate === true;
     this.queryTimeoutMs = timeouts.query;
     this.pool = new pg.Pool({
@@ -99,6 +105,15 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
       statement_timeout: 4000,
       query_timeout: 5000,
     });
+    const database: SqlDatabase = {
+      query: <Row extends pg.QueryResultRow = pg.QueryResultRow>(
+        text: string,
+        values?: unknown[],
+      ) => this.query<Row>(text, values),
+      transaction: <T>(work: (client: SqlClient) => Promise<T>) =>
+        this.transaction(work),
+    };
+    this.buildJobs = new PostgresBuildJobs(database, queueLimits);
     this.relayAuditPool.on('error', () => {
       /* Relay outcomes report availability without logging credentials. */
     });
@@ -136,32 +151,40 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
     }
   }
   async initialize(): Promise<void> {
-    if (!this.migrate) {
-      const version = (
-        await this.query<{ version: number }>(
-          'SELECT max(version) AS version FROM docs_schema_migrations',
-        )
-      ).rows[0]?.version;
-      if (version !== 1)
+    const check = (rows: { version: number }[], prefix = false) => {
+      if (
+        rows.length > databaseSchemaVersion ||
+        (!prefix && rows.length !== databaseSchemaVersion) ||
+        rows.some((row, index) => row.version !== index + 1)
+      )
         throw new Error(
-          'Unsupported database schema. Run the migration job before starting the server.',
+          'Unsupported database schema. Run the compatible migration job before starting the server.',
         );
+    };
+    if (!this.migrate) {
+      const history = await this.query<{ version: number }>(
+        'SELECT version FROM docs_schema_migrations ORDER BY version LIMIT $1',
+        [databaseSchemaVersion + 1],
+      );
+      check(history.rows);
       return;
     }
     return this.transaction(async (client) => {
       await client.query('SELECT pg_advisory_xact_lock(193271)');
-      await client.query(`CREATE TABLE IF NOT EXISTS docs_schema_migrations (version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
-        CREATE TABLE IF NOT EXISTS docs_projects (id uuid PRIMARY KEY, slug text UNIQUE NOT NULL, name text NOT NULL, visibility text NOT NULL CHECK (visibility IN ('public','private')), active_publication_id uuid);
-        CREATE TABLE IF NOT EXISTS docs_roles (project_id uuid NOT NULL REFERENCES docs_projects(id) ON DELETE CASCADE, subject text NOT NULL, role text NOT NULL CHECK (role IN ('viewer','editor','publisher','admin')), PRIMARY KEY(project_id,subject));
-        CREATE TABLE IF NOT EXISTS docs_artifacts (project_id uuid NOT NULL REFERENCES docs_projects(id), artifact_id text NOT NULL, PRIMARY KEY(project_id,artifact_id));
-        CREATE TABLE IF NOT EXISTS docs_publications (id uuid PRIMARY KEY, project_id uuid NOT NULL REFERENCES docs_projects(id), artifact_id text NOT NULL, subject text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), idempotency_key text NOT NULL, UNIQUE(project_id,idempotency_key), FOREIGN KEY(project_id,artifact_id) REFERENCES docs_artifacts(project_id,artifact_id));
-        CREATE TABLE IF NOT EXISTS docs_audit (id bigserial PRIMARY KEY, project_id uuid NOT NULL REFERENCES docs_projects(id), actor text NOT NULL, action text NOT NULL, metadata jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now());
-        CREATE TABLE IF NOT EXISTS docs_tokens (id uuid PRIMARY KEY, project_id uuid NOT NULL REFERENCES docs_projects(id), token_hash text UNIQUE NOT NULL, label text NOT NULL, role text NOT NULL, expires_at timestamptz NOT NULL, revoked boolean NOT NULL DEFAULT false);
-        CREATE TABLE IF NOT EXISTS docs_sessions (token_hash text PRIMARY KEY, subject text NOT NULL, expires_at timestamptz NOT NULL);
-        CREATE TABLE IF NOT EXISTS docs_oidc (state_hash text PRIMARY KEY, nonce text NOT NULL, verifier text NOT NULL, expires_at timestamptz NOT NULL);
-        CREATE INDEX IF NOT EXISTS docs_sessions_expiry ON docs_sessions(expires_at);
-        CREATE INDEX IF NOT EXISTS docs_publications_project ON docs_publications(project_id,created_at DESC);
-        INSERT INTO docs_schema_migrations(version) VALUES(1) ON CONFLICT DO NOTHING;`);
+      await client.query(schemaBootstrap);
+      const history = await client.query<{ version: number }>(
+        'SELECT version FROM docs_schema_migrations ORDER BY version LIMIT $1',
+        [databaseSchemaVersion + 1],
+      );
+      check(history.rows, true);
+      for (const migration of migrations) {
+        if (migration.version <= history.rows.length) continue;
+        await client.query(migration.sql);
+        await client.query(
+          'INSERT INTO docs_schema_migrations(version) VALUES($1)',
+          [migration.version],
+        );
+      }
     });
   }
   async grantRuntimeRole(role: string): Promise<void> {

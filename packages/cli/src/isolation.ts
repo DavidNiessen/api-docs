@@ -15,8 +15,17 @@ import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { safeOutput, verifyArtifact } from '@api-docs/compiler';
-import type { ArtifactManifest } from '@api-docs/contracts';
-import { toolVersion } from '@api-docs/contracts';
+import type {
+  ArtifactManifest,
+  IsolatedBuildLimits,
+  SourceSnapshotInfo,
+} from '@api-docs/contracts';
+import {
+  toolVersion,
+  isImmutableBuilderImage,
+  isVisibleBuildConfig,
+  readIsolatedBuildLimits,
+} from '@api-docs/contracts';
 import { confinedPath, readTextFile, parseConfig } from '@api-docs/spec';
 import { validateSiteData } from '@api-docs/plugin-sdk';
 import { snapshotProject } from './isolation-snapshot.js';
@@ -40,12 +49,7 @@ export interface IsolatedBuildOptions {
   outputMiB?: number;
   signal?: AbortSignal;
 }
-export interface IsolatedSourceInfo {
-  digestVersion: 2;
-  digest: string;
-  bytes: number;
-  files: number;
-}
+export type IsolatedSourceInfo = SourceSnapshotInfo;
 export interface IsolatedSourceOptions {
   sourceMiB?: number;
   signal?: AbortSignal;
@@ -57,14 +61,7 @@ export interface IsolatedBuildReceipt {
   source: IsolatedSourceInfo;
   artifactDigest: string;
   durationMs: number;
-  limits: {
-    timeoutMs: number;
-    memoryMiB: number;
-    cpus: number;
-    pids: number;
-    sourceMiB: number;
-    outputMiB: number;
-  };
+  limits: IsolatedBuildLimits;
   runtime: Record<string, unknown>;
 }
 const MiB = 1024 * 1024;
@@ -87,31 +84,13 @@ const proxyNames = [
   'all_proxy',
   'ftp_proxy',
 ];
-function integer(
-  value: number | undefined,
-  fallback: number,
-  min: number,
-  max: number,
-) {
-  const result = value ?? fallback;
-  if (!Number.isSafeInteger(result) || result < min || result > max)
-    throw new Error('Invalid isolated build limits');
-  return result;
-}
-function localName(value: string) {
-  return (
-    /^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(value) &&
-    value.split('/').every((part) => part && part !== '.' && part !== '..')
-  );
-}
-
-/** Operator-only Docker boundary; the publication server never invokes this with uploaded code. */
 /** Inspect only bounded visible data, without evaluating project configuration or source code. */
 export async function inspectIsolatedSource(
   project: string,
   options: IsolatedSourceOptions = {},
 ): Promise<IsolatedSourceInfo> {
-  const limit = integer(options.sourceMiB, 128, 1, 1024) * MiB;
+  const limit =
+    readIsolatedBuildLimits({ sourceMiB: options.sourceMiB }).sourceMiB * MiB;
   if (options.signal !== undefined && !(options.signal instanceof AbortSignal))
     throw new Error('Use an AbortSignal for source inspection cancellation');
   options.signal?.throwIfAborted();
@@ -129,6 +108,7 @@ export async function inspectIsolatedSource(
   }
 }
 
+/** Operator-only Docker boundary; the publication server does not execute source. */
 export async function buildIsolatedSite(
   project: string,
   options: IsolatedBuildOptions,
@@ -141,9 +121,7 @@ export async function buildIsolatedSite(
   if (
     process.platform !== 'linux' ||
     !options ||
-    !/^(?:sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$/.test(
-      options.image,
-    )
+    !isImmutableBuilderImage(options.image)
   )
     throw new Error(
       'Isolated builds require Linux and an explicit immutable local image id or repository digest',
@@ -159,19 +137,16 @@ export async function buildIsolatedSite(
       throw new Error('Trust options must be booleans');
   if (options.signal !== undefined && !(options.signal instanceof AbortSignal))
     throw new Error('Use an AbortSignal for isolated build cancellation');
-  const limits = {
-    timeoutMs: integer(options.timeoutMs, 180_000, 1000, 900_000),
-    memoryMiB: integer(options.memoryMiB, 2048, 512, 4096),
-    cpus: integer(options.cpus, 2, 1, 4),
-    pids: integer(options.pids, 128, 32, 512),
-    sourceMiB: integer(options.sourceMiB, 128, 1, 1024),
-    outputMiB: integer(options.outputMiB, 256, 32, 1024),
-  };
+  const limits = readIsolatedBuildLimits({
+    timeoutMs: options.timeoutMs,
+    memoryMiB: options.memoryMiB,
+    cpus: options.cpus,
+    pids: options.pids,
+    sourceMiB: options.sourceMiB,
+    outputMiB: options.outputMiB,
+  });
   const config = options.config ?? 'docs.config.yaml';
-  if (
-    !localName(config) ||
-    config.split('/').some((part) => part.startsWith('.'))
-  )
+  if (!isVisibleBuildConfig(config))
     throw new Error(
       'Isolated config must be a non-hidden project-relative path',
     );

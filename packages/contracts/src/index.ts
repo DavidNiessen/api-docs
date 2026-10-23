@@ -343,3 +343,17 @@ export {
 
 export { schemaVariants } from './schema-variants.js';
 export type { SchemaVariant, SchemaVariants } from './schema-variants.js';
+
+export {
+  defaultIsolatedBuildLimits,
+  isImmutableBuilderImage,
+  isVisibleBuildConfig,
+  readIsolatedBuildLimits,
+  readSourceSnapshotInfo,
+  readBuildPolicy,
+} from './builds.js';
+export type {
+  IsolatedBuildLimits,
+  SourceSnapshotInfo,
+  BuildPolicy,
+} from './builds.js';
