@@ -25,7 +25,9 @@ test('reviewed ESM dependencies mount a footer, follow page changes and isolate 
   await expect(
     host.locator('[data-reader-extension="related-guides"]'),
   ).toHaveCount(1);
-  await page.getByRole('link', { name: 'API Reference', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'API Reference', exact: true })
+    .click();
   await expect(host).toContainText('Current page: List projects');
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   await expect(page.getByLabel('Request URL', { exact: true })).toHaveText(

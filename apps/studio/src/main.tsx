@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import type { Project, Publication } from '@api-docs/domain';
 import './styles.css';
 import './island-layout.css';
+import '../../shared/scrollbars.css';
 function Studio() {
   const [sidebarWidth, setSidebarWidth] = useState(240);
   useEffect(() => {

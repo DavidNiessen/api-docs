@@ -19,7 +19,7 @@ test('translated labels preserve search, theme, modal focus, Scalar URL copying 
   await page.goto(root + '/');
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   await expect(
-    page.getByRole('link', { name: 'Dokumentation', exact: true }),
+    page.getByRole('button', { name: 'Dokumentation', exact: true }),
   ).toBeVisible();
   await page
     .getByRole('button', { name: 'Dokumentation durchsuchen', exact: true })
@@ -36,7 +36,7 @@ test('translated labels preserve search, theme, modal focus, Scalar URL copying 
   await page
     .getByRole('button', { name: 'Zum dunklen Design wechseln' })
     .click();
-  await page.getByRole('link', { name: 'API-Referenz', exact: true }).click();
+  await page.getByRole('button', { name: 'API-Referenz', exact: true }).click();
   await page.getByRole('button', { name: 'Jetzt testen', exact: true }).click();
   const dialog = page.getByRole('dialog', {
     name: 'Projekte auflisten testen',
@@ -170,7 +170,9 @@ test('locale links keep source pages, clear playground credentials and preserve 
       .getByLabel('bearer credential', { exact: true }),
   ).toHaveValue('');
   await page.keyboard.press('Escape');
-  await page.getByRole('link', { name: 'Documentation', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Documentation', exact: true })
+    .click();
   await expect(page).toHaveURL(root + '/en/guides/introduction/');
   await expect(
     page.getByRole('heading', { name: 'Getting started', exact: true }),

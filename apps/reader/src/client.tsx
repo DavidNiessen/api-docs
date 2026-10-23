@@ -4,6 +4,8 @@ import { normalizePagePath } from '@api-docs/contracts';
 import type { SiteData } from '@api-docs/contracts';
 import './styles.css';
 import './island-layout.css';
+import './reader-settings.css';
+import '../../shared/scrollbars.css';
 const data = document.getElementById('docs-data');
 const root = document.getElementById('root');
 if (data && root) {

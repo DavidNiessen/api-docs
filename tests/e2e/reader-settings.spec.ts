@@ -1,0 +1,292 @@
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+const route =
+  'http://127.0.0.1:4174/gallery/api/gallery/v1/serializeparameters/';
+const settingsKey = 'api-docs:reader-settings:v1:/gallery';
+async function settings(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: 'Open reader settings' }).click();
+  const dialog = page.getByRole('dialog', {
+    name: 'Reader settings',
+    exact: true,
+  });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+test('personal palettes, saved themes and classic layout persist without changing project defaults', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(route);
+  const originalAccent = await page
+    .locator('.docs-shell')
+    .evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--accent'),
+    );
+  const dialog = await settings(page);
+  await dialog
+    .getByRole('combobox', { name: 'Appearance mode', exact: true })
+    .selectOption('dark');
+  await dialog
+    .getByRole('combobox', { name: 'Documentation layout', exact: true })
+    .selectOption('classic');
+  await dialog
+    .getByRole('combobox', { name: 'Preset', exact: true })
+    .selectOption('ocean');
+  await dialog.getByLabel('Theme name', { exact: true }).fill('Night ocean');
+  await dialog.getByRole('button', { name: 'Save current theme' }).click();
+  await expect(
+    dialog.getByRole('button', { name: 'Apply Night ocean' }),
+  ).toBeVisible();
+  await dialog
+    .getByRole('combobox', { name: 'Preset', exact: true })
+    .selectOption('mint');
+  await dialog.getByRole('button', { name: 'Apply Night ocean' }).click();
+  await expect(page.locator('.docs-shell')).toHaveCSS('--accent', '#2563eb');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('.docs-shell')).toHaveAttribute(
+    'data-layout',
+    'classic',
+  );
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('button', { name: 'Open reader settings' }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole('separator', { name: 'Resize navigation', exact: true }),
+  ).not.toBeVisible();
+  await expect(page.locator('.endpoint-address')).toHaveCSS(
+    'border-radius',
+    '4px',
+  );
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: '.api-docs/classic-layout-dark.png' });
+  await page.reload();
+  await expect(page.locator('.docs-shell')).toHaveAttribute(
+    'data-layout',
+    'classic',
+  );
+  await expect(page.locator('.docs-shell')).toHaveCSS('--accent', '#2563eb');
+  const again = await settings(page);
+  await again.getByRole('button', { name: 'Use published theme' }).click();
+  await expect(page.locator('.docs-shell')).toHaveCSS(
+    '--accent',
+    originalAccent,
+  );
+  await again.getByRole('button', { name: 'Delete theme Night ocean' }).click();
+  await expect(
+    again.getByRole('button', { name: 'Apply Night ocean' }),
+  ).toHaveCount(0);
+  await again
+    .getByRole('combobox', { name: 'Documentation layout', exact: true })
+    .selectOption('modern');
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('separator', { name: 'Resize navigation', exact: true }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('independent editor themes update across tabs without losing folded response state or exact copying', async ({
+  page,
+  context,
+}) => {
+  const raw =
+    '{"profile":{"name":"Ada","precise":9007199254740993},"ok":true}\n';
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          sessionStorage.setItem('settings-response-copy', text);
+        },
+      },
+    }),
+  );
+  await page.route('http://127.0.0.1:4010/v1/serialization/**', (request) =>
+    request.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: {
+        'access-control-allow-origin': '*',
+        'access-control-allow-headers': 'authorization',
+        'access-control-allow-methods': 'GET, OPTIONS',
+      },
+      body: raw,
+    }),
+  );
+  await page.goto(route + '?playground=open');
+  const playground = page.getByLabel('API playground');
+  await playground
+    .getByLabel('bearer credential', { exact: true })
+    .fill('demo-token');
+  await playground.getByRole('button', { name: 'Send request' }).click();
+  const editor = playground.locator('.monaco-editor');
+  await expect(editor).toBeVisible();
+  await playground
+    .getByRole('button', { name: 'Collapse all', exact: true })
+    .click();
+  await expect(
+    editor.locator('.codicon-folding-collapsed').first(),
+  ).toBeVisible();
+  const other = await context.newPage();
+  await other.goto(route);
+  const dialog = await settings(other);
+  await dialog
+    .getByRole('combobox', { name: 'Appearance mode', exact: true })
+    .selectOption('dark');
+  await dialog
+    .getByRole('combobox', { name: 'Response editor theme', exact: true })
+    .selectOption('light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(editor).toHaveClass(/\bvs\b/);
+  await expect(
+    editor.locator('.codicon-folding-collapsed').first(),
+  ).toBeVisible();
+  await dialog
+    .getByRole('combobox', { name: 'Response editor theme', exact: true })
+    .selectOption('custom');
+  await expect(editor).toHaveCSS('background-color', 'rgb(16, 24, 32)');
+  await expect(editor.locator('textarea').first()).toHaveJSProperty(
+    'readOnly',
+    true,
+  );
+  await playground
+    .getByRole('button', { name: 'View response fullscreen' })
+    .click();
+  const fullscreen = page.getByRole('dialog', {
+    name: 'Response body',
+    exact: true,
+  });
+  await expect(fullscreen.locator('.monaco-editor')).toHaveCSS(
+    'background-color',
+    'rgb(16, 24, 32)',
+  );
+  await expect(
+    fullscreen.locator('.codicon-folding-collapsed').first(),
+  ).toBeVisible();
+  await fullscreen
+    .getByRole('button', { name: 'Copy entire response' })
+    .click();
+  expect(
+    await page.evaluate(() => sessionStorage.getItem('settings-response-copy')),
+  ).toBe(raw);
+  await dialog
+    .getByRole('combobox', { name: 'Response editor theme', exact: true })
+    .selectOption('contrast');
+  await expect(fullscreen.locator('.monaco-editor')).toHaveClass(/hc-black/);
+  await page.keyboard.press('Escape');
+  await expect(playground).toBeVisible();
+  await other.close();
+});
+
+test('All is the default and documentation/API filters change sidebar items and track history', async ({
+  page,
+}) => {
+  await page.goto(route);
+  const navigation = page.getByRole('navigation', {
+    name: 'Documentation sections',
+  });
+  const sidebar = page.getByRole('complementary', {
+    name: 'Documentation navigation',
+  });
+  await expect(
+    navigation.getByRole('button', { name: 'All', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(sidebar.locator('.endpoint-link').first()).toBeVisible();
+  await expect(
+    sidebar.locator('.nav-group a:not(.endpoint-link)').first(),
+  ).toBeVisible();
+  await navigation
+    .getByRole('button', { name: 'Documentation', exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/guides\//);
+  await expect(sidebar.locator('.endpoint-link')).toHaveCount(0);
+  await expect(sidebar.locator('.nav-group a').first()).toBeVisible();
+  await navigation
+    .getByRole('button', { name: 'API Reference', exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/api\//);
+  await expect(sidebar.locator('.nav-group a:not(.endpoint-link)')).toHaveCount(
+    0,
+  );
+  await expect(sidebar.locator('.endpoint-link').first()).toBeVisible();
+  await page.goBack();
+  await expect(
+    navigation.getByRole('button', { name: 'Documentation', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await navigation.getByRole('button', { name: 'All', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(sidebar.locator('.endpoint-link').first()).toBeVisible();
+  await page.reload();
+  await expect(
+    navigation.getByRole('button', { name: 'All', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await navigation
+    .getByRole('button', { name: 'API Reference', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Toggle navigation' }).click();
+  await expect(sidebar.locator('.endpoint-link').first()).toBeVisible();
+  await expect(sidebar.locator('.nav-group a:not(.endpoint-link)')).toHaveCount(
+    0,
+  );
+});
+
+test('settings tolerate blocked/corrupt storage, follow the system, and fit compact viewports', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (key) => localStorage.setItem(key, '{"version":999,"layout":"broken"}'),
+    settingsKey,
+  );
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto(route);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('.docs-shell')).toHaveAttribute(
+    'data-layout',
+    'modern',
+  );
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.evaluate(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException('Storage unavailable', 'SecurityError');
+    };
+    Storage.prototype.getItem = () => {
+      throw new DOMException('Storage unavailable', 'SecurityError');
+    };
+  });
+  const dialog = await settings(page);
+  await dialog
+    .getByRole('combobox', { name: 'Appearance mode', exact: true })
+    .selectOption('dark');
+  await expect(dialog).toContainText('Settings work for this visit.');
+  for (const layout of ['classic', 'modern']) {
+    await dialog
+      .getByRole('combobox', { name: 'Documentation layout', exact: true })
+      .selectOption(layout);
+    for (const width of [320, 390, 768]) {
+      await page.setViewportSize({ width, height: 844 });
+      expect(
+        await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
+      ).toBe(true);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: '.api-docs/reader-settings-mobile-dark.png' });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Toggle navigation' }).click();
+  const sidebar = page.locator('.sidebar');
+  await expect(sidebar).toHaveCSS('scrollbar-width', 'thin');
+  await page.emulateMedia({ forcedColors: 'active' });
+  await expect(sidebar).toHaveCSS('scrollbar-color', 'auto');
+});

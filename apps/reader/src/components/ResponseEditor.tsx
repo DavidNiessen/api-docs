@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { contrastRatio } from '@api-docs/contracts';
+import { EditorPreferencesContext } from '../use-reader-preferences.js';
 import * as monaco from 'monaco-editor/editor/editor.api.js';
 import 'monaco-editor/codicon.css';
 import 'monaco-editor/editor/contrib/folding/browser/folding.js';
@@ -46,6 +48,51 @@ export default function ResponseEditor({
   contentType: string;
 }) {
   const t = useUi();
+  const { preferences, mode } = useContext(EditorPreferencesContext);
+  const editorTheme =
+    preferences.editorTheme === 'auto'
+      ? mode === 'dark'
+        ? 'vs-dark'
+        : 'vs'
+      : (
+          {
+            light: 'vs',
+            dark: 'vs-dark',
+            contrast: 'hc-black',
+            custom: 'api-docs-personal',
+          } as const
+        )[preferences.editorTheme];
+  const selectedTheme = useRef(editorTheme);
+  selectedTheme.current = editorTheme;
+  useEffect(() => {
+    const colors = preferences.editorColors;
+    monaco.editor.defineTheme('api-docs-personal', {
+      base:
+        contrastRatio(colors.background, '#ffffff') >
+        contrastRatio(colors.background, '#000000')
+          ? 'vs-dark'
+          : 'vs',
+      inherit: true,
+      rules: [
+        { token: 'string.key', foreground: colors.key.slice(1) },
+        { token: 'string', foreground: colors.string.slice(1) },
+        { token: 'string.value', foreground: colors.string.slice(1) },
+        { token: 'number', foreground: colors.number.slice(1) },
+        { token: 'keyword', foreground: colors.keyword.slice(1) },
+      ],
+      colors: {
+        'editor.background': colors.background,
+        'editor.foreground': colors.foreground,
+        'editorLineNumber.foreground': colors.foreground + '99',
+        'editorLineNumber.activeForeground': colors.foreground,
+        'editorGutter.background': colors.background,
+        'scrollbarSlider.background': colors.foreground + '33',
+        'scrollbarSlider.hoverBackground': colors.foreground + '66',
+        'scrollbarSlider.activeBackground': colors.foreground + '88',
+      },
+    });
+    monaco.editor.setTheme(editorTheme);
+  }, [editorTheme, preferences.editorColors]);
   const [fullscreen, setFullscreen] = useState(false);
   const fullscreenDialog = useRef<HTMLDialogElement>(null);
   const fullscreenButton = useRef<HTMLButtonElement>(null);
@@ -73,17 +120,14 @@ export default function ResponseEditor({
     if (!host.current) return;
     let editor: monaco.editor.IStandaloneCodeEditor | undefined;
     let model: monaco.editor.ITextModel | undefined;
-    let observer: MutationObserver | undefined;
     try {
       model = monaco.editor.createModel(
         responseDisplay(body, language),
         language,
       );
-      const theme = () =>
-        document.documentElement.dataset.theme === 'dark' ? 'vs-dark' : 'vs';
       editor = monaco.editor.create(host.current, {
         model,
-        theme: theme(),
+        theme: selectedTheme.current,
         readOnly: true,
         domReadOnly: true,
         ariaLabel: t('response.body'),
@@ -103,22 +147,22 @@ export default function ResponseEditor({
         links: false,
         colorDecorators: false,
         stickyScroll: { enabled: false },
+        scrollbar: {
+          verticalScrollbarSize: 8,
+          horizontalScrollbarSize: 8,
+          useShadows: false,
+          alwaysConsumeMouseWheel: false,
+        },
         tabIndex: 0,
       });
       if (previousBody.current === body && viewState.current)
         editor.restoreViewState(viewState.current);
       previousBody.current = body;
       instance.current = editor;
-      observer = new MutationObserver(() => monaco.editor.setTheme(theme()));
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['data-theme'],
-      });
     } catch {
       setError(t('response.unavailable'));
     }
     return () => {
-      observer?.disconnect();
       viewState.current = editor?.saveViewState() ?? null;
       instance.current = null;
       editor?.dispose();
@@ -167,7 +211,12 @@ export default function ResponseEditor({
         <CopyButton text={body} label={t('response.copy')} />
       </div>
       {error && <p role="status">{error}</p>}
-      <div ref={host} className="response-monaco" hidden={!!error} />
+      <div
+        ref={host}
+        className="response-monaco"
+        data-editor-theme={preferences.editorTheme}
+        hidden={!!error}
+      />
       {error && (
         <pre tabIndex={0} className="response-fallback">
           {body}

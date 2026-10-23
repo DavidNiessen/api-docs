@@ -1,0 +1,188 @@
+.header-tabs > button,
+.header-tabs > span.section-fallback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 0 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.header-tabs > button.active,
+.header-tabs > span.section-fallback.active {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.header-tabs > .section-fallback[hidden],
+.header-tabs > button[hidden] {
+  display: none;
+}
+.theme-editor.reader-settings {
+  --bg: inherit;
+  --surface: inherit;
+  --subtle: inherit;
+  --border: inherit;
+  --text: inherit;
+  --muted: inherit;
+  --heading: inherit;
+  --accent-text: inherit;
+  --action-bg: inherit;
+  color-scheme: inherit;
+  width: min(500px, calc(100vw - 24px));
+  inset: 12px 12px 12px auto;
+  max-height: calc(100dvh - 24px);
+}
+.reader-settings-controls {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+.theme-editor .theme-editor-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.theme-editor-grid > label {
+  min-width: 0;
+}
+.theme-editor select {
+  width: 100%;
+}
+.theme-editor-actions {
+  flex-wrap: wrap;
+}
+.editor-palette-settings {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 0;
+  margin: 16px 0;
+  padding: 12px;
+}
+.editor-palette-settings legend {
+  color: var(--heading);
+  font-size: 12px;
+  font-weight: 600;
+}
+.editor-palette-preview {
+  padding: 16px;
+  border-radius: 8px;
+  overflow: auto;
+}
+.saved-theme-form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.saved-theme-form label {
+  flex: 1;
+  min-width: 140px;
+  margin-bottom: 0;
+}
+.settings-save-theme,
+.saved-theme-list button {
+  border: 1px solid var(--border);
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.saved-theme-list {
+  list-style: none;
+  padding: 0;
+}
+.saved-theme-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0;
+}
+.saved-theme-list button:first-child {
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.layout-classic.docs-shell {
+  --canvas: var(--bg);
+  --island-radius: 4px;
+  padding: 0;
+}
+.layout-classic .site-header {
+  top: 0;
+  border-radius: 0;
+  border-width: 0 0 1px;
+  box-shadow: none;
+}
+.layout-classic .docs-layout {
+  margin: 0 auto;
+  max-width: 1600px;
+  grid-template-columns: min(250px, 26vw) minmax(0, 1fr);
+}
+.layout-classic .sidebar {
+  top: 110px;
+  height: calc(100dvh - 110px);
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  padding-top: 28px;
+}
+.layout-classic .navigation-resize-controls,
+.layout-classic .inspector-resize {
+  display: none;
+}
+.layout-classic .main-area {
+  display: block;
+  padding: 32px;
+}
+.layout-classic .article {
+  border: 0;
+  border-radius: 0;
+  min-height: 0;
+  padding: 0;
+}
+.layout-classic .api-layout .inspector-island {
+  position: static;
+  margin-top: 28px;
+  border-radius: 4px;
+}
+.layout-classic .page-toc {
+  display: none;
+}
+.layout-classic .endpoint-address {
+  border: 1px solid var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+  border-radius: 4px;
+  padding: 14px;
+}
+.layout-classic .endpoint-link {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.layout-classic .endpoint-link:has(.post) {
+  border-left: 3px solid #169965;
+}
+.layout-classic .endpoint-link:has(.get) {
+  border-left: 3px solid #3183c9;
+}
+.layout-classic .endpoint-link:has(.put),
+.layout-classic .endpoint-link:has(.patch) {
+  border-left: 3px solid #bf7b16;
+}
+.layout-classic .endpoint-link:has(.delete) {
+  border-left: 3px solid #c64555;
+}
+@media (max-width: 760px) {
+  .layout-classic .docs-layout {
+    display: block;
+  }
+  .layout-classic .sidebar {
+    left: 0;
+    width: min(320px, 90vw);
+    top: 104px;
+    height: calc(100dvh - 104px);
+  }
+  .layout-classic .main-area {
+    padding: 24px 16px;
+  }
+  .theme-editor.reader-settings {
+    padding: 20px;
+  }
+}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   contrastRatio,
   resolvePalette,
@@ -13,6 +14,8 @@ export default function ThemeEditor({
   onModeChange,
   onClose,
   onReset,
+  children,
+  personal = false,
 }: {
   value: Theme;
   mode: 'light' | 'dark';
@@ -20,6 +23,8 @@ export default function ThemeEditor({
   onModeChange: (mode: 'light' | 'dark') => void;
   onClose: () => void;
   onReset: () => void;
+  children?: ReactNode;
+  personal?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [message, setMessage] = useState('');
@@ -39,8 +44,21 @@ export default function ThemeEditor({
           );
   }
   useEffect(() => {
-    dialog.current?.showModal();
+    const element = dialog.current;
+    const previous =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    element?.showModal();
+    return () => {
+      element?.close();
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
   }, []);
+  const close = () => {
+    dialog.current?.close();
+    onClose();
+  };
   const setColor = (key: keyof Palette, color: string) =>
     update({
       ...value,
@@ -52,30 +70,36 @@ export default function ThemeEditor({
   return (
     <dialog
       ref={dialog}
-      className="theme-editor"
-      onCancel={onClose}
+      className={`theme-editor${personal ? ' reader-settings' : ''}`}
+      onCancel={(event) => {
+        event.preventDefault();
+        close();
+      }}
       aria-labelledby="theme-editor-title"
     >
       <div className="theme-editor-heading">
         <div>
-          <small>Live preview</small>
-          <h2 id="theme-editor-title">Make it yours</h2>
+          <small>{personal ? 'Your workspace' : 'Live preview'}</small>
+          <h2 id="theme-editor-title">
+            {personal ? 'Reader settings' : 'Make it yours'}
+          </h2>
         </div>
         <button
           type="button"
           className="icon-button"
-          aria-label="Close appearance editor"
-          onClick={() => {
-            dialog.current?.close();
-            onClose();
-          }}
+          aria-label={
+            personal ? 'Close reader settings' : 'Close appearance editor'
+          }
+          onClick={close}
         >
           <Icon name="close" />
         </button>
       </div>
+      {children}
       <p>
-        Preview your brand across the documentation. Copy the theme section when
-        it is ready.
+        {personal
+          ? 'Customize your reading theme. Changes apply immediately; use the palette controls to refine either appearance mode.'
+          : 'Preview your brand across the documentation. Copy the theme section when it is ready.'}
       </p>
       <div className="theme-editor-grid">
         <label>
@@ -84,7 +108,13 @@ export default function ThemeEditor({
             value={value.preset ?? 'mint'}
             onChange={(event) => {
               const preset = event.target.value as keyof typeof themePresets;
-              update({ ...value, preset, accent: themePresets[preset] });
+              const next = {
+                ...value,
+                preset,
+                accent: themePresets[preset],
+              };
+              if (personal) delete next.colors;
+              update(next);
               setMessage('');
             }}
           >
@@ -94,7 +124,7 @@ export default function ThemeEditor({
           </select>
         </label>
         <label>
-          Preview mode
+          {personal ? 'Palette mode' : 'Preview mode'}
           <select
             value={mode}
             onChange={(event) =>
@@ -254,7 +284,7 @@ export default function ThemeEditor({
             setMessage('Published theme restored.');
           }}
         >
-          Reset
+          {personal ? 'Use published theme' : 'Reset'}
         </button>
       </div>
       {message && <p role="status">{message}</p>}

@@ -62,6 +62,8 @@ The documentation must work without an account with the project maintainers. Dep
 
 The visual direction takes inspiration from Mintlify's layout and interaction quality while using original implementation, branding, assets, and copy.
 
+Readers can choose modern islands or a classic API layout, save personal/custom themes, customize response-editor colors, and filter the sidebar with All, Documentation and API Reference. See [reader settings and layouts](docs/reader-layout.md#personal-reader-settings).
+
 ## Self hosting and project policy
 
 See the [server configuration](docs/server.md), [container deployment and recovery](docs/deployment.md), [framework integrations](docs/integrations.md), [trusted build plugins](docs/plugins.md), [candidate packaging](docs/releases.md), and [measured performance](docs/performance.md). Code is licensed under [Apache-2.0](LICENSE); see [NOTICE](NOTICE), [security reporting](SECURITY.md), [governance](GOVERNANCE.md), and the [code of conduct](CODE_OF_CONDUCT.md).

@@ -2,6 +2,22 @@
 
 The reader uses a shared canvas with separate rounded islands for the header, navigation, article and inspector. Existing project colors, light/dark palettes, density, fonts and radius tokens remain available. The island radius has a 14-pixel minimum; inner controls retain their own radii. API examples and guide contents use the inspector alongside the article when space permits.
 
+## Personal reader settings
+
+Open the settings button in the header to customize this browser's reading experience. Settings apply to the current origin and documentation base path, independently of published project configuration. They survive reloads and synchronize with other open tabs for the same site. No account, request contents, response data or API credentials are stored with appearance preferences. Blocked storage keeps settings usable for the current visit; invalid, unsupported or oversized saved data falls back to safe defaults.
+
+Choose system, light or dark appearance. System mode follows operating-system changes while the site is open. Select a mint, ocean, violet or neutral accent preset, or customize the light/dark reading palettes, typography, density, radius and preferred widths. The palette mode chooses which appearance to edit. Contrast warnings identify reading colors below 4.5:1. Save up to eight named custom documentation themes, apply them later, or delete them; saving the same name replaces that preset. **Use published theme** removes the personal documentation theme while retaining other preferences. The separate `?theme-editor=1` authoring preview remains temporary and can export portable project theme configuration.
+
+The default **Modern islands** layout keeps resizable navigation and inspectors. **Classic API reference** uses a continuous canvas, compact navigation rail, method-colored endpoint rows and a bordered endpoint header, with the request example below the article. Both retain search, schemas and the modal API playground. Switching back restores modern sizing preferences. Compact screens retain the navigation menu and stacked panels.
+
+The response editor has independent follow-appearance, light, dark, high-contrast and custom theme choices. Custom editor colors cover the background, text, property keys, strings, numbers and keywords, with a live sample and contrast feedback. This editor preference is saved separately from named documentation themes. Changing it, including from another tab, preserves the current response and folding state. Fullscreen viewing uses the same theme; copying still returns the entire original response.
+
+Reader and Studio scrollbars use slim, theme-aware thumbs and transparent tracks, with stronger hover/focus colors. Native scrolling retains keyboard and touch behavior. Forced-color mode restores platform scrollbar colors, and Monaco uses its own matching compact scrollbar controls.
+
+## Filter sidebar navigation
+
+**All** is the initial section on every page load and shows authored guides alongside endpoints for the selected API version. **Documentation** shows guide groups only; **API Reference** shows endpoint groups and the API version selector. Selecting a section opens its first page when crossing from the other section. Ordinary sidebar links and back/forward navigation keep an active section consistent with the displayed page; All continues including both kinds. Search remains available across the documentation. Pre-rendered navigation includes both kinds for readers without JavaScript.
+
 ## Resize the workspace
 
 On desktop, drag the gutter between navigation and content or between the article and inspector. The playground also has a divider between request configuration and response. Width changes update CSS tracks without rerendering the documentation tree or sending API requests. Preferred widths are bounded, and available space can further constrain rendered widths.

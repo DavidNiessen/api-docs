@@ -8,6 +8,11 @@ import {
   Suspense,
 } from 'react';
 import { createCredentialSession } from '../credential-session.js';
+import {
+  EditorPreferencesContext,
+  useReaderPreferences,
+} from '../use-reader-preferences.js';
+import { personalTheme } from '../reader-preferences.js';
 import type {
   CSSProperties,
   MouseEvent,
@@ -47,6 +52,11 @@ import { DeprecationCenter, OperationLifecycle } from './Lifecycle.js';
 
 const ReaderExtensions = lazy(() => import('./ReaderExtensions.js'));
 const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
+const ReaderSettingsControls = lazy(() =>
+  import('./ReaderSettingsControls.js').then((module) => ({
+    default: module.ReaderSettingsControls,
+  })),
+);
 function scrollFragment(hash: string) {
   if (!hash) return;
   try {
@@ -110,6 +120,13 @@ export function App({
 }) {
   const layout = useRef<HTMLDivElement>(null);
   const [site, setSite] = useState(initialSite);
+  const {
+    preferences,
+    setPreferences,
+    mode: preferredMode,
+    stored,
+    ready: preferencesReady,
+  } = useReaderPreferences(site.config.basePath);
   const [credentialSession] = useState(createCredentialSession);
   useSyncExternalStore(
     credentialSession.subscribe,
@@ -151,14 +168,19 @@ export function App({
   const [themeDraft, setThemeDraft] = useState<Theme | null>(null);
   const [themeEditorEnabled, setThemeEditorEnabled] = useState(false);
   const [themeEditorOpen, setThemeEditorOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [navigationMode, setNavigationMode] = useState<'all' | 'docs' | 'api'>(
+    'all',
+  );
   const [query, setQuery] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
   const playground = useRef<PlaygroundHandle>(null);
   useEffect(() => {
     performance.mark('api-docs:hydrated');
   }, []);
-  const config = themeDraft
-    ? { ...site.config, theme: themeDraft }
+  const selectedTheme = themeDraft ?? preferences.theme;
+  const config = selectedTheme
+    ? { ...site.config, theme: selectedTheme }
     : site.config;
   const { locale, prefix, contentPath } = localeRoute(config, path);
   const contentLocale = site.contentLocale ?? config.defaultLocale;
@@ -199,20 +221,14 @@ export function App({
   const firstApi = activeApi?.operations[0];
   const lifecyclePage = site.lifecycle?.page;
   useEffect(() => {
+    setNavigationMode((previous) =>
+      previous === 'all' ? 'all' : activeOperation ? 'api' : 'docs',
+    );
+  }, [contentPath, !!activeOperation]);
+  useEffect(() => {
     setThemeEditorEnabled(
       new URL(window.location.href).searchParams.get('theme-editor') === '1',
     );
-    try {
-      const saved = localStorage.getItem('api-docs-theme');
-      setTheme(
-        saved === 'dark' ||
-          (!saved && matchMedia('(prefers-color-scheme: dark)').matches)
-          ? 'dark'
-          : 'light',
-      );
-    } catch {
-      /* Storage can be disabled. */
-    }
     const pop = () => {
       void loadPage(new URL(window.location.href), false);
     };
@@ -229,6 +245,9 @@ export function App({
       window.removeEventListener('keydown', key);
     };
   }, [config.basePath]);
+  useEffect(() => {
+    if (preferencesReady) setTheme(preferredMode);
+  }, [preferredMode, preferencesReady]);
   useEffect(() => {
     document.documentElement.lang = ui.locale;
   }, [ui.locale]);
@@ -458,7 +477,8 @@ export function App({
   const view = (
     <div
       ref={layout}
-      className={`docs-shell density-${config.theme.density} font-${config.theme.font} code-${config.theme.codeTheme}`}
+      className={`docs-shell layout-${preferences.layout} density-${config.theme.density} font-${config.theme.font} code-${config.theme.codeTheme}`}
+      data-layout={preferences.layout}
       style={
         {
           '--accent': config.theme.accent,
@@ -590,11 +610,21 @@ export function App({
             )}
             <button
               type="button"
+              className="icon-button reader-settings-trigger"
+              aria-label={t('theme.settings')}
+              title={t('theme.settings')}
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Icon name="settings" />
+            </button>
+            <button
+              type="button"
               className="icon-button theme-toggle"
               aria-label={t(theme === 'light' ? 'theme.dark' : 'theme.light')}
               onClick={() => {
                 const next = theme === 'light' ? 'dark' : 'light';
                 setTheme(next);
+                setPreferences((previous) => ({ ...previous, mode: next }));
                 try {
                   localStorage.setItem('api-docs-theme', next);
                 } catch {
@@ -616,23 +646,81 @@ export function App({
           </div>
         </div>
         <nav className="header-tabs" aria-label={t('navigation.sections')}>
+          <span className="section-fallback active" hidden={preferencesReady}>
+            {t('navigation.all')}
+          </span>
           <a
-            className={!activeOperation && !lifecyclePage ? 'active' : ''}
+            className="section-fallback"
+            hidden={preferencesReady}
             href={docHref(site.guides[0] ? guideHref(site.guides[0]) : '/')}
-            data-doc-route
           >
             <Icon name="book" size={16} />
             {t('navigation.docs')}
           </a>
           {firstApi && activeApi && (
             <a
-              className={activeOperation ? 'active' : ''}
+              className="section-fallback"
+              hidden={preferencesReady}
               href={docHref(operationHref(activeApi, firstApi))}
-              data-doc-route
             >
               <Icon name="code" size={16} />
               {t('navigation.api')}
             </a>
+          )}
+          <button
+            type="button"
+            hidden={!preferencesReady}
+            className={navigationMode === 'all' ? 'active' : ''}
+            aria-pressed={navigationMode === 'all'}
+            aria-controls="documentation-navigation"
+            onClick={() => setNavigationMode('all')}
+          >
+            <Icon name="globe" size={16} />
+            {t('navigation.all')}
+          </button>
+          <button
+            type="button"
+            hidden={!preferencesReady}
+            className={navigationMode === 'docs' ? 'active' : ''}
+            aria-pressed={navigationMode === 'docs'}
+            aria-controls="documentation-navigation"
+            onClick={() => {
+              setNavigationMode('docs');
+              if (!activeGuide && site.guides[0])
+                void loadPage(
+                  new URL(
+                    docHref(guideHref(site.guides[0])),
+                    window.location.origin,
+                  ),
+                  true,
+                );
+            }}
+          >
+            <Icon name="book" size={16} />
+            {t('navigation.docs')}
+          </button>
+          {firstApi && activeApi && (
+            <button
+              type="button"
+              hidden={!preferencesReady}
+              className={navigationMode === 'api' ? 'active' : ''}
+              aria-pressed={navigationMode === 'api'}
+              aria-controls="documentation-navigation"
+              onClick={() => {
+                setNavigationMode('api');
+                if (!activeOperation)
+                  void loadPage(
+                    new URL(
+                      docHref(operationHref(activeApi, firstApi)),
+                      window.location.origin,
+                    ),
+                    true,
+                  );
+              }}
+            >
+              <Icon name="code" size={16} />
+              {t('navigation.api')}
+            </button>
           )}
           {(site.lifecycle?.total ?? 0) > 0 && (
             <a
@@ -657,7 +745,7 @@ export function App({
           className={`sidebar ${mobileNav ? 'is-open' : ''}`}
           aria-label={t('navigation.sidebar')}
         >
-          {site.apis.length > 1 ? (
+          {navigationMode !== 'docs' && site.apis.length > 1 ? (
             <label className="version-select">
               {t('navigation.version')}
               <select
@@ -696,38 +784,40 @@ export function App({
               )}
             </div>
           )}
-          {groups.map((group) => (
-            <nav className="nav-group" key={group} aria-label={group}>
-              <h2>{group}</h2>
-              {site.guides
-                .filter((guide) => guide.group === group)
-                .map((guide, index) => (
-                  <a
-                    className={
-                      activeGuide?.slug === guide.slug
-                        ? 'nav-link active'
-                        : 'nav-link'
-                    }
-                    key={guide.slug}
-                    href={docHref(guideHref(guide))}
-                    data-doc-route
-                    aria-current={
-                      activeGuide?.slug === guide.slug ? 'page' : undefined
-                    }
-                  >
-                    <Icon
-                      name={
-                        ['book', 'bolt', 'shield', 'settings'][index % 4] ??
-                        'book'
+          {navigationMode !== 'api' &&
+            groups.map((group) => (
+              <nav className="nav-group" key={group} aria-label={group}>
+                <h2>{group}</h2>
+                {site.guides
+                  .filter((guide) => guide.group === group)
+                  .map((guide, index) => (
+                    <a
+                      className={
+                        activeGuide?.slug === guide.slug
+                          ? 'nav-link active'
+                          : 'nav-link'
                       }
-                      size={16}
-                    />
-                    <span>{guide.title}</span>
-                  </a>
-                ))}
-            </nav>
-          ))}
-          {activeApi &&
+                      key={guide.slug}
+                      href={docHref(guideHref(guide))}
+                      data-doc-route
+                      aria-current={
+                        activeGuide?.slug === guide.slug ? 'page' : undefined
+                      }
+                    >
+                      <Icon
+                        name={
+                          ['book', 'bolt', 'shield', 'settings'][index % 4] ??
+                          'book'
+                        }
+                        size={16}
+                      />
+                      <span>{guide.title}</span>
+                    </a>
+                  ))}
+              </nav>
+            ))}
+          {navigationMode !== 'docs' &&
+            activeApi &&
             tags.map((tag) => (
               <nav
                 className="nav-group"
@@ -1090,6 +1180,41 @@ export function App({
           )}
         </main>
       </div>
+      {settingsOpen && (
+        <Suspense fallback={<div role="status">Loading reader settings…</div>}>
+          <ThemeEditor
+            personal
+            value={config.theme}
+            mode={theme}
+            onChange={(value) => {
+              setThemeDraft(null);
+              setPreferences((previous) => ({
+                ...previous,
+                theme: personalTheme(value),
+              }));
+            }}
+            onModeChange={(mode) => {
+              setTheme(mode);
+              setPreferences((previous) => ({ ...previous, mode }));
+            }}
+            onClose={() => setSettingsOpen(false)}
+            onReset={() => {
+              setThemeDraft(null);
+              setPreferences((previous) => ({ ...previous, theme: undefined }));
+            }}
+          >
+            <ReaderSettingsControls
+              value={preferences}
+              onChange={(value) => {
+                setThemeDraft(null);
+                setPreferences(value);
+              }}
+              theme={config.theme}
+              stored={stored}
+            />
+          </ThemeEditor>
+        </Suspense>
+      )}
       {themeEditorOpen && (
         <Suspense
           fallback={<div role="status">Loading appearance controls…</div>}
@@ -1208,7 +1333,13 @@ export function App({
       </dialog>
     </div>
   );
-  return <UiContext.Provider value={ui}>{view}</UiContext.Provider>;
+  return (
+    <UiContext.Provider value={ui}>
+      <EditorPreferencesContext.Provider value={{ preferences, mode: theme }}>
+        {view}
+      </EditorPreferencesContext.Provider>
+    </UiContext.Provider>
+  );
 }
 function OperationDetails({
   api,
