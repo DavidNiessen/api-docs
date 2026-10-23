@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ApiDocument, Operation } from '@api-docs/contracts';
+import { safeNavigationHref } from '@api-docs/contracts';
 import {
   readExpandedOperation,
   readOperationCatalog,
@@ -361,7 +362,9 @@ export default function ClassicApiReference({
                       <>
                         <div className="classic-endpoint-actions">
                           <a
-                            href={`${operationBase}${row.slug}/#classic-${page}-${row.slug}`}
+                            href={safeNavigationHref(
+                              `${operationBase}${row.slug}/#classic-${page}-${row.slug}`,
+                            )}
                             data-doc-route
                           >
                             {t('classic.permalink')}

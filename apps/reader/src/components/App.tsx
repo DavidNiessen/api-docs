@@ -8,6 +8,7 @@ import {
   Suspense,
 } from 'react';
 import { createCredentialSession } from '../credential-session.js';
+import { sanitizeGuideHtml } from '../sanitize-guide.server.js';
 import {
   EditorThemeContext,
   useReaderPreferences,
@@ -23,6 +24,7 @@ import {
   guideHref,
   operationHref,
   withBase,
+  safeNavigationHref,
   normalizePagePath,
   readableAccent,
   resolvePalette,
@@ -190,6 +192,10 @@ export function App({
   const activeGuide =
     site.guides.find((guide) => guideHref(guide) === contentPath) ??
     (contentPath === '/' ? site.guides[0] : undefined);
+  const guideHtml = useMemo(
+    () => (activeGuide ? sanitizeGuideHtml(activeGuide.html) : ''),
+    [activeGuide?.html],
+  );
   let activeApi =
     site.apis.find((api) =>
       api.operations.some(
@@ -578,7 +584,7 @@ export function App({
             {config.links.map((link) => (
               <a
                 key={link.href}
-                href={link.href}
+                href={safeNavigationHref(link.href)}
                 target={link.href.startsWith('https:') ? '_blank' : undefined}
                 rel="noreferrer"
               >
@@ -1103,7 +1109,9 @@ export function App({
                 )}
                 <div
                   className="guide-content"
-                  dangerouslySetInnerHTML={{ __html: activeGuide.html }}
+                  dangerouslySetInnerHTML={{
+                    __html: guideHtml,
+                  }}
                 />
                 <div className="next-pages">
                   {site.guides
@@ -1153,7 +1161,7 @@ export function App({
                     .map((heading) => (
                       <a
                         key={heading.id}
-                        href={`#${heading.id}`}
+                        href={safeNavigationHref(`#${heading.id}`)}
                         className={heading.level === 3 ? 'nested' : ''}
                       >
                         {heading.text}

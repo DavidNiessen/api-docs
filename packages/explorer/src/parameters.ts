@@ -16,23 +16,28 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 const isScalar = (value: unknown): value is Scalar =>
   value === null || ['string', 'number', 'boolean'].includes(typeof value);
-// Sticky matching consumes each validated token once, without restarting at later quotes.
+// Scan validated JSON once; no regular expression retries at quotes or escapes.
 function rewriteJson(raw: string, quoteNumbers: boolean): string {
   JSON.parse(raw);
-  const tokens =
-    /\s+|"(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}:,]|\[|\]/y;
   const output: string[] = [];
   let offset = 0;
   while (offset < raw.length) {
-    tokens.lastIndex = offset;
-    const match = tokens.exec(raw);
-    if (!match) throw new Error('Invalid JSON token');
-    const token = match[0],
-      first = token[0]!;
-    offset = tokens.lastIndex;
-    if (quoteNumbers && (first === '-' || (first >= '0' && first <= '9')))
-      output.push(JSON.stringify(token));
-    else if (quoteNumbers || token.trim()) output.push(token);
+    const start = offset,
+      first = raw[offset++]!;
+    if (first === '"') {
+      while (offset < raw.length) {
+        const character = raw[offset++];
+        if (character === '\\') offset++;
+        else if (character === '"') break;
+      }
+      output.push(raw.slice(start, offset));
+    } else if (first === '-' || (first >= '0' && first <= '9')) {
+      while (offset < raw.length && '0123456789.eE+-'.includes(raw[offset]!))
+        offset++;
+      const number = raw.slice(start, offset);
+      output.push(quoteNumbers ? JSON.stringify(number) : number);
+    } else if (quoteNumbers || ![' ', '\t', '\r', '\n'].includes(first))
+      output.push(first);
   }
   return output.join('');
 }

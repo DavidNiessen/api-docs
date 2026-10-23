@@ -1,6 +1,6 @@
 import { open, realpath } from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { relative, resolve, sep } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { parseDocument } from 'yaml';
 
 export function record(value: unknown): Record<string, unknown> {
@@ -18,13 +18,18 @@ export async function confinedPath(
   root: string,
   path: string,
 ): Promise<string> {
-  const [base, target] = await Promise.all([
-    realpath(root),
-    realpath(resolve(root, path)),
-  ]);
-  const local = relative(base, target);
-  if (local === '..' || local.startsWith(`..${sep}`) || local.startsWith(sep))
+  const chosenRoot = resolve(root),
+    base = await realpath(chosenRoot),
+    chosenTarget = resolve(chosenRoot, path);
+  const requested = relative(chosenRoot, chosenTarget);
+  const canonicalRequested = relative(base, chosenTarget);
+  const outside = (value: string) =>
+    value === '..' || value.startsWith(`..${sep}`) || isAbsolute(value);
+  if (outside(requested) && outside(canonicalRequested))
     throw new Error(`Path escapes the project: ${path}`);
+  const target = await realpath(chosenTarget);
+  const local = relative(base, target);
+  if (outside(local)) throw new Error(`Path escapes the project: ${path}`);
   return target;
 }
 /** Bound reads before allocating the entire input, including files that grow after stat. */

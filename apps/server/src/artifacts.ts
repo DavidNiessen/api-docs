@@ -12,6 +12,8 @@ export async function verifyProjectArtifact(
   expectedToolVersion?: string,
 ) {
   try {
+    if (artifactId.length !== 64 || !/^[a-f0-9]{64}$/.test(artifactId))
+      throw new Error('Invalid staged identity');
     const directory = await confinedPath(root, artifactId);
     const manifest = await verifyArtifact(directory);
     if (

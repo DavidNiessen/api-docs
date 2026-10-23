@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { withBase } from '@api-docs/contracts';
+import { withBase, safeNavigationHref } from '@api-docs/contracts';
 import type { LifecyclePage, LifecycleRecord } from '@api-docs/contracts';
 import { Icon } from './Icon.js';
 import { useUi } from '../ui-translation.js';
@@ -74,7 +74,7 @@ function Guidance({
             href={
               migration.startsWith('/')
                 ? withBase(basePath, migration)
-                : migration
+                : safeNavigationHref(migration)
             }
             data-doc-route={migration.startsWith('/') ? true : undefined}
             rel={migration.startsWith('/') ? undefined : 'noreferrer'}

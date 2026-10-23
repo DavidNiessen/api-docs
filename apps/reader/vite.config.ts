@@ -21,6 +21,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      '../sanitize-guide.server.js': fileURLToPath(
+        new URL('./src/sanitize-guide.browser.ts', import.meta.url),
+      ),
       'monaco-editor/codicon.css': fileURLToPath(
         new URL(
           './base/browser/ui/codicons/codicon/codicon.css',

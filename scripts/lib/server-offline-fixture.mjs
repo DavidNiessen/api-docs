@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { constants, createReadStream } from 'node:fs';
-import { mkdtemp, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -195,44 +195,41 @@ export async function verifyOfflineInstall(source) {
       );
     const originalTags = await tags();
     await docker(['image', 'save', '--output', archive, ...images]);
-    const archiveMetadata = await stat(archive);
-    const archiveBytes = archiveMetadata.size;
-    assert(archiveBytes > 0);
-    const manifest = JSON.parse(
-      (await command('tar', ['-xOf', archive, 'manifest.json'])).stdout,
-    );
-    assert.equal(manifest.length, 2);
-    assert(
-      manifest.every((entry) => !entry.RepoTags?.length),
-      'Image archives must not replace mutable local tags.',
-    );
-    const configurations = [];
-    for (const entry of manifest) {
-      const match = /^(?:blobs\/sha256\/)?([a-f0-9]{64})(?:\.json)?$/.exec(
-        entry.Config,
-      );
-      assert(match, 'Invalid archived image configuration path.');
-      const bytes = await command('tar', ['-xOf', archive, entry.Config]);
-      assert.equal(
-        createHash('sha256').update(bytes.stdout).digest('hex'),
-        match[1],
-      );
-      configurations.push('sha256:' + match[1]);
-    }
-    assert.deepEqual(configurations.sort(), [...images].sort());
-    const archiveSha256 = await hashFile(archive);
-    const checksums = join(root, 'SHA256SUMS');
-    await writeFile(checksums, archiveSha256 + '  images.tar\n');
-    source.step('offline archive checksum refusal and import');
+    let archiveBytes, archiveSha256;
     const archiveFile = await open(
       archive,
       constants.O_RDWR | constants.O_NOFOLLOW,
     );
     try {
-      const current = await archiveFile.stat();
-      assert.equal(current.dev, archiveMetadata.dev);
-      assert.equal(current.ino, archiveMetadata.ino);
-      assert.equal(current.size, archiveBytes);
+      const metadata = await archiveFile.stat();
+      assert(metadata.isFile() && metadata.size > 0);
+      archiveBytes = metadata.size;
+      const manifest = JSON.parse(
+        (await command('tar', ['-xOf', archive, 'manifest.json'])).stdout,
+      );
+      assert.equal(manifest.length, 2);
+      assert(
+        manifest.every((entry) => !entry.RepoTags?.length),
+        'Image archives must not replace mutable local tags.',
+      );
+      const configurations = [];
+      for (const entry of manifest) {
+        const match = /^(?:blobs\/sha256\/)?([a-f0-9]{64})(?:\.json)?$/.exec(
+          entry.Config,
+        );
+        assert(match, 'Invalid archived image configuration path.');
+        const bytes = await command('tar', ['-xOf', archive, entry.Config]);
+        assert.equal(
+          createHash('sha256').update(bytes.stdout).digest('hex'),
+          match[1],
+        );
+        configurations.push('sha256:' + match[1]);
+      }
+      assert.deepEqual(configurations.sort(), [...images].sort());
+      archiveSha256 = await hashFile(archive);
+      const checksums = join(root, 'SHA256SUMS');
+      await writeFile(checksums, archiveSha256 + '  images.tar\n');
+      source.step('offline archive checksum refusal and import');
       try {
         await archiveFile.write(
           'Corrupt offline archive',
@@ -243,11 +240,11 @@ export async function verifyOfflineInstall(source) {
       } finally {
         await archiveFile.truncate(archiveBytes);
       }
+      await command('sha256sum', ['--check', checksums]);
+      assert.equal(await hashFile(archive), archiveSha256);
     } finally {
       await archiveFile.close();
     }
-    await command('sha256sum', ['--check', checksums]);
-    assert.equal(await hashFile(archive), archiveSha256);
     await docker(['image', 'load', '--input', archive]);
     for (const image of images)
       assert.equal(

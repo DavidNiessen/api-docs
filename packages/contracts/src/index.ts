@@ -260,7 +260,40 @@ export function guideHref(guide: Guide): string {
   return `/guides/${guide.slug}/`;
 }
 export function withBase(base: string, path: string): string {
-  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  return navigationHref(
+    `${base}${path.startsWith('/') ? path : `/${path}`}`,
+    true,
+  );
+}
+
+const navigationOrigin = 'https://api-docs.invalid';
+function navigationHref(value: string, localOnly: boolean): string {
+  try {
+    const url = new URL(value, navigationOrigin + '/');
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '#';
+    if (
+      url.username ||
+      url.password ||
+      (localOnly && url.origin !== navigationOrigin)
+    )
+      return '#';
+    // A normalized pathname can start with // after dot-segment removal.
+    // Emit exactly one leading slash so a second URL parse cannot select another host.
+    const normalized =
+      url.origin !== navigationOrigin
+        ? url.href
+        : value.startsWith('#')
+          ? url.hash
+          : '/' + url.pathname.replace(/^\/+/, '') + url.search + url.hash;
+    // Encode unsafe URI text while preserving already encoded path/query values.
+    return encodeURI(normalized).replace(/%25([a-f0-9]{2})/gi, '%$1');
+  } catch {
+    return '#';
+  }
+}
+/** Guard navigation read from page data, including local fragments and HTTP(S) links. */
+export function safeNavigationHref(value: string): string {
+  return navigationHref(value, false);
 }
 
 export { resolveSchema, exampleFor } from './schema.js';

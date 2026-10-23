@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { request as httpsRequest } from 'node:https';
 import { join, resolve } from 'node:path';
 
@@ -15,7 +15,6 @@ export async function verifyServerProxy(source) {
   const name = source.project + '-tls';
   const label = `dev.niessen.api-docs.tls-fixture=${name}`;
   const frontend = source.project + '_frontend';
-  const configuration = join(source.root, 'Caddyfile');
   const original = {
     PUBLIC_URL: environment.PUBLIC_URL,
     INSECURE_DEVELOPMENT: environment.INSECURE_DEVELOPMENT,
@@ -49,7 +48,8 @@ export async function verifyServerProxy(source) {
   let owned = false,
     changed = false,
     report,
-    failure;
+    failure,
+    tlsDirectory;
   try {
     source.step('production TLS proxy preflight');
     assert.equal(await ownedContainers(), '');
@@ -73,6 +73,8 @@ export async function verifyServerProxy(source) {
     ]);
     assert.match(image, /^sha256:[a-f0-9]{64}$/);
     const template = await readFile(resolve('deploy/Caddyfile'), 'utf8');
+    tlsDirectory = await mkdtemp(join(source.root, 'tls-'));
+    const configuration = join(tlsDirectory, 'Caddyfile');
     await writeFile(
       configuration,
       '{\n  local_certs\n  skip_install_trust\n  admin off\n  auto_https disable_redirects\n}\n\n' +
@@ -392,6 +394,13 @@ export async function verifyServerProxy(source) {
         const address = await compose('port', 'docs', '8080');
         assert.match(address, /^127\.0\.0\.1:[1-9]\d*$/);
         if (report) report.directBase = 'http://' + address;
+      } catch (error) {
+        failures.push(error);
+      }
+    }
+    if (tlsDirectory && failures.length === 0) {
+      try {
+        await rm(tlsDirectory, { recursive: true, force: true });
       } catch (error) {
         failures.push(error);
       }
