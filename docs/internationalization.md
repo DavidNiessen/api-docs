@@ -1,6 +1,6 @@
 # Reader languages and UI translations
 
-Projects can customize the core reader labels without JavaScript plugins or remote translation services. `defaultLocale` selects the HTML language and the UI message catalog. The current increment covers navigation/search, theme actions, playground/URL-bar actions, response-editor controls, clipboard feedback and the page footer. Advanced request-form, schema, lifecycle, authentication and administration wording still uses English. Configured locales generate reader routes and a language menu. Guides can have authored locale variants. Missing guide variants and API content use the default-locale sources with an explicit fallback notice when the UI language differs. Source files are never translated automatically.
+Projects can customize the core reader labels without JavaScript plugins or remote translation services. `defaultLocale` selects the HTML language and the UI message catalog. The current catalog covers navigation/search, personal settings and appearance editing, classic endpoint lists, playground/URL-bar actions, response-editor controls, clipboard feedback and the page footer. Advanced request-form, schema, lifecycle, authentication and administration wording still uses English. Configured locales generate reader routes and a language menu. Guides can have authored locale variants. Missing guide variants and API content use the default-locale sources with an explicit fallback notice when the UI language differs. Source files are never translated automatically.
 
 ## Locale routes and content fallback
 
@@ -59,6 +59,14 @@ See the [German example](../examples/localized/docs.config.yaml). The example is
 Resolution is exact locale, its base language, then the bundled English message. A missing key falls back individually. Regional overrides do not erase base-language keys. English defaults and existing URLs/accessible names remain unchanged when no messages are configured. The renderer and browser use the same catalog, with no language detection, storage, network requests or global locale state.
 
 Supported locale identifiers use two lowercase language letters and an optional uppercase two-letter region, such as `de` or `pt-BR`. Configure 1–16 distinct locales and include `defaultLocale`. Message catalog keys must target a configured locale or its base language. Every message key is validated against the public catalog; unknown keys, empty text, control characters and values above 512 characters fail the build. Do not put secrets in messages: they are public artifact configuration.
+
+## Settings and classic reference messages
+
+The `settings.*`, `appearance.*` and `color.*` IDs cover personal preferences and the temporary appearance preview: layout/mode selectors, saved-theme actions, editor palettes, contrast warnings, dimensions, export feedback and browser-storage status. `classic.*` covers the collapsed endpoint list, counts/pagination, deprecated badges, loading states, retry errors and permalinks. These use the same exact/base/English fallback and named-parameter validation as other reader messages, including accessible names. The [German example](../examples/localized/docs.config.yaml) demonstrates these messages; independent linguistic review remains a launch gate.
+
+Message overrides change display text. Theme preset IDs, layout/mode values, exported configuration keys, palette tokens and endpoint paths retain their public values. Saved theme names and authored API titles, tags and descriptions remain literal user/source text. Existing saved preferences are shared across this project's language routes; changing UI language does not rename or discard saved themes. The initial suggested name uses `settings.defaultName` when the settings controls mount.
+
+Dimensions and pagination expose named values (`{value}`, `{page}`, `{pages}`, `{count}`), so translators can reorder labels. Colors/modes in palette labels and contrast explanations are translated separately before insertion. Counts do not currently provide ICU plural rules; use wording that works for all counts, such as `Endpunkte: {count}`. Loading/retry and copy/reset feedback retain semantic state and resolve its current label when rendered. API details, advanced request/authentication/schema forms and Studio administration still have English product wording.
 
 ## Named parameters and plain text
 

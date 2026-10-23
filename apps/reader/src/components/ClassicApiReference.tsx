@@ -57,11 +57,11 @@ export default function ClassicApiReference({
     [catalogRevision, setCatalogRevision] = useState(0),
     [pageRevision, setPageRevision] = useState(0),
     [detailRevision, setDetailRevision] = useState(0);
-  const [error, setError] = useState(''),
+  const [error, setError] = useState<'list' | 'page' | ''>(''),
     [loading, setLoading] = useState(true),
     [expanded, setExpanded] = useState<string | null>(null);
   const [details, setDetails] = useState<Expanded | null>(null),
-    [detailError, setDetailError] = useState('');
+    [detailError, setDetailError] = useState(false);
   const [selection, setSelection] = useState<
     (Expanded & { trigger?: HTMLElement }) | null
   >(null);
@@ -97,9 +97,7 @@ export default function ClassicApiReference({
       if (!next.pages) setLoading(false);
     })().catch(() => {
       if (!controller.signal.aborted) {
-        setError(
-          'The endpoint list could not be loaded. Retry or use documentation search.',
-        );
+        setError('list');
         setLoading(false);
       }
     });
@@ -132,7 +130,7 @@ export default function ClassicApiReference({
         setExpanded(target.slug);
     })().catch(() => {
       if (!controller.signal.aborted) {
-        setError('This endpoint page could not be loaded.');
+        setError('page');
         setLoading(false);
       }
     });
@@ -144,7 +142,7 @@ export default function ClassicApiReference({
     if (!row) return;
     const controller = new AbortController();
     setDetails(null);
-    setDetailError('');
+    setDetailError(false);
     void (async () => {
       const next =
         expanded === activeOperation.slug
@@ -161,8 +159,7 @@ export default function ClassicApiReference({
             );
       if (!controller.signal.aborted) setDetails(next);
     })().catch(() => {
-      if (!controller.signal.aborted)
-        setDetailError('Endpoint details could not be loaded.');
+      if (!controller.signal.aborted) setDetailError(true);
     });
     return () => controller.abort();
   }, [
@@ -226,7 +223,7 @@ export default function ClassicApiReference({
     return () => cancelAnimationFrame(frame);
   }, [details, page]);
   return (
-    <section className="classic-reference" aria-label="API endpoint reference">
+    <section className="classic-reference" aria-label={t('classic.region')}>
       <header className="classic-reference-header">
         <div>
           <p className="eyebrow">{t('navigation.api')}</p>
@@ -256,17 +253,14 @@ export default function ClassicApiReference({
           </select>
         </label>
       </header>
-      <p className="classic-reference-help">
-        Expand an endpoint to read its parameters, schemas and responses, or try
-        a request.
-      </p>
+      <p className="classic-reference-help">{t('classic.help')}</p>
       {catalog && (
         <div className="classic-pagination">
           <span>
-            {catalog.total} endpoints ·{' '}
+            {t('classic.count', { count: catalog.total })} ·{' '}
             {catalog.pages
-              ? `Page ${page + 1} of ${catalog.pages}`
-              : 'No endpoints'}
+              ? t('classic.page', { page: page + 1, pages: catalog.pages })
+              : t('classic.empty')}
           </span>
           <button
             type="button"
@@ -276,7 +270,7 @@ export default function ClassicApiReference({
               setPage((value) => value - 1);
             }}
           >
-            Previous endpoints
+            {t('classic.previous')}
           </button>
           <button
             type="button"
@@ -286,14 +280,16 @@ export default function ClassicApiReference({
               setPage((value) => value + 1);
             }}
           >
-            Next endpoints
+            {t('classic.next')}
           </button>
         </div>
       )}
-      {loading && <p role="status">Loading endpoints…</p>}
+      {loading && <p role="status">{t('classic.loading')}</p>}
       {error && (
         <div className="classic-reference-error" role="alert">
-          <p>{error}</p>
+          <p>
+            {t(error === 'list' ? 'classic.listError' : 'classic.pageError')}
+          </p>
           <button
             type="button"
             onClick={() =>
@@ -302,7 +298,7 @@ export default function ClassicApiReference({
                 : setCatalogRevision((value) => value + 1)
             }
           >
-            Retry endpoint list
+            {t('classic.retry')}
           </button>
         </div>
       )}
@@ -319,7 +315,7 @@ export default function ClassicApiReference({
                 open={expanded === row.slug}
                 onToggle={(event) => {
                   if (event.currentTarget.open) {
-                    setDetailError('');
+                    setDetailError(false);
                     setExpanded(row.slug);
                   } else
                     setExpanded((current) =>
@@ -334,7 +330,9 @@ export default function ClassicApiReference({
                   <code>{row.path}</code>
                   <span className="endpoint-summary">{row.summary}</span>
                   {row.deprecated && (
-                    <span className="classic-deprecated">Deprecated</span>
+                    <span className="classic-deprecated">
+                      {t('classic.deprecated')}
+                    </span>
                   )}
                   <Icon name="chevron" size={18} />
                 </summary>
@@ -342,18 +340,18 @@ export default function ClassicApiReference({
                   <div className="classic-endpoint-content">
                     {(!details || details.operation.slug !== row.slug) &&
                       !detailError && (
-                        <p role="status">Loading endpoint details…</p>
+                        <p role="status">{t('classic.detailsLoading')}</p>
                       )}
                     {detailError && (
                       <div role="alert">
-                        <p>{detailError}</p>
+                        <p>{t('classic.detailsError')}</p>
                         <button
                           type="button"
                           onClick={() =>
                             setDetailRevision((value) => value + 1)
                           }
                         >
-                          Retry endpoint details
+                          {t('classic.detailsRetry')}
                         </button>
                       </div>
                     )}
@@ -364,7 +362,7 @@ export default function ClassicApiReference({
                             href={`${operationBase}${row.slug}/#classic-${page}-${row.slug}`}
                             data-doc-route
                           >
-                            Endpoint permalink
+                            {t('classic.permalink')}
                           </a>
                           {(!details.operation.kind ||
                             details.operation.kind === 'endpoint') && (

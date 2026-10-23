@@ -162,7 +162,16 @@ const translatedConfig = parseConfig({
   specs: [{ id: 'fixture', path: 'openapi.yaml' }],
   locales: ['de'],
   defaultLocale: 'de',
-  i18n: { messages: { de: { 'playground.dialog': '{title} testen' } } },
+  i18n: {
+    messages: {
+      de: {
+        'playground.dialog': '{title} testen',
+        'settings.apply': '{name} anwenden',
+        'appearance.radius': '{value}px Radius',
+        'classic.page': 'Seite {page} von {pages}',
+      },
+    },
+  },
 });
 const translated = createUiTranslation('de', translatedConfig.i18n);
 assert.equal(
@@ -170,7 +179,20 @@ assert.equal(
   'Installed testen',
 );
 assert.equal(translated.text('playground.send'), 'Send');
-assert.equal(translated.translated, 1);
+assert.equal(translated.translated, 4);
+assert.equal(
+  translated.text('settings.apply', { name: '<saved>' }),
+  '<saved> anwenden',
+);
+assert.equal(
+  translated.text('appearance.radius', { value: 12 }),
+  '12px Radius',
+);
+assert.equal(
+  translated.text('classic.page', { page: 2, pages: 7 }),
+  'Seite 2 von 7',
+);
+assert.equal(translated.text('classic.retry'), 'Retry endpoint list');
 const languageRoutes = { locales: ['en', 'de'], defaultLocale: 'en' };
 assert.equal(
   localizePath(languageRoutes, '/guides/start/', 'de'),

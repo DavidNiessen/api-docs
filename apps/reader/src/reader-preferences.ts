@@ -134,7 +134,9 @@ export function parseReaderPreferences(
     }
   return result;
 }
-export function editorContrastIssues(colors: EditorPalette): string[] {
+export function editorContrastIssues(
+  colors: EditorPalette,
+): (keyof EditorPalette)[] {
   return (Object.keys(colors) as (keyof EditorPalette)[]).filter(
     (key) =>
       key !== 'background' &&

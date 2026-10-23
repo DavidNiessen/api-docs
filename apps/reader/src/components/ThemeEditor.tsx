@@ -6,6 +6,7 @@ import {
   themePresets,
 } from '@api-docs/contracts';
 import type { Theme, Palette } from '@api-docs/contracts';
+import { useUi } from '../ui-translation.js';
 import { Icon } from './Icon.js';
 export default function ThemeEditor({
   value,
@@ -26,10 +27,16 @@ export default function ThemeEditor({
   children?: ReactNode;
   personal?: boolean;
 }) {
+  const t = useUi();
   const dialog = useRef<HTMLDialogElement>(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<
+    | 'appearance.copied'
+    | 'appearance.clipboardUnavailable'
+    | 'appearance.restored'
+    | null
+  >(null);
   const update = (theme: Theme) => {
-    setMessage('');
+    setMessage(null);
     onChange(theme);
   };
   const colors = resolvePalette(value, mode);
@@ -40,7 +47,11 @@ export default function ThemeEditor({
       for (const background of ['background', 'surface', 'subtle'] as const)
         if (contrastRatio(palette[foreground], palette[background]) < 4.5)
           issues.push(
-            `${variant}: ${foreground} needs more contrast against ${background}.`,
+            t('appearance.contrastIssue', {
+              mode: t(`color.${variant}`),
+              foreground: t(`color.${foreground}`),
+              background: t(`color.${background}`),
+            }),
           );
   }
   useEffect(() => {
@@ -79,31 +90,29 @@ export default function ThemeEditor({
     >
       <div className="theme-editor-heading">
         <div>
-          <small>{personal ? 'Your workspace' : 'Live preview'}</small>
+          <small>
+            {t(personal ? 'appearance.workspace' : 'appearance.preview')}
+          </small>
           <h2 id="theme-editor-title">
-            {personal ? 'Reader settings' : 'Make it yours'}
+            {t(personal ? 'appearance.title' : 'appearance.previewTitle')}
           </h2>
         </div>
         <button
           type="button"
           className="icon-button"
-          aria-label={
-            personal ? 'Close reader settings' : 'Close appearance editor'
-          }
+          aria-label={t(
+            personal ? 'appearance.close' : 'appearance.closePreview',
+          )}
           onClick={close}
         >
           <Icon name="close" />
         </button>
       </div>
       {children}
-      <p>
-        {personal
-          ? 'Customize your reading theme. Changes apply immediately; use the palette controls to refine either appearance mode.'
-          : 'Preview your brand across the documentation. Copy the theme section when it is ready.'}
-      </p>
+      <p>{personal ? t('appearance.help') : t('appearance.previewHelp')}</p>
       <div className="theme-editor-grid">
         <label>
-          Preset
+          {t('appearance.preset')}
           <select
             value={value.preset ?? 'mint'}
             onChange={(event) => {
@@ -115,7 +124,7 @@ export default function ThemeEditor({
               };
               if (personal) delete next.colors;
               update(next);
-              setMessage('');
+              setMessage(null);
             }}
           >
             {Object.keys(themePresets).map((preset) => (
@@ -124,19 +133,19 @@ export default function ThemeEditor({
           </select>
         </label>
         <label>
-          {personal ? 'Palette mode' : 'Preview mode'}
+          {t(personal ? 'appearance.paletteMode' : 'appearance.previewMode')}
           <select
             value={mode}
             onChange={(event) =>
               onModeChange(event.target.value as 'light' | 'dark')
             }
           >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
+            <option value="light">{t('settings.light')}</option>
+            <option value="dark">{t('settings.dark')}</option>
           </select>
         </label>
         <label>
-          Accent
+          {t('appearance.accent')}
           <input
             type="color"
             value={value.accent}
@@ -146,7 +155,7 @@ export default function ThemeEditor({
           />
         </label>
         <label>
-          Density
+          {t('appearance.density')}
           <select
             value={value.density}
             onChange={(event) =>
@@ -156,23 +165,23 @@ export default function ThemeEditor({
               })
             }
           >
-            <option value="comfortable">Comfortable</option>
-            <option value="compact">Compact</option>
+            <option value="comfortable">{t('appearance.comfortable')}</option>
+            <option value="compact">{t('appearance.compact')}</option>
           </select>
         </label>
         <label>
-          Typography
+          {t('appearance.typography')}
           <select
             value={value.font}
             onChange={(event) => update({ ...value, font: event.target.value })}
           >
-            <option value="system">System</option>
-            <option value="sans">Sans serif</option>
-            <option value="serif">Serif</option>
+            <option value="system">{t('appearance.system')}</option>
+            <option value="sans">{t('appearance.sans')}</option>
+            <option value="serif">{t('appearance.serif')}</option>
           </select>
         </label>
         <label>
-          Code blocks
+          {t('appearance.code')}
           <select
             value={value.codeTheme}
             onChange={(event) =>
@@ -182,13 +191,13 @@ export default function ThemeEditor({
               })
             }
           >
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
+            <option value="dark">{t('settings.dark')}</option>
+            <option value="light">{t('settings.light')}</option>
           </select>
         </label>
       </div>
       <label>
-        Corner radius: {value.radius}px
+        {t('appearance.radius', { value: value.radius })}
         <input
           type="range"
           min={0}
@@ -200,7 +209,7 @@ export default function ThemeEditor({
         />
       </label>
       <label>
-        Sidebar width: {value.sidebarWidth ?? 274}px
+        {t('appearance.sidebarWidth', { value: value.sidebarWidth ?? 274 })}
         <input
           type="range"
           min={220}
@@ -212,7 +221,7 @@ export default function ThemeEditor({
         />
       </label>
       <label>
-        Reading width: {value.contentWidth ?? 760}px
+        {t('appearance.readingWidth', { value: value.contentWidth ?? 760 })}
         <input
           type="range"
           min={600}
@@ -223,18 +232,25 @@ export default function ThemeEditor({
           }
         />
       </label>
-      <h3>{mode === 'light' ? 'Light' : 'Dark'} palette</h3>
+      <h3>
+        {t('appearance.palette', {
+          mode: t(mode === 'light' ? 'settings.light' : 'settings.dark'),
+        })}
+      </h3>
       <div className="theme-editor-grid">
         {(Object.keys(colors) as (keyof Palette)[]).map((key) => (
           <label key={key}>
-            {key}
+            {t(`color.${key}`)}
             <input
               type="color"
-              aria-label={`${mode} ${key} color`}
+              aria-label={t('appearance.color', {
+                mode: t(`color.${mode}`),
+                color: t(`color.${key}`),
+              })}
               value={colors[key]}
               onChange={(event) => {
                 setColor(key, event.target.value);
-                setMessage('');
+                setMessage(null);
               }}
             />
           </label>
@@ -242,17 +258,17 @@ export default function ThemeEditor({
       </div>
       {issues.length > 0 ? (
         <div className="theme-editor-issues" role="alert">
-          <strong>Improve contrast before exporting</strong>
+          <strong>{t('appearance.improveContrast')}</strong>
           <p>
             {issues[0]}{' '}
             {issues.length > 1
-              ? `${issues.length - 1} additional contrast checks need attention.`
+              ? t('appearance.moreContrast', { count: issues.length - 1 })
               : ''}
           </p>
         </div>
       ) : (
         <p className="theme-editor-valid" role="status">
-          Reading colors meet the 4.5:1 contrast checks.
+          {t('appearance.validContrast')}
         </p>
       )}
       <div className="theme-editor-actions">
@@ -265,29 +281,25 @@ export default function ThemeEditor({
               await navigator.clipboard.writeText(
                 JSON.stringify({ theme: value }, null, 2),
               );
-              setMessage(
-                'Theme copied. Merge its theme section into your project configuration.',
-              );
+              setMessage('appearance.copied');
             } catch {
-              setMessage(
-                'Clipboard access is unavailable. Review your browser permissions.',
-              );
+              setMessage('appearance.clipboardUnavailable');
             }
           }}
         >
-          Copy theme configuration
+          {t('appearance.copy')}
         </button>
         <button
           type="button"
           onClick={() => {
             onReset();
-            setMessage('Published theme restored.');
+            setMessage('appearance.restored');
           }}
         >
-          {personal ? 'Use published theme' : 'Reset'}
+          {t(personal ? 'appearance.restore' : 'appearance.reset')}
         </button>
       </div>
-      {message && <p role="status">{message}</p>}
+      {message && <p role="status">{t(message)}</p>}
     </dialog>
   );
 }
