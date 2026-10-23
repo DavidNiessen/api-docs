@@ -30,6 +30,8 @@ import {
   operationHref,
   createPageData,
   lifecycleRoutes,
+  localePaths,
+  localeRoute,
 } from '@api-docs/contracts';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
@@ -105,6 +107,11 @@ export async function buildSite(
       for (const operation of api.operations)
         pages.set(operationHref(api, operation), operation.summary);
     for (const route of lifecycleRoutes(site)) pages.set(route, 'Deprecations');
+    if (pages.size * site.config.locales.length + 1 > 100_000)
+      throw new Error('Locale-expanded pages exceed the artifact route limit');
+    for (const [path, title] of [...pages])
+      for (const localized of localePaths(site.config, path))
+        pages.set(localized, title);
     const callbackRoute = '/oauth/callback/';
     if (
       Object.keys(site.config.redirects).some(
@@ -185,7 +192,19 @@ export async function buildSite(
         );
       await writeFile(
         join(stage, 'sitemap.xml'),
-        `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${[...pages.keys()].map((path) => `<url><loc>${xmlEscape(site.config.siteUrl! + site.config.basePath + path)}</loc></url>`).join('')}</urlset>`,
+        `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${[
+          ...pages.keys(),
+        ]
+          .filter(
+            (path) =>
+              localeRoute(site.config, path).locale ===
+              site.config.defaultLocale,
+          )
+          .map(
+            (path) =>
+              `<url><loc>${xmlEscape(site.config.siteUrl! + site.config.basePath + path)}</loc></url>`,
+          )
+          .join('')}</urlset>`,
       );
     }
     await writeFile(
@@ -378,9 +397,12 @@ export function createDevelopmentBuilder(
         guide !==
         prior.site.guides.find((previous) => previous.source === guide.source),
     );
-    const paths = new Set(changed.map((guide) => guideHref(guide)));
+    const sourcePaths = new Set(changed.map((guide) => guideHref(guide)));
     if (changed.some((guide) => guide.source === next.guides[0]?.source))
-      paths.add('/');
+      sourcePaths.add('/');
+    const paths = new Set(
+      [...sourcePaths].flatMap((path) => localePaths(next.config, path)),
+    );
     const updates = new Map<string, string>();
     for (const path of paths) {
       const page = createPageData(next, path);
@@ -461,7 +483,8 @@ export function createDevelopmentBuilder(
     },
   };
 }
-function pageMetadataTitle(site: SiteData, path: string): string {
+function pageMetadataTitle(site: SiteData, inputPath: string): string {
+  const path = localeRoute(site.config, inputPath).contentPath;
   return path === '/'
     ? (site.guides[0]?.title ?? site.config.name)
     : (site.guides.find((guide) => guideHref(guide) === path)?.title ??

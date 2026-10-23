@@ -1,5 +1,10 @@
 /** Stable reader message IDs. Values are plain text with named placeholders. */
 export const defaultUiMessages = Object.freeze({
+  'locale.choose': 'Documentation language',
+  'locale.coverage':
+    '{translated} of {total} core UI labels translated. Other labels use English.',
+  'locale.fallback':
+    'Documentation content is shown in {language}. UI language: {locale}.',
   'navigation.loading': 'Loading documentation…',
   'navigation.skip': 'Skip to content',
   'navigation.docs': 'Documentation',

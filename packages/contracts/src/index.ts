@@ -309,3 +309,10 @@ export type {
   UiText,
   UiTranslation,
 } from './i18n.js';
+
+export {
+  localeRoute,
+  localizePath,
+  localePaths,
+  localeName,
+} from './locale.js';

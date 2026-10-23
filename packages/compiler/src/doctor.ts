@@ -7,6 +7,7 @@ import {
   resolveSchema,
   lifecycleReport,
   lifecycleRoutes,
+  localePaths,
 } from '@api-docs/contracts';
 import type {
   Diagnostic,
@@ -209,6 +210,11 @@ export async function auditDocumentation(
     normalize(withBase(base, '/')),
     routes.get(root) ?? new Set(['main-content']),
   );
+  for (const [route, anchors] of [...routes]) {
+    const page = route.slice(base.length) || '/';
+    for (const localized of localePaths(site.config, page))
+      routes.set(normalize(withBase(base, localized)), anchors);
+  }
   for (const asset of site.assetMetadata ?? [])
     routes.set(normalize(withBase(base, `/media/${asset.path}`)), undefined);
   routes.set(normalize(withBase(base, '/robots.txt')), undefined);

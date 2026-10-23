@@ -26,6 +26,8 @@ import {
   feedbackHref,
   isRelayEndpoint,
   createUiTranslation,
+  localizePath,
+  localeRoute,
 } from '@api-docs/contracts';
 import {
   redactJsonBody,
@@ -78,6 +80,15 @@ assert.equal(
 );
 assert.equal(translated.text('playground.send'), 'Send');
 assert.equal(translated.translated, 1);
+const languageRoutes = { locales: ['en', 'de'], defaultLocale: 'en' };
+assert.equal(
+  localizePath(languageRoutes, '/guides/start/', 'de'),
+  '/de/guides/start/',
+);
+assert.equal(
+  localeRoute(languageRoutes, '/de/guides/start/').contentPath,
+  '/guides/start/',
+);
 const composed = objectFieldSchema(
   {
     allOf: [

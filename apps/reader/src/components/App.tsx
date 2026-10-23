@@ -23,6 +23,9 @@ import {
   resolvePalette,
   pageMetadata,
   createUiTranslation,
+  localeRoute,
+  localizePath,
+  localeName,
 } from '@api-docs/contracts';
 import type {
   ApiDocument,
@@ -31,6 +34,7 @@ import type {
   SearchResult,
   Theme,
 } from '@api-docs/contracts';
+import { LocaleMenu } from './LocaleMenu.js';
 import { UiContext } from '../ui-translation.js';
 import { Icon } from './Icon.js';
 import { Playground } from './Playground.js';
@@ -149,9 +153,10 @@ export function App({
   const config = themeDraft
     ? { ...site.config, theme: themeDraft }
     : site.config;
+  const { locale, prefix, contentPath } = localeRoute(config, path);
   const ui = useMemo(
-    () => createUiTranslation(config.defaultLocale, config.i18n),
-    [config.defaultLocale, config.i18n],
+    () => createUiTranslation(locale, config.i18n),
+    [locale, config.i18n],
   );
   const t = ui.text;
   const palette = resolvePalette(
@@ -159,20 +164,21 @@ export function App({
     theme === 'dark' ? 'dark' : 'light',
   );
   const href = (value: string) => withBase(config.basePath, value);
+  const docHref = (value: string) => href(localizePath(config, value, locale));
   const activeGuide =
-    site.guides.find((guide) => guideHref(guide) === path) ??
-    (path === '/' ? site.guides[0] : undefined);
+    site.guides.find((guide) => guideHref(guide) === contentPath) ??
+    (contentPath === '/' ? site.guides[0] : undefined);
   let activeApi =
     site.apis.find((api) =>
       api.operations.some(
-        (operation) => operationHref(api, operation) === path,
+        (operation) => operationHref(api, operation) === contentPath,
       ),
     ) ?? site.apis[0];
   const activeOperation =
     activeApi?.operations.find(
-      (operation) => operationHref(activeApi!, operation) === path,
+      (operation) => operationHref(activeApi!, operation) === contentPath,
     ) ??
-    (path === '/' && !site.guides.length
+    (contentPath === '/' && !site.guides.length
       ? activeApi?.operations[0]
       : undefined);
   const [selectedApi, setSelectedApi] = useState(
@@ -215,6 +221,9 @@ export function App({
       window.removeEventListener('keydown', key);
     };
   }, [config.basePath]);
+  useEffect(() => {
+    document.documentElement.lang = ui.locale;
+  }, [ui.locale]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
@@ -457,7 +466,7 @@ export function App({
       </a>
       <header className="site-header">
         <div className="header-main">
-          <a className="brand" href={href('/')} data-doc-route>
+          <a className="brand" href={docHref('/')} data-doc-route>
             {config.logo ? (
               <>
                 <img
@@ -492,6 +501,18 @@ export function App({
             <kbd>⌘ K</kbd>
           </button>
           <div className="header-actions">
+            <LocaleMenu
+              config={config}
+              path={
+                activeGuide ||
+                activeOperation ||
+                lifecyclePage ||
+                contentPath === '/'
+                  ? path
+                  : '/'
+              }
+              ui={ui}
+            />
             {site.config.explorer?.credentialReuse !== false &&
               credentialSession.hasRemembered() && (
                 <button
@@ -562,7 +583,7 @@ export function App({
         <nav className="header-tabs" aria-label={t('navigation.sections')}>
           <a
             className={!activeOperation && !lifecyclePage ? 'active' : ''}
-            href={href(site.guides[0] ? guideHref(site.guides[0]) : '/')}
+            href={docHref(site.guides[0] ? guideHref(site.guides[0]) : '/')}
             data-doc-route
           >
             <Icon name="book" size={16} />
@@ -571,7 +592,7 @@ export function App({
           {firstApi && activeApi && (
             <a
               className={activeOperation ? 'active' : ''}
-              href={href(operationHref(activeApi, firstApi))}
+              href={docHref(operationHref(activeApi, firstApi))}
               data-doc-route
             >
               <Icon name="code" size={16} />
@@ -581,7 +602,7 @@ export function App({
           {(site.lifecycle?.total ?? 0) > 0 && (
             <a
               className={lifecyclePage ? 'active' : ''}
-              href={href('/deprecations/')}
+              href={docHref('/deprecations/')}
               data-doc-route
               aria-current={lifecyclePage ? 'page' : undefined}
             >
@@ -614,7 +635,7 @@ export function App({
                   if (api?.operations[0]) {
                     const target = operationHref(api, api.operations[0]);
                     void loadPage(
-                      new URL(href(target), window.location.origin),
+                      new URL(docHref(target), window.location.origin),
                       true,
                     );
                   }
@@ -652,7 +673,7 @@ export function App({
                         : 'nav-link'
                     }
                     key={guide.slug}
-                    href={href(guideHref(guide))}
+                    href={docHref(guideHref(guide))}
                     data-doc-route
                     aria-current={
                       activeGuide?.slug === guide.slug ? 'page' : undefined
@@ -685,7 +706,7 @@ export function App({
                   .map((operation) => (
                     <a
                       key={operation.slug}
-                      href={href(operationHref(activeApi!, operation))}
+                      href={docHref(operationHref(activeApi!, operation))}
                       data-doc-route
                       className={
                         activeOperation?.slug === operation.slug
@@ -739,15 +760,29 @@ export function App({
           }
           tabIndex={-1}
         >
+          {locale !== config.defaultLocale && (
+            <aside className="locale-fallback" role="note">
+              <Icon name="info" size={16} />
+              <p>
+                {t('locale.fallback', {
+                  language: localeName(config.defaultLocale),
+                  locale: localeName(locale),
+                })}
+              </p>
+            </aside>
+          )}
           {lifecyclePage ? (
             <DeprecationCenter
               key={path}
               page={lifecyclePage}
-              basePath={config.basePath}
+              basePath={config.basePath + prefix}
             />
           ) : activeOperation && activeApi ? (
             <>
-              <article className="article api-article">
+              <article
+                lang={config.defaultLocale}
+                className="article api-article"
+              >
                 <div className="breadcrumb">
                   {t('navigation.api')}
                   <Icon name="chevron" size={12} />
@@ -788,7 +823,7 @@ export function App({
                 {site.lifecycle?.current ? (
                   <OperationLifecycle
                     entry={site.lifecycle.current}
-                    basePath={config.basePath}
+                    basePath={config.basePath + prefix}
                   />
                 ) : (
                   activeOperation.deprecated && (
@@ -869,7 +904,10 @@ export function App({
             </>
           ) : activeGuide ? (
             <>
-              <article className="article guide-article">
+              <article
+                lang={config.defaultLocale}
+                className="article guide-article"
+              >
                 <div className="breadcrumb">
                   {t('navigation.docs')}
                   <Icon name="chevron" size={12} />
@@ -891,7 +929,7 @@ export function App({
                     .map((guide) => (
                       <a
                         key={guide.slug}
-                        href={href(guideHref(guide))}
+                        href={docHref(guideHref(guide))}
                         data-doc-route
                       >
                         <Icon name="book" />
@@ -936,7 +974,7 @@ export function App({
                   </p>
                   {activeApi && firstApi && (
                     <a
-                      href={href(operationHref(activeApi, firstApi))}
+                      href={docHref(operationHref(activeApi, firstApi))}
                       data-doc-route
                     >
                       Explore the API <Icon name="arrow" size={14} />
@@ -946,11 +984,11 @@ export function App({
               </aside>
             </>
           ) : (
-            <article className="article">
+            <article lang={config.defaultLocale} className="article">
               <div className="eyebrow">404</div>
               <h1>{t('navigation.notFound')}</h1>
               <p>{t('navigation.notFoundHelp')}</p>
-              <a className="button-primary" href={href('/')} data-doc-route>
+              <a className="button-primary" href={docHref('/')} data-doc-route>
                 {t('navigation.back')}
                 <Icon name="arrow" />
               </a>
@@ -1033,7 +1071,7 @@ export function App({
           {query ? (
             results.length ? (
               results.map((result) => (
-                <a key={result.id} href={href(result.href)} data-doc-route>
+                <a key={result.id} href={docHref(result.href)} data-doc-route>
                   <span className="search-result-icon">
                     {result.method ? (
                       <span className={`method-badge ${result.method}`}>

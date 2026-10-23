@@ -115,3 +115,128 @@ test('translated navigation is prerendered and readable without JavaScript', asy
     await context.close();
   }
 });
+test('locale links keep source pages, clear playground credentials and preserve prefixed SPA/search navigation', async ({
+  page,
+}) => {
+  const errors: string[] = [],
+    searchRequests: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('request', (request) => {
+    if (request.url().includes('search-manifest'))
+      searchRequests.push(request.url());
+  });
+  await page.goto(
+    root + '/api/api/v1/listprojects/?private=not-for-links#responses',
+  );
+  await page.getByRole('button', { name: 'Jetzt testen', exact: true }).click();
+  const modal = page.getByLabel('API testen', { exact: true });
+  await modal
+    .getByLabel('bearer credential', { exact: true })
+    .fill('unshared-secret');
+  await modal.getByLabel('Remember for 30 minutes in this tab').check();
+  await page.keyboard.press('Escape');
+  await page.locator('.locale-menu > summary').click();
+  const english = page
+    .locator('.locale-menu')
+    .getByRole('link', { name: 'English', exact: true });
+  await expect(english).toHaveAttribute(
+    'href',
+    '/localized/en/api/api/v1/listprojects/',
+  );
+  await english.click();
+  await expect(page).toHaveURL(root + '/en/api/api/v1/listprojects/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('note')).toHaveText(
+    'Documentation content is shown in Deutsch. UI language: English.',
+  );
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://docs.example.test/localized/api/api/v1/listprojects/',
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    'content',
+    'noindex,follow',
+  );
+  await expect(
+    page.getByRole('button', { name: 'Forget saved API credentials' }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: 'Try now', exact: true }).click();
+  await expect(
+    page
+      .getByLabel('API playground')
+      .getByLabel('bearer credential', { exact: true }),
+  ).toHaveValue('');
+  await page.keyboard.press('Escape');
+  await page.getByRole('link', { name: 'Documentation', exact: true }).click();
+  await expect(page).toHaveURL(root + '/en/guides/introduction/');
+  await expect(
+    page.getByRole('heading', { name: 'Einstieg', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.guide-content').locator('..')).toHaveAttribute(
+    'lang',
+    'de',
+  );
+  await page
+    .getByRole('button', { name: 'Search documentation', exact: true })
+    .click();
+  await page
+    .getByRole('textbox', { name: 'Search documentation', exact: true })
+    .fill('Projekte');
+  await page
+    .locator('.search-results')
+    .getByRole('link')
+    .filter({ hasText: 'Projekte auflisten' })
+    .click();
+  await expect(page).toHaveURL(root + '/en/api/api/v1/listprojects/');
+  expect(searchRequests).toEqual([root + '/search-manifest.json']);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.locale-menu > summary').click();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  expect(errors).toEqual([]);
+});
+test('alternate locales and their language menu work without JavaScript', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(root + '/en/guides/introduction/');
+    await expect(
+      page.getByRole('link', { name: 'Documentation', exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('note')).toContainText('Deutsch');
+    await page.locator('.locale-menu > summary').click();
+    await page
+      .locator('.locale-menu')
+      .getByRole('link', { name: 'Deutsch', exact: true })
+      .click();
+    await expect(page).toHaveURL(root + '/guides/introduction/');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+    await expect(page.getByRole('note')).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+test('unknown locale paths retain the verified default-language 404 without hydration errors', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  expect((await page.goto(root + '/en/not-a-page/'))?.status()).toBe(404);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(
+    page.getByRole('heading', { name: 'Page not found', exact: true }),
+  ).toBeVisible();
+  await page.locator('.locale-menu > summary').click();
+  await expect(
+    page
+      .locator('.locale-menu')
+      .getByRole('link', { name: 'English', exact: true }),
+  ).toHaveAttribute('href', '/localized/en/');
+  expect(errors).toEqual([]);
+});

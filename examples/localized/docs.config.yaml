@@ -1,5 +1,6 @@
 schemaVersion: 1
 name: Mehrsprachige API
+siteUrl: https://docs.example.test
 basePath: /localized
 locales: [en, de]
 defaultLocale: de
@@ -9,6 +10,9 @@ specs:
 i18n:
   messages:
     de:
+      locale.choose: Sprache der Dokumentation
+      locale.coverage: '{translated} von {total} zentralen UI-Texten übersetzt. Weitere Texte verwenden Englisch.'
+      locale.fallback: 'Der Inhalt wird auf {language} angezeigt. Sprache der Oberfläche: {locale}.'
       navigation.skip: Zum Inhalt
       navigation.docs: Dokumentation
       navigation.api: API-Referenz

@@ -1,5 +1,6 @@
 import type { ApiDocument, Operation, Schema, SiteData } from './index.js';
 import { guideHref, operationHref } from './index.js';
+import { localeRoute } from './locale.js';
 import { lifecycleContext } from './lifecycle-pages.js';
 export function normalizePagePath(path: string): string {
   return path.replace(/\/index\.html$/, '/') || '/';
@@ -63,20 +64,21 @@ function navigationOperation(operation: Operation): Operation {
 export function createPageData(site: SiteData, inputPath: string): SiteData {
   const path = normalizePagePath(inputPath);
   if (site.pagePath === path) return site;
+  const contentPath = localeRoute(site.config, path).contentPath;
   const activeGuide =
-    site.guides.find((guide) => guideHref(guide) === path) ??
-    (path === '/' ? site.guides[0] : undefined);
+    site.guides.find((guide) => guideHref(guide) === contentPath) ??
+    (contentPath === '/' ? site.guides[0] : undefined);
   const activeApi =
     site.apis.find((api) =>
       api.operations.some(
-        (operation) => operationHref(api, operation) === path,
+        (operation) => operationHref(api, operation) === contentPath,
       ),
     ) ?? site.apis[0];
   const activeOperation =
     activeApi?.operations.find(
-      (operation) => operationHref(activeApi, operation) === path,
+      (operation) => operationHref(activeApi, operation) === contentPath,
     ) ??
-    (path === '/' && !site.guides.length
+    (contentPath === '/' && !site.guides.length
       ? activeApi?.operations[0]
       : undefined);
   const apis = site.apis
@@ -116,9 +118,9 @@ export function createPageData(site: SiteData, inputPath: string): SiteData {
     pagePath: path,
     lifecycle: lifecycleContext(
       site,
-      path === '/' && activeApi && activeOperation
+      contentPath === '/' && activeApi && activeOperation
         ? operationHref(activeApi, activeOperation)
-        : path,
+        : contentPath,
     ),
     assetMetadata: [],
     navigationTotal,
