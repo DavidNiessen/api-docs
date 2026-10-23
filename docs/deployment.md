@@ -41,6 +41,8 @@ The reader runs as UID 1000, drops capabilities, uses a read-only root filesyste
 
 `deploy/Caddyfile` is a reverse-proxy configuration template. Set its `DOCS_HOST` and put Caddy on the application's frontend network (or change the upstream to the host's loopback port). Retain `/auth/callback`, `/admin/`, `/api/` and `/docs/` paths. Configure edge request limits; the application does not trust arbitrary forwarded client addresses. Anonymous static readers do not consume the management authentication rate-limit quota.
 
+If Caddy inherits an outbound HTTP proxy, append the local Compose hostname `docs` to its existing `NO_PROXY` and `no_proxy` values. Preserve the other entries and outbound proxy/CA settings. This keeps the local upstream on the frontend network while retaining the configured egress path for external requests.
+
 The cloud proxy's optional build CA is supported through `deploy/compose.cloud.yaml` and a BuildKit secret; it is not copied into the runtime image. Ordinary deployments should use the primary Compose file. Never disable certificate verification to build an image.
 
 ## Stop or restart
@@ -98,14 +100,23 @@ Build the default server target and test its immutable image with a local Linux 
 
 ```sh
 docker build --target server --iidfile /tmp/api-docs-server.id .
+docker pull caddy:2.11.7-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
 SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent
 ```
 
 The harness uses the shipped Compose file with a unique project, fresh credentials, an unpublished loopback port and owned volumes/networks. It refuses external resource reuse and does not select an existing deployment. A fixture is compiled offline inside that exact server image, then published only to the disposable installation. Acceptance verifies schema/runtime role grants, UID 1000, a read-only root, no capabilities, seccomp, no new privileges and explicit test limits (512 MiB, two CPUs, 128 PIDs). These limits are test overrides; choose production capacity for your workload.
 
-It checks private HTML, page/site data, search catalog/shards and browser assets after authorized access, viewer-token revocation, restart persistence and publication idempotence. PostgreSQL is stopped deliberately: readiness and private content must return 503 without content leakage while liveness stays available. Restarting PostgreSQL must restore the same publication. The harness removes only its owned containers, networks, volumes and temporary files, verifies cleanup, and prints a JSON receipt on success. It never receives production credentials. This covers a single-host installation, outage recovery and the fresh-target restore rehearsal below; reverse-proxy and multi-replica acceptance remain separate.
+It checks private HTML, page/site data, search catalog/shards and browser assets after authorized access, viewer-token revocation, restart persistence and publication idempotence. PostgreSQL is stopped deliberately: readiness and private content must return 503 without content leakage while liveness stays available. Restarting PostgreSQL must restore the same publication. The harness removes only its owned containers, networks, volumes and temporary files, verifies cleanup, and prints a JSON receipt on success. It never receives production credentials. This covers a single-host installation, outage recovery, verified Caddy HTTPS and the fresh-target restore rehearsal below; external certificate issuance, site-specific ingress and multi-replica acceptance remain separate.
 
 Both normal quality and prepared-version release rehearsal run this acceptance and retain the receipt. The rehearsal also checks that the running server reports the prepared tool version and matches the selected image ID. Follow the managed environment's proxy/CA setup when building behind a TLS-intercepting proxy; TLS verification must stay enabled.
+
+### Automated HTTPS proxy rehearsal
+
+The fixture starts the digest-pinned Caddy 2.11.7 image with the actual `deploy/Caddyfile`, adding a fixture-only private CA and disabling public certificate issuance, trust-store installation and the admin listener. Only a loopback TLS port is published. The application is recreated with an HTTPS `PUBLIC_URL` and insecure development disabled, using the same tested image and publication. Native HTTPS clients verify the fixture's public CA and `localhost` certificate name; an untrusted client must reject the chain. Certificate verification is never disabled.
+
+The receipt records the negotiated TLS protocol (1.2 or 1.3). Eight checks cover certificate verification, Secure/HttpOnly/SameSite cookies, HSTS/security headers, exact private HTML and protected data/search/assets after an authenticated cache warm, missing/wrong mutation origins, forwarded-header spoofing, and session revocation after same-origin logout. Caddy uses UID 1000, a read-only root, no new privileges, bounded resources and only `NET_BIND_SERVICE`: its official executable carries that file capability even when listening on port 8443. The application retains its separate zero-capability checks. Existing proxy settings are preserved with only the local upstream added to `NO_PROXY`.
+
+The proxy is removed by its unique fixture label and verified container name. The owned application is stopped/removed before each replacement to bound Docker VFS storage use, then restored to its original fixture settings before backup/restore runs. Reports bind the server image/artifact, pinned proxy image, exact shipped template checksum, certificate fingerprint, TLS version, eight private file paths and verified cleanup. Prepared rehearsal requires that receipt and checks the current template bytes. This exercises a private test authority, not ACME/DNS ownership, public certificate renewal, OIDC provider availability or a fully air-gapped installation.
 
 ### Automated fresh-target restore rehearsal
 

@@ -18,6 +18,7 @@ import { verifyArtifact } from '@api-docs/compiler';
 import { toolVersion } from '@api-docs/contracts';
 import { assertOwnedCompose } from './lib/compose-fixtures.mjs';
 import { verifyServerRecovery } from './lib/server-recovery-fixture.mjs';
+import { verifyServerProxy } from './lib/server-proxy-fixture.mjs';
 
 assert.equal(process.platform, 'linux', 'Use a local Linux Docker daemon.');
 const requestedImage = process.env.SERVER_TEST_IMAGE;
@@ -60,7 +61,7 @@ function step(value) {
   phase = value;
   console.error(`Server container acceptance: ${value}`);
 }
-function docker(args, input) {
+function docker(args, input, { includeStderr = false } = {}) {
   return new Promise((resolve, reject) => {
     const child = execFile(
       'docker',
@@ -73,7 +74,7 @@ function docker(args, input) {
               `Docker failed during ${phase}: ${sanitize(stderr || error.message)}`,
             ),
           );
-        else resolve(stdout.trim());
+        else resolve((includeStderr ? stdout + '\n' + stderr : stdout).trim());
       },
     );
     child.stdin.end(input);
@@ -530,6 +531,25 @@ try {
   const restored = await request(privateRoot, rootToken);
   assert.equal(restored.status, 200);
   assert.equal(await restored.text(), expected);
+  const { directBase, ...proxy } = await verifyServerProxy({
+    project,
+    image,
+    environment,
+    root,
+    docker,
+    compose,
+    step,
+    waitFor,
+    sanitize,
+    rootToken,
+    secretValues,
+    privateRoot,
+    privateMarker,
+    expected,
+    paths,
+    artifactId,
+  });
+  base = directBase;
   const recovery = await verifyServerRecovery({
     environment,
     project,
@@ -553,6 +573,7 @@ try {
     publicationId: publication.id,
   });
   report = {
+    proxy,
     recovery,
     toolVersion,
     requestedImage,

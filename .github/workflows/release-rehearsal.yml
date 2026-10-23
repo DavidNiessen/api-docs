@@ -277,7 +277,9 @@ jobs:
       - name: Build shipped server from this checkout
         run: docker build --target server --iidfile /tmp/api-docs-server.id .
       - name: Verify fresh Compose installation, private content and outage recovery
-        run: SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent > .api-docs/server-container-evidence.json
+        run: |
+          docker pull caddy:2.11.7-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
+          SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent > .api-docs/server-container-evidence.json
       - name: Install the checksum-pinned inventory scanner
         run: node scripts/install-inventory-tool.mjs
       - name: Inventory the tested server image and verify its receipt
@@ -290,6 +292,7 @@ jobs:
           import assert from 'node:assert/strict';
           import { readFile } from 'node:fs/promises';
           import { toolVersion } from '@api-docs/contracts';
+          import { createHash } from 'node:crypto';
           const image = (await readFile('/tmp/api-docs-builder.id', 'utf8')).trim();
           const isolated = JSON.parse(await readFile('.api-docs/isolated-build-evidence.json', 'utf8'));
           const worker = JSON.parse(await readFile('.api-docs/build-worker-evidence.json', 'utf8'));
@@ -312,6 +315,18 @@ jobs:
           assert.equal(server.resolvedImage, serverImage);
           assert.equal(server.cleanupVerified, true);
           assert(server.checks.length >= 9 && server.privateFiles >= 8);
+          const { proxyImage } = await import('./scripts/lib/server-proxy-fixture.mjs');
+          assert.equal(server.proxy.serverImage, serverImage);
+          assert.equal(server.proxy.artifactId, server.artifactId);
+          assert.equal(server.proxy.proxyImage, proxyImage);
+          assert.equal(server.proxy.cleanupVerified, true);
+          assert(server.proxy.checks.length >= 8 && server.proxy.privateFiles >= 8);
+          assert.match(server.proxy.resolvedProxyImage, /^sha256:[a-f0-9]{64}$/);
+          assert.match(server.proxy.templateSha256, /^[a-f0-9]{64}$/);
+          assert.equal(server.proxy.templateSha256, createHash('sha256').update(await readFile('deploy/Caddyfile')).digest('hex'));
+          assert.deepEqual(server.proxy.proxyCapabilities, ['NET_BIND_SERVICE']);
+          assert.match(server.proxy.tlsVersion, /^TLSv1\.[23]$/);
+          assert.match(server.proxy.certificateFingerprint, /^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/);
           assert.equal(server.recovery.resolvedImage, serverImage);
           assert.equal(server.recovery.artifactId, server.artifactId);
           assert.equal(server.recovery.cleanupVerified, true);
