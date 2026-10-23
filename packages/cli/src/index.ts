@@ -35,8 +35,14 @@ import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
 import { createSearchIndex } from '@api-docs/search';
 import { confinedPath, readTextFile } from '@api-docs/spec';
+import { activateDirectory } from './activate.js';
 export { importRemoteSpec } from './import-spec.js';
 export type { ImportSpecOptions } from './import-spec.js';
+export { buildIsolatedSite } from './isolation.js';
+export type {
+  IsolatedBuildOptions,
+  IsolatedBuildReceipt,
+} from './isolation.js';
 export interface BuildOptions {
   config?: string;
   output?: string;
@@ -191,15 +197,7 @@ export async function buildSite(
       callbackRoute,
     ]);
     await verifyArtifact(stage);
-    await rm(previous, { recursive: true });
-    await rename(directory, previous);
-    try {
-      await rename(stage, directory);
-    } catch (error) {
-      await rename(previous, directory);
-      throw error;
-    }
-    await rm(previous, { recursive: true });
+    await activateDirectory(stage, directory, previous);
     return { directory, site, manifest };
   } catch (error) {
     await rm(stage, { recursive: true, force: true });

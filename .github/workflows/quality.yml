@@ -174,10 +174,39 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  isolated-builds:
+    name: Isolated documentation builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: Build approved worker from this checkout
+        run: docker build --target isolated-builder --iidfile /tmp/api-docs-builder.id .
+      - name: Verify isolated builds and failure cleanup
+        run: |
+          mkdir -p .api-docs
+          ISOLATED_BUILD_IMAGE="$(cat /tmp/api-docs-builder.id)" node scripts/test-isolated-builds.mjs > .api-docs/isolated-build-evidence.json
+      - name: Retain local control and artifact receipts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: isolated-builds-${{ github.sha }}
+          path: .api-docs/isolated-build-evidence.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
   quality:
     name: Quality
     if: always()
-    needs: [source, database, java]
+    needs: [source, database, java, isolated-builds]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -186,4 +215,5 @@ jobs:
           SOURCE_RESULT: ${{ needs.source.result }}
           DATABASE_RESULT: ${{ needs.database.result }}
           JAVA_RESULT: ${{ needs.java.result }}
-        run: test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success
+          ISOLATED_RESULT: ${{ needs.isolated-builds.result }}
+        run: test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success && test "$ISOLATED_RESULT" = success

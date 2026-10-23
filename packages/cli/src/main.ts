@@ -21,6 +21,7 @@ import {
   stageArtifact,
   createDevelopmentBuilder,
   importRemoteSpec,
+  buildIsolatedSite,
 } from './index.js';
 const program = new Command()
   .name('api-docs')
@@ -132,6 +133,79 @@ buildOptions(
     );
   },
 );
+buildOptions(
+  program
+    .command('isolated-build [project]')
+    .description(
+      'Build offline in an explicitly approved, resource-limited local Docker image',
+    ),
+)
+  .requiredOption(
+    '--image <digest>',
+    'immutable local image id or repository digest',
+  )
+  .option('--socket <path>', 'local Docker Unix socket', '/var/run/docker.sock')
+  .option(
+    '--timeout-ms <number>',
+    'wall-clock deadline in milliseconds',
+    '180000',
+  )
+  .option('--memory-mib <number>', 'container memory limit in MiB', '2048')
+  .option('--cpus <number>', 'CPU limit', '2')
+  .option('--pids <number>', 'process limit', '128')
+  .option('--source-mib <number>', 'source snapshot limit in MiB', '128')
+  .option('--output-mib <number>', 'output volume limit in MiB', '256')
+  .option('--json', 'print a machine-readable build receipt')
+  .action(
+    async (
+      project = '.',
+      options: {
+        image: string;
+        socket: string;
+        config: string;
+        output: string;
+        timeoutMs: string;
+        memoryMib: string;
+        cpus: string;
+        pids: string;
+        sourceMib: string;
+        outputMib: string;
+        trustPlugins?: boolean;
+        trustContent?: boolean;
+        json?: boolean;
+      },
+    ) => {
+      const controller = new AbortController();
+      const cancel = () => controller.abort();
+      process.once('SIGINT', cancel);
+      process.once('SIGTERM', cancel);
+      try {
+        const result = await buildIsolatedSite(project, {
+          image: options.image,
+          socket: options.socket,
+          config: options.config,
+          output: options.output,
+          trustPlugins: options.trustPlugins === true,
+          trustContent: options.trustContent === true,
+          timeoutMs: Number(options.timeoutMs),
+          memoryMiB: Number(options.memoryMib),
+          cpus: Number(options.cpus),
+          pids: Number(options.pids),
+          sourceMiB: Number(options.sourceMib),
+          outputMiB: Number(options.outputMib),
+          signal: controller.signal,
+        });
+        console.log(
+          options.json
+            ? JSON.stringify(result.receipt)
+            : `Built isolated publication ${result.manifest.artifactDigest} in ${result.directory}`,
+        );
+      } finally {
+        process.removeListener('SIGINT', cancel);
+        process.removeListener('SIGTERM', cancel);
+      }
+    },
+  );
 for (const mode of ['validate', 'doctor'] as const)
   program
     .command(`${mode} [project]`)

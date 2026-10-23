@@ -40,6 +40,8 @@ PR_TITLE='docs(product): clarify release scope' npm run check:pr-title
 
 The `Repository quality` workflow runs on branch pushes, PRs (including title edits), merge queue candidates, and manual dispatch. Its stable job name is `Quality`. It installs locked tooling and runs the same checks as local development; PR events also validate the title. It uses read-only permissions and does not publish artifacts.
 
+The aggregate also requires the Linux Docker [isolated-build harness](docs/isolated-builds.md#validation), which builds an approved worker and checks resource enforcement, artifact parity, cancellation and cleanup after parent death. Run it locally when changing the runner or worker image.
+
 Dependabot checks npm dependencies and GitHub Actions weekly. Actions are pinned by commit SHA. Maintainers must enable branch rules requiring `Quality` and review; repository files do not activate those settings.
 
 CI also runs PostgreSQL/server and Studio browser integration tests and a Java 17/21/25 × Spring Boot 3.5/4.1 consumer matrix. Dependency audits block moderate or higher known advisories. See [governance](GOVERNANCE.md), [security reporting](SECURITY.md), and the [code of conduct](CODE_OF_CONDUCT.md). Contributions are licensed under Apache-2.0; no separate CLA or DCO sign-off is required.

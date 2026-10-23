@@ -13,6 +13,7 @@ import type { SpecSource } from './sources.js';
 import { applySnippetPlugins } from './snippets.js';
 export type { SpecSource } from './sources.js';
 export type { ThemePatch } from './theme.js';
+export { validatePluginSite as validateSiteData } from './validation.js';
 export type BuildPluginCapability =
   'transform' | 'theme' | 'source' | 'snippets';
 export interface SnippetInput {

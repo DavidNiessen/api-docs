@@ -24,6 +24,7 @@
     "@api-docs/spec": "0.1.0",
     "@fastify/static": "10.1.7",
     "commander": "14.0.2",
-    "fastify": "5.12.7"
+    "fastify": "5.12.7",
+    "tar": "7.5.22"
   }
 }

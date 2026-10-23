@@ -2,6 +2,8 @@
 
 This is the tested single-host, filesystem-storage deployment for the prerelease. It does not yet provide a production support commitment. Use an external TLS reverse proxy, encrypted disks and off-host backups. Keep source builds and plugins outside the reader container.
 
+Use the operator-only [isolated build runner](isolated-builds.md) to compile documentation in an offline container with enforced resources and verified publication export. The source runner belongs on a separate trusted build host; do not grant the application server access to the Docker socket.
+
 ## Start a fresh installation
 
 Requirements: Docker Engine with Compose v2, Node.js 24 for the operator scripts, and a clone of this repository. Ports bind to loopback. PostgreSQL is on an internal network and has no published port.

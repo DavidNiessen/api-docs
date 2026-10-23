@@ -27,6 +27,7 @@
     "test:e2e": "playwright test",
     "test:snippets": "node scripts/test-snippets.mjs",
     "test:go-snippets": "node scripts/test-go-snippets.mjs",
+    "test:isolated-builds": "node scripts/test-isolated-builds.mjs",
     "test:java-matrix": "node scripts/test-java-matrix.mjs",
     "release:pack": "node scripts/pack-npm.mjs",
     "test:packages": "node scripts/test-packages.mjs",

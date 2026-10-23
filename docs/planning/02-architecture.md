@@ -138,6 +138,8 @@ Provide a plugin SDK, fixtures, compatibility tests, starter templates, document
 
 Capability declarations are **not** a JavaScript security sandbox. Trusted local build plugins have the build process's permissions. Hosted builds run in separate restricted OS/container processes with CPU/memory/time limits, no host secrets, read-only source mounts, bounded output directories, and explicit outbound policy. Node workers or `vm` alone are insufficient isolation. Installing an untrusted server plugin into the request process is outside 1.0.
 
+The current [operator-only isolated runner](../isolated-builds.md) implements the offline local-Docker boundary, observed cgroup/mount controls, independent cleanup watchdog, frozen archive export and verified activation. It does not expose a source-upload API, distributed job queue or configurable outbound access. Hidden files are excluded; visible source must be prepared without secrets. Dedicated build-host hardening and independent isolation review remain release requirements.
+
 A registry/catalog is optional discovery metadata, not a required runtime service. Installation supports local packages and mirrored registries for air-gapped deployments. Display publisher, provenance, support status, and permissions; never execute a plugin merely because a docs project mentions it.
 
 ## 6. Java and Spring integration
