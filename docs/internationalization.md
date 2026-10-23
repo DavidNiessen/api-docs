@@ -1,6 +1,6 @@
 # Reader languages and UI translations
 
-Projects can customize the core reader labels without JavaScript plugins or remote translation services. `defaultLocale` selects the HTML language and the UI message catalog. The current catalog covers navigation/search, personal settings and prepared appearance presets, classic endpoint lists, schema-reference and lifecycle guidance, playground/URL-bar actions, response-editor controls, clipboard feedback and the page footer. Advanced request-form, authentication and administration wording still uses English. Configured locales generate reader routes and a language menu. Guides can have authored locale variants. Missing guide variants and API content use the default-locale sources with an explicit fallback notice when the UI language differs. Source files are never translated automatically.
+Projects can customize the core reader labels without JavaScript plugins or remote translation services. `defaultLocale` selects the HTML language and the UI message catalog. The current catalog covers navigation/search, personal settings and prepared appearance presets, classic endpoint lists, schema-reference and lifecycle guidance, playground/URL-bar actions, response-editor controls, clipboard feedback and the page footer. Advanced body-editor and administration wording still uses English. Configured locales generate reader routes and a language menu. Guides can have authored locale variants. Missing guide variants and API content use the default-locale sources with an explicit fallback notice when the UI language differs. Source files are never translated automatically.
 
 ## Locale routes and content fallback
 
@@ -66,7 +66,7 @@ The `settings.*` and `appearance.*` IDs cover the personal appearance-mode, prep
 
 Message overrides change display text. Theme preset IDs, layout/mode values, configuration keys and endpoint paths retain their public values. Authored API titles, tags and descriptions remain literal source text. Existing valid mode, layout and preset preferences are shared across this project's language routes. Removed custom-theme/editor controls are no longer rendered; their previous catalog IDs remain accepted for configuration compatibility.
 
-Pagination exposes named values (`{page}`, `{pages}`, `{count}`), so translators can reorder labels. Counts do not currently provide ICU plural rules; use wording that works for all counts, such as `Endpunkte: {count}`. Loading/retry feedback retains semantic state and resolves its current label when rendered. Advanced request/authentication forms and Studio administration still have English product wording.
+Pagination exposes named values (`{page}`, `{pages}`, `{count}`), so translators can reorder labels. Counts do not currently provide ICU plural rules; use wording that works for all counts, such as `Endpunkte: {count}`. Loading/retry feedback retains semantic state and resolves its current label when rendered. Advanced body editors and Studio administration still have English product wording.
 
 ## Endpoint reference and parameter controls
 
@@ -74,7 +74,15 @@ Pagination exposes named values (`{page}`, `{pages}`, `{count}`), so translators
 
 `examples.*` covers response example selectors, generated titles and the explanation that external example URLs remain offline. Authored example names/summaries, values, security-scheme identifiers, media types and path/query/header/cookie wire identities remain literal. Generated/inline display labels are localized by their stable example IDs; a matching authored label is not rewritten. `code.*` covers code-copy controls and clipboard failures; copying retains the exact displayed code.
 
-The German example demonstrates these labels and an optional `limit` query parameter. Browser acceptance checks translated inclusion controls, retained drafts, exact query URL/code copying, mobile accessibility, English fallback and reference headings without JavaScript. SDK validation errors, advanced body editors, authentication/relay forms and Studio wording retain their existing English fallback. This does not establish complete linguistic or right-to-left acceptance.
+The German example demonstrates these labels and an optional `limit` query parameter. Browser acceptance checks translated inclusion controls, retained drafts, exact query URL/code copying, mobile accessibility, English fallback and reference headings without JavaScript. SDK validation errors, advanced body editors and Studio wording retain their existing English fallback. This does not establish complete linguistic or right-to-left acceptance.
+
+## Authentication and relay controls
+
+`auth.*` covers credential inputs, public OAuth client settings, popup controls and controlled acquisition/expiry/clear feedback. `credentials.*` covers opt-in reuse and clearing status. `relay.*` and the request-configuration `playground.*` messages cover transport selection, explicit access rechecks, server selection and controlled relay failures. Status and error codes resolve through the current catalog when rendered; public SDK validation diagnostics retain their English fallback.
+
+Translations never change security-scheme names, client IDs, issuers, scopes, redirect URIs, server URLs or credential values. Credentials remain memory-only, reuse remains opt-in and destination-bound, and failed relay requests require an explicit retry. Displayed expiry times use the selected locale while the machine-readable timestamp remains ISO. Tokens cleared by the credential store and by the field timer both report expiry consistently.
+
+The German example includes bearer and public authorization-code alternatives plus an optional authenticated relay. Browser acceptance exercises real PKCE acquisition, exact callback/scope values, credential expiry and clearing, absence of persistent secrets, denied-access recovery, explicit relay retry, exact response copying and mobile accessibility. These fixture integrations do not provide a production identity provider or relay service.
 
 ## Schema and lifecycle guidance
 

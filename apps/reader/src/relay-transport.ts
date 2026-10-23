@@ -27,7 +27,26 @@ const responseHeaders = new Set([
   'x-ratelimit-remaining',
   'x-ratelimit-reset',
 ]);
-export class RelayError extends Error {}
+const relayMessages = {
+  invalidResponse:
+    'The documentation server returned an invalid or excessive relay response.',
+  invalidEndpoint: 'The configured relay endpoint is invalid.',
+  signIn: 'Sign in to the documentation server before using its relay.',
+  denied:
+    'The documentation server denied relay access or this request policy.',
+  busy: 'The documentation server relay is busy or rate limited. No automatic retry was made.',
+  failed:
+    'The documentation server could not complete the relay request. No automatic retry was made.',
+  method: 'This method is not supported by the documentation server relay.',
+  bodyLimit: 'The request body exceeds the documentation server relay limit.',
+  header: 'A target header is not allowed by the documentation server relay.',
+} as const;
+export type RelayErrorCode = keyof typeof relayMessages;
+export class RelayError extends Error {
+  constructor(readonly code: RelayErrorCode) {
+    super(relayMessages[code]);
+  }
+}
 export interface ReaderRelayPolicy {
   maxRequestBytes: number;
   maxResponseBytes: number;
@@ -36,9 +55,7 @@ export interface ReaderRelayPolicy {
   destinations: { origin: string; pathPrefix: string; methods: string[] }[];
 }
 function invalid(): never {
-  throw new RelayError(
-    'The documentation server returned an invalid or excessive relay response.',
-  );
+  throw new RelayError('invalidResponse');
 }
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -48,8 +65,7 @@ const limit = (value: unknown, maximum: number): value is number =>
   value > 0 &&
   value <= maximum;
 function endpoint(path: string) {
-  if (!isRelayEndpoint(path))
-    throw new RelayError('The configured relay endpoint is invalid.');
+  if (!isRelayEndpoint(path)) throw new RelayError('invalidEndpoint');
   return path;
 }
 async function json(response: Response, maximum: number): Promise<unknown> {
@@ -57,12 +73,12 @@ async function json(response: Response, maximum: number): Promise<unknown> {
     await response.body?.cancel();
     throw new RelayError(
       response.status === 401
-        ? 'Sign in to the documentation server before using its relay.'
+        ? 'signIn'
         : response.status === 403
-          ? 'The documentation server denied relay access or this request policy.'
+          ? 'denied'
           : response.status === 429
-            ? 'The documentation server relay is busy or rate limited. No automatic retry was made.'
-            : 'The documentation server could not complete the relay request. No automatic retry was made.',
+            ? 'busy'
+            : 'failed',
     );
   }
   if (Number(response.headers.get('content-length')) > maximum) {
@@ -189,10 +205,7 @@ export async function sendViaRelay(
   endpoint(path);
   signal.throwIfAborted();
   const prepared = toFetchRequest(request);
-  if (!methods.has(prepared.method))
-    throw new RelayError(
-      'This method is not supported by the documentation server relay.',
-    );
+  if (!methods.has(prepared.method)) throw new RelayError('method');
   const blob =
     prepared.body instanceof Blob
       ? prepared.body
@@ -200,17 +213,13 @@ export async function sendViaRelay(
         ? new Blob([prepared.body])
         : undefined;
   if (blob && blob.size > policy.maxRequestBytes)
-    throw new RelayError(
-      'The request body exceeds the documentation server relay limit.',
-    );
+    throw new RelayError('bodyLimit');
   const allowed = new Set(
     policy.requestHeaders.map((name) => name.toLowerCase()),
   );
   const headers = [...prepared.headers];
   if (headers.some(([name]) => !allowed.has(name)))
-    throw new RelayError(
-      'A target header is not allowed by the documentation server relay.',
-    );
+    throw new RelayError('header');
   const bodyBase64 = blob
     ? encode(new Uint8Array(await blob.arrayBuffer()))
     : undefined;

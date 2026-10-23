@@ -45,6 +45,7 @@ import { useUi } from '../ui-translation.js';
 import { useRelay } from '../use-relay.js';
 import { RelayError, sendViaRelay } from '../relay-transport.js';
 import { RelayControls } from './RelayControls.js';
+import { relayErrorText } from '../auth-messages.js';
 const ResponseEditor = lazy(() =>
   import('./ResponseEditor.js').catch(() => ({ default: ResponseFallback })),
 );
@@ -401,7 +402,7 @@ export function Explorer({
       return;
     }
     if (relay.enabled && !relay.policy) {
-      setError('Check documentation server relay access before sending.');
+      setError(t('relay.checkBeforeSend'));
       return;
     }
     if (bodyFormError) {
@@ -501,12 +502,12 @@ export function Explorer({
         return;
       setError(
         error instanceof RelayError
-          ? error.message
+          ? relayErrorText(error.code, t)
           : error instanceof Error && error.name === 'AbortError'
-            ? 'Request cancelled or timed out after 30 seconds.'
+            ? t('playground.requestCancelled')
             : relay.enabled
-              ? 'The documentation server relay could not complete this request. No automatic retry was made.'
-              : 'The browser could not complete this request. Check the destination, CORS policy and network connection. Copy the cURL example to run it locally.',
+              ? t('relay.networkFailure')
+              : t('playground.browserFailure'),
       );
     } finally {
       clearTimeout(timeout);
@@ -636,14 +637,11 @@ export function Explorer({
         <section
           id="playground-request-inputs"
           className="playground-inputs"
-          aria-label="Request configuration"
+          aria-label={t('playground.requestConfig')}
         >
           <div className="playground-intro">
             <h2>{operation.summary}</h2>
-            <p>
-              {operation.description ||
-                'Configure and send a request to this endpoint.'}
-            </p>
+            <p>{operation.description || t('playground.intro')}</p>
           </div>
           <div className="request-fields">
             {!mockOnly && relayEndpoint && (
@@ -661,9 +659,9 @@ export function Explorer({
               />
             )}
             <label>
-              Server
+              {t('playground.server')}
               <input
-                aria-label="API server"
+                aria-label={t('playground.serverLabel')}
                 value={server}
                 onChange={(event) => {
                   setServer(event.target.value);
@@ -683,9 +681,7 @@ export function Explorer({
               />
             </label>
             {!operation.servers.length && (
-              <p className="subtle">
-                No server defined in the spec. Set your API URL.
-              </p>
+              <p className="subtle">{t('playground.noServer')}</p>
             )}
             {operation.parameters.map((parameter) => {
               const key = `${parameter.in}:${parameter.name}`;
@@ -715,12 +711,9 @@ export function Explorer({
               <details className="auth-fields" open>
                 <summary>
                   <Icon name="lock" size={14} />
-                  Authentication
+                  {t('auth.heading')}
                 </summary>
-                <p>
-                  Use one complete authentication alternative. Credentials stay
-                  in memory. Reuse is off unless you choose to remember them.
-                </p>
+                <p>{t('auth.help')}</p>
                 {credentialSession && (
                   <div className="credential-memory-controls">
                     <label className="body-checkbox">
@@ -732,7 +725,7 @@ export function Explorer({
                           auth.remember(event.target.checked)
                         }
                       />
-                      <span>Remember for 30 minutes in this tab</span>
+                      <span>{t('auth.remember')}</span>
                     </label>
                     {credentialSession.hasRemembered() && (
                       <button
@@ -752,7 +745,7 @@ export function Explorer({
                           });
                         }}
                       >
-                        Clear all API credentials
+                        {t('auth.clearAll')}
                       </button>
                     )}
                     {auth.notice.text && (

@@ -11,12 +11,23 @@ components:
     bearer:
       type: http
       scheme: bearer
+    oauth:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: http://127.0.0.1:4020/authorize
+          tokenUrl: http://127.0.0.1:4020/token
+          scopes:
+            projects:read: Read projects
 paths:
   /projects:
     get:
       operationId: listProjects
       summary: Projekte auflisten
       tags: [Projekte]
+      security:
+        - bearer: []
+        - oauth: [projects:read]
       parameters:
         - name: limit
           in: query

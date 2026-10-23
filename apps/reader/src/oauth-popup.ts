@@ -4,6 +4,20 @@ import type {
   OAuthAccessToken,
   PkceTransaction,
 } from '@api-docs/explorer';
+const popupMessages = {
+  cancelled: 'Authorization cancelled.',
+  closed: 'Authorization window closed.',
+  timeout: 'Authorization timed out after five minutes.',
+  provider: 'Authorization window could not open the provider.',
+  callback: 'OAuth callback must use this documentation origin.',
+  blocked: 'Popup blocked. Allow popups for this documentation site.',
+} as const;
+export type OAuthPopupErrorCode = keyof typeof popupMessages;
+export class OAuthPopupError extends Error {
+  constructor(readonly code: OAuthPopupErrorCode) {
+    super(popupMessages[code]);
+  }
+}
 
 function receiveCallback(
   popup: Window,
@@ -22,7 +36,7 @@ function receiveCallback(
       cleanup();
       reject(error);
     };
-    const abort = () => fail(new Error('Authorization cancelled.'));
+    const abort = () => fail(new OAuthPopupError('cancelled'));
     const message = (event: MessageEvent<unknown>) => {
       if (
         event.origin !== location.origin ||
@@ -50,11 +64,10 @@ function receiveCallback(
     const closed = setInterval(() => {
       if (!popup.closed) return;
       closedAt ??= Date.now();
-      if (Date.now() - closedAt >= 500)
-        fail(new Error('Authorization window closed.'));
+      if (Date.now() - closedAt >= 500) fail(new OAuthPopupError('closed'));
     }, 250);
     const timeout = setTimeout(
-      () => fail(new Error('Authorization timed out after five minutes.')),
+      () => fail(new OAuthPopupError('timeout')),
       Math.max(0, transaction.expiresAt - Date.now()),
     );
     window.addEventListener('message', message);
@@ -66,7 +79,7 @@ function receiveCallback(
     try {
       popup.location.replace(transaction.authorizationUrl);
     } catch {
-      fail(new Error('Authorization window could not open the provider.'));
+      fail(new OAuthPopupError('provider'));
     }
   });
 }
@@ -75,15 +88,14 @@ export async function requestOAuthToken(
   signal: AbortSignal,
 ): Promise<OAuthAccessToken> {
   if (new URL(client.redirectUri).origin !== location.origin)
-    throw new Error('OAuth callback must use this documentation origin.');
-  if (signal.aborted) throw new Error('Authorization cancelled.');
+    throw new OAuthPopupError('callback');
+  if (signal.aborted) throw new OAuthPopupError('cancelled');
   const popup = window.open(
     'about:blank',
     '_blank',
     'popup,width=520,height=720',
   );
-  if (!popup)
-    throw new Error('Popup blocked. Allow popups for this documentation site.');
+  if (!popup) throw new OAuthPopupError('blocked');
   try {
     const transaction = await createPkceTransaction(client);
     const callback = await receiveCallback(popup, transaction, signal);

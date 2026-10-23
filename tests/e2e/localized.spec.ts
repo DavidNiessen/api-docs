@@ -59,7 +59,7 @@ test('translated labels preserve search, theme, modal focus, Scalar URL copying 
     playground.getByRole('status').filter({ hasText: 'Kopiert' }),
   ).toHaveCount(1);
   await playground
-    .getByLabel('bearer credential', { exact: true })
+    .getByLabel('Zugangsdaten bearer', { exact: true })
     .fill('demo-token');
   await playground.getByRole('button', { name: 'Anfrage senden' }).click();
   const output = playground.getByRole('region', { name: 'API-Antwort' });
@@ -134,9 +134,9 @@ test('locale links keep source pages, clear playground credentials and preserve 
   await page.getByRole('button', { name: 'Jetzt testen', exact: true }).click();
   const modal = page.getByLabel('API testen', { exact: true });
   await modal
-    .getByLabel('bearer credential', { exact: true })
+    .getByLabel('Zugangsdaten bearer', { exact: true })
     .fill('unshared-secret');
-  await modal.getByLabel('Remember for 30 minutes in this tab').check();
+  await modal.getByLabel('Für 30 Minuten in diesem Tab merken').check();
   await page.keyboard.press('Escape');
   await page.locator('.locale-menu > summary').click();
   const english = page

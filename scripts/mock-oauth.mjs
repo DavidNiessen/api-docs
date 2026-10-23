@@ -3,7 +3,10 @@ import { createServer } from 'node:http';
 import { createHash, randomUUID } from 'node:crypto';
 
 const issuer = 'http://127.0.0.1:4020';
-const redirectUri = 'http://127.0.0.1:4174/gallery/oauth/callback/';
+const redirectUris = new Set([
+  'http://127.0.0.1:4174/gallery/oauth/callback/',
+  'http://127.0.0.1:4177/localized/oauth/callback/',
+]);
 const pending = new Map(),
   codes = new Map();
 const server = createServer(async (request, response) => {
@@ -34,9 +37,10 @@ const server = createServer(async (request, response) => {
   }
   if (url.pathname === '/authorize' && request.method === 'GET') {
     const parameters = url.searchParams;
+    const redirectUri = parameters.get('redirect_uri');
     if (
       parameters.get('client_id') !== 'reader-fixture' ||
-      parameters.get('redirect_uri') !== redirectUri ||
+      !redirectUris.has(redirectUri) ||
       parameters.get('response_type') !== 'code' ||
       parameters.get('code_challenge_method') !== 'S256' ||
       !/^[A-Za-z0-9_-]{43}$/.test(parameters.get('code_challenge') ?? '') ||
@@ -48,6 +52,7 @@ const server = createServer(async (request, response) => {
     }
     const id = randomUUID();
     pending.set(id, {
+      redirectUri,
       state: parameters.get('state'),
       challenge: parameters.get('code_challenge'),
       expiresAt: Date.now() + 300_000,
@@ -56,7 +61,7 @@ const server = createServer(async (request, response) => {
       .writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Security-Policy':
-          "default-src 'none'; form-action 'self' http://127.0.0.1:4174; base-uri 'none'",
+          "default-src 'none'; form-action 'self' http://127.0.0.1:4174 http://127.0.0.1:4177; base-uri 'none'",
       })
       .end(
         `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>OAuth fixture consent</title></head><body><main><h1>Local OAuth provider fixture</h1><p>Grant the public reader fixture access to projects:read.</p><form method="post" action="/decision?id=${id}"><button name="decision" value="allow">Authorize fixture client</button><button name="decision" value="deny">Deny fixture client</button></form></main></body></html>`,
@@ -80,7 +85,7 @@ const server = createServer(async (request, response) => {
       json(400, { error: 'invalid_transaction' });
       return;
     }
-    const callback = new URL(redirectUri);
+    const callback = new URL(transaction.redirectUri);
     callback.searchParams.set('state', transaction.state);
     callback.searchParams.set('iss', issuer);
     if (parameters.get('decision') === 'allow') {
@@ -105,7 +110,7 @@ const server = createServer(async (request, response) => {
     if (
       !transaction ||
       parameters.get('client_id') !== 'reader-fixture' ||
-      parameters.get('redirect_uri') !== redirectUri ||
+      parameters.get('redirect_uri') !== transaction.redirectUri ||
       parameters.get('grant_type') !== 'authorization_code' ||
       !/^[A-Za-z0-9._~-]{43,128}$/.test(verifier) ||
       createHash('sha256').update(verifier).digest('base64url') !==

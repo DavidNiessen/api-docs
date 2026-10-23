@@ -47,6 +47,91 @@ export const defaultUiMessages = Object.freeze({
   'theme.settings': 'Open reader settings',
   'theme.customizeShort': 'Customize',
   'credentials.forget': 'Forget saved API credentials',
+  'credentials.remembered':
+    'Credentials stay in this reader for up to 30 minutes, or until cleared or reloaded.',
+  'credentials.cannotRemember': 'This credential cannot be remembered.',
+  'credentials.rememberFailed': 'Credentials could not be remembered.',
+  'credentials.forgotten':
+    'Saved credentials were forgotten. The current form clears when closed.',
+  'credentials.cleared': 'All API credentials cleared.',
+  'auth.heading': 'Authentication',
+  'auth.help':
+    'Use one complete authentication alternative. Credentials stay in memory. Reuse is off unless you choose to remember them.',
+  'auth.remember': 'Remember for 30 minutes in this tab',
+  'auth.clearAll': 'Clear all API credentials',
+  'auth.credentialLabel': '{name} credential',
+  'auth.clearLabel': 'Clear {name} credential',
+  'auth.clear': 'Clear credential',
+  'auth.tokenPlaceholder': 'Enter token or API key',
+  'auth.basicPlaceholder': 'username:password',
+  'auth.publicClient': 'OAuth public client',
+  'auth.clientHelp':
+    'Register this callback with your provider. Public clients need PKCE and CORS support; never enter a client secret.',
+  'auth.clientId': 'Client ID',
+  'auth.clientIdLabel': '{name} OAuth client ID',
+  'auth.issuer': 'Issuer',
+  'auth.issuerLabel': '{name} OAuth issuer',
+  'auth.scopes': 'Scopes',
+  'auth.scopesLabel': '{name} OAuth scopes',
+  'auth.redirect': 'Redirect URI',
+  'auth.redirectLabel': '{name} OAuth redirect URI',
+  'auth.authorize': 'Authorize with PKCE',
+  'auth.authorizeLabel': 'Authorize {name} with PKCE',
+  'auth.waiting': 'Waiting for authorization…',
+  'auth.cancel': 'Cancel authorization',
+  'auth.cancelLabel': 'Cancel {name} authorization',
+  'auth.expiry': 'Expires at {time}.',
+  'auth.expired': 'Token expired. Authorize again or paste a token.',
+  'auth.received': 'Bearer token received. It stays in memory.',
+  'auth.cleared': 'Credentials cleared.',
+  'auth.cancelled': 'Authorization cancelled.',
+  'auth.failed':
+    'Authorization failed. Check the provider, client registration and CORS settings.',
+  'auth.popupClosed': 'Authorization window closed.',
+  'auth.popupTimeout': 'Authorization timed out after five minutes.',
+  'auth.popupProvider': 'Authorization window could not open the provider.',
+  'auth.popupCallback': 'OAuth callback must use this documentation origin.',
+  'auth.popupBlocked':
+    'Popup blocked. Allow popups for this documentation site.',
+  'relay.source': 'Send requests from',
+  'relay.transport': 'Request transport',
+  'relay.browser': 'Browser',
+  'relay.server': 'Documentation server',
+  'relay.notice':
+    'Your API credentials and request payload pass through this documentation server. Your documentation session authorizes relay access.',
+  'relay.checking': 'Checking relay access…',
+  'relay.retry': 'Check relay access again',
+  'relay.invalidResponse':
+    'The documentation server returned an invalid or excessive relay response.',
+  'relay.invalidEndpoint': 'The configured relay endpoint is invalid.',
+  'relay.signIn': 'Sign in to the documentation server before using its relay.',
+  'relay.denied':
+    'The documentation server denied relay access or this request policy.',
+  'relay.busy':
+    'The documentation server relay is busy or rate limited. No automatic retry was made.',
+  'relay.failed':
+    'The documentation server could not complete the relay request. No automatic retry was made.',
+  'relay.method':
+    'This method is not supported by the documentation server relay.',
+  'relay.bodyLimit':
+    'The request body exceeds the documentation server relay limit.',
+  'relay.header':
+    'A target header is not allowed by the documentation server relay.',
+  'relay.unavailable':
+    'The documentation server relay is unavailable. Check your connection and sign-in, then check access again.',
+  'relay.checkBeforeSend':
+    'Check documentation server relay access before sending.',
+  'relay.networkFailure':
+    'The documentation server relay could not complete this request. No automatic retry was made.',
+  'playground.requestConfig': 'Request configuration',
+  'playground.intro': 'Configure and send a request to this endpoint.',
+  'playground.server': 'Server',
+  'playground.serverLabel': 'API server',
+  'playground.noServer': 'No server defined in the spec. Set your API URL.',
+  'playground.requestCancelled':
+    'Request cancelled or timed out after 30 seconds.',
+  'playground.browserFailure':
+    'The browser could not complete this request. Check the destination, CORS policy and network connection. Copy the cURL example to run it locally.',
   'api.authorization': 'Authorization',
   'api.authOptional': 'Authentication is optional.',
   'api.authRequired': 'Authentication is required.',

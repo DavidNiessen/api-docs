@@ -1,4 +1,5 @@
 import type { useRelay } from '../use-relay.js';
+import { useUi } from '../ui-translation.js';
 
 export function RelayControls({
   relay,
@@ -9,28 +10,23 @@ export function RelayControls({
   busy: boolean;
   onChange: (enabled: boolean) => void;
 }) {
+  const t = useUi();
   return (
     <div className="relay-controls">
       <label>
-        Send requests from
+        {t('relay.source')}
         <select
-          aria-label="Request transport"
+          aria-label={t('relay.transport')}
           value={relay.enabled ? 'relay' : 'browser'}
           disabled={busy}
           onChange={(event) => onChange(event.target.value === 'relay')}
         >
-          <option value="browser">Browser</option>
-          <option value="relay">Documentation server</option>
+          <option value="browser">{t('relay.browser')}</option>
+          <option value="relay">{t('relay.server')}</option>
         </select>
       </label>
-      {relay.enabled && (
-        <p className="relay-notice">
-          Your API credentials and request payload pass through this
-          documentation server. Your documentation session authorizes relay
-          access.
-        </p>
-      )}
-      {relay.checking && <p role="status">Checking relay access…</p>}
+      {relay.enabled && <p className="relay-notice">{t('relay.notice')}</p>}
+      {relay.checking && <p role="status">{t('relay.checking')}</p>}
       {relay.error && (
         <div>
           <p role="alert">{relay.error}</p>
@@ -39,7 +35,7 @@ export function RelayControls({
             className="auth-action"
             onClick={() => relay.select(true)}
           >
-            Check relay access again
+            {t('relay.retry')}
           </button>
         </div>
       )}

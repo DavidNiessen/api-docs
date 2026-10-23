@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { loadRelayPolicy, RelayError } from './relay-transport.js';
 import type { ReaderRelayPolicy } from './relay-transport.js';
+import type { RelayErrorCode } from './relay-transport.js';
+import { useUi } from './ui-translation.js';
+import { relayErrorText } from './auth-messages.js';
 
 export function useRelay(path: string | undefined, active: boolean) {
+  const t = useUi();
   const [selection, setSelection] = useState({
     path,
     enabled: false,
@@ -11,7 +15,7 @@ export function useRelay(path: string | undefined, active: boolean) {
   const [result, setResult] = useState<{
     selection: typeof selection;
     policy?: ReaderRelayPolicy;
-    error?: string;
+    error?: RelayErrorCode | 'unavailable';
   }>();
   const enabled =
     active && !!path && selection.path === path && selection.enabled;
@@ -30,10 +34,7 @@ export function useRelay(path: string | undefined, active: boolean) {
         if (!controller.signal.aborted)
           setResult({
             selection,
-            error:
-              error instanceof RelayError
-                ? error.message
-                : 'The documentation server relay is unavailable. Check your connection and sign-in, then check access again.',
+            error: error instanceof RelayError ? error.code : 'unavailable',
           });
       },
     );
@@ -42,7 +43,8 @@ export function useRelay(path: string | undefined, active: boolean) {
   return {
     enabled,
     policy: enabled ? current?.policy : undefined,
-    error: enabled ? current?.error : undefined,
+    error:
+      enabled && current?.error ? relayErrorText(current.error, t) : undefined,
     checking: enabled && !current,
     select: (enabled: boolean) =>
       setSelection((previous) => ({

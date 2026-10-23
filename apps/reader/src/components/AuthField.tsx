@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import type { SecurityScheme } from '@api-docs/contracts';
-import { requestOAuthToken } from '../oauth-popup.js';
+import { requestOAuthToken, OAuthPopupError } from '../oauth-popup.js';
+import type { OAuthPopupErrorCode } from '../oauth-popup.js';
+import { UiContext } from '../ui-translation.js';
+import { popupErrorText } from '../auth-messages.js';
 import { resolveOAuthEndpoint } from '@api-docs/explorer';
 
 export function AuthField({
@@ -24,6 +27,8 @@ export function AuthField({
   client?: { clientId: string; issuer: string } | undefined;
   server: string;
 }) {
+  const ui = useContext(UiContext),
+    t = ui.text;
   const flow =
     scheme?.type === 'oauth2' &&
     scheme.flows?.authorizationCode &&
@@ -34,8 +39,10 @@ export function AuthField({
   const [issuer, setIssuer] = useState(client?.issuer ?? '');
   const [scopeText, setScopeText] = useState(scopes.join(' '));
   const [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [status, setStatus] = useState('');
+    [error, setError] = useState<
+      { code: OAuthPopupErrorCode | 'failed' } | { text: string }
+    >(),
+    [status, setStatus] = useState<'' | 'expired' | 'received' | 'cleared'>('');
   const [expiresAt, setExpiresAt] = useState<number | undefined>(
     credentialExpiresAt,
   );
@@ -54,9 +61,11 @@ export function AuthField({
   }, []);
   useEffect(() => {
     if (token.current && token.current !== credential) {
+      const expired =
+        !credential && expiresAt !== undefined && expiresAt <= Date.now();
       token.current = undefined;
       setExpiresAt(undefined);
-      setStatus('');
+      setStatus(expired ? 'expired' : '');
     }
   }, [credential]);
   useEffect(() => {
@@ -77,7 +86,7 @@ export function AuthField({
         token.current = undefined;
         setExpiresAt(undefined);
         onChange('');
-        setStatus('Token expired. Authorize again or paste a token.');
+        setStatus('expired');
       } else
         timeout = setTimeout(
           check,
@@ -98,7 +107,7 @@ export function AuthField({
     const controller = new AbortController();
     pending.current = controller;
     setBusy(true);
-    setError('');
+    setError(undefined);
     setStatus('');
     try {
       const result = await requestOAuthToken(
@@ -119,15 +128,17 @@ export function AuthField({
       token.current = result.accessToken;
       setExpiresAt(result.expiresAt);
       onChange(result.accessToken, result.expiresAt);
-      setStatus('Bearer token received. It stays in memory.');
+      setStatus('received');
     } catch (error) {
       if (mounted.current)
         setError(
           controller.signal.aborted
-            ? 'Authorization cancelled.'
-            : error instanceof Error
-              ? error.message
-              : 'Authorization failed. Check the provider, client registration and CORS settings.',
+            ? { code: 'cancelled' }
+            : error instanceof OAuthPopupError
+              ? { code: error.code }
+              : error instanceof Error
+                ? { text: error.message }
+                : { code: 'failed' },
         );
     } finally {
       if (mounted.current) setBusy(false);
@@ -142,21 +153,22 @@ export function AuthField({
           ref={input}
           type="password"
           autoComplete="off"
-          aria-label={`${name} credential`}
+          aria-label={t('auth.credentialLabel', { name })}
           disabled={busy}
           value={credential}
           onChange={(event) => {
-            setError('');
+            setError(undefined);
             if (event.target.value !== credential) {
               token.current = undefined;
               setExpiresAt(undefined);
+              setStatus('');
             }
             onChange(event.target.value);
           }}
           placeholder={
             scheme?.scheme === 'basic'
-              ? 'username:password'
-              : 'Enter token or API key'
+              ? t('auth.basicPlaceholder')
+              : t('auth.tokenPlaceholder')
           }
         />
       </label>
@@ -168,27 +180,24 @@ export function AuthField({
             pending.current?.abort();
             token.current = undefined;
             setExpiresAt(undefined);
-            setStatus('Credentials cleared.');
+            setStatus('cleared');
             onChange('');
             input.current?.focus();
           }}
-          aria-label={`Clear ${name} credential`}
+          aria-label={t('auth.clearLabel', { name })}
         >
-          Clear credential
+          {t('auth.clear')}
         </button>
       )}
       {flow && (
         <>
           <details className="oauth-settings" open={!client}>
-            <summary>OAuth public client</summary>
-            <p>
-              Register this callback with your provider. Public clients need
-              PKCE and CORS support; never enter a client secret.
-            </p>
+            <summary>{t('auth.publicClient')}</summary>
+            <p>{t('auth.clientHelp')}</p>
             <label>
-              Client ID
+              {t('auth.clientId')}
               <input
-                aria-label={`${name} OAuth client ID`}
+                aria-label={t('auth.clientIdLabel', { name })}
                 value={clientId}
                 disabled={busy}
                 onChange={(event) => setClientId(event.target.value)}
@@ -196,9 +205,9 @@ export function AuthField({
               />
             </label>
             <label>
-              Issuer
+              {t('auth.issuer')}
               <input
-                aria-label={`${name} OAuth issuer`}
+                aria-label={t('auth.issuerLabel', { name })}
                 value={issuer}
                 disabled={busy}
                 onChange={(event) => setIssuer(event.target.value)}
@@ -207,9 +216,9 @@ export function AuthField({
               />
             </label>
             <label>
-              Scopes
+              {t('auth.scopes')}
               <input
-                aria-label={`${name} OAuth scopes`}
+                aria-label={t('auth.scopesLabel', { name })}
                 value={scopeText}
                 disabled={busy}
                 onChange={(event) => setScopeText(event.target.value)}
@@ -217,9 +226,9 @@ export function AuthField({
               />
             </label>
             <label>
-              Redirect URI
+              {t('auth.redirect')}
               <input
-                aria-label={`${name} OAuth redirect URI`}
+                aria-label={t('auth.redirectLabel', { name })}
                 readOnly
                 value={redirectUri}
                 onFocus={(event) => event.currentTarget.select()}
@@ -233,33 +242,49 @@ export function AuthField({
             onClick={() => {
               void authorize();
             }}
-            aria-label={`Authorize ${name} with PKCE`}
+            aria-label={t('auth.authorizeLabel', { name })}
           >
-            {busy ? 'Waiting for authorization…' : 'Authorize with PKCE'}
+            {t(busy ? 'auth.waiting' : 'auth.authorize')}
           </button>
           {busy && (
             <button
               type="button"
               className="auth-action"
               onClick={() => pending.current?.abort()}
-              aria-label={`Cancel ${name} authorization`}
+              aria-label={t('auth.cancelLabel', { name })}
             >
-              Cancel authorization
+              {t('auth.cancel')}
             </button>
           )}
         </>
       )}
       {expiresAt && (
         <p>
-          Expires at{' '}
           <time dateTime={new Date(expiresAt).toISOString()}>
-            {new Date(expiresAt).toLocaleTimeString()}
+            {t('auth.expiry', {
+              time: new Date(expiresAt).toLocaleTimeString(ui.locale),
+            })}
           </time>
-          .
         </p>
       )}
-      {status && <p role="status">{status}</p>}
-      {error && <p role="alert">{error}</p>}
+      {status && (
+        <p role="status">
+          {t(
+            (
+              {
+                expired: 'auth.expired',
+                received: 'auth.received',
+                cleared: 'auth.cleared',
+              } as const
+            )[status],
+          )}
+        </p>
+      )}
+      {error && (
+        <p role="alert">
+          {'code' in error ? popupErrorText(error.code, t) : error.text}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { emptyCredentials } from './credential-session.js';
+import { useUi } from './ui-translation.js';
 import type {
   CredentialScope,
   CredentialSession,
@@ -13,6 +14,7 @@ export function useCredentials(
   session: CredentialSession | undefined,
   scope: CredentialScope,
 ) {
+  const t = useUi();
   useSyncExternalStore(
     session?.subscribe ?? noSubscription,
     session?.getRevision ?? zero,
@@ -27,9 +29,16 @@ export function useCredentials(
   const activeScope = useRef(scope);
   activeScope.current = scope;
   const [, redraw] = useState(0);
-  const [notice, setNotice] = useState<{ text: string; error?: boolean }>({
-    text: '',
-  });
+  const [notice, setNotice] = useState<{
+    text?: string;
+    error?: boolean;
+    key?:
+      | 'credentials.remembered'
+      | 'credentials.cannotRemember'
+      | 'credentials.rememberFailed'
+      | 'credentials.forgotten'
+      | 'credentials.cleared';
+  }>({});
   useEffect(() => {
     if (local.current.scope !== scope || local.current.epoch !== resetEpoch)
       local.current = {
@@ -89,10 +98,9 @@ export function useCredentials(
         keepLocal(next);
         session.forget(scope);
         setNotice({
-          text:
-            error instanceof Error
-              ? error.message
-              : 'This credential cannot be remembered.',
+          ...(error instanceof Error
+            ? { text: error.message }
+            : { key: 'credentials.cannotRemember' as const }),
           error: true,
         });
         return;
@@ -108,14 +116,13 @@ export function useCredentials(
         session.remember(scope, values);
         local.current.values = emptyCredentials();
         setNotice({
-          text: 'Credentials stay in this reader for up to 30 minutes, or until cleared or reloaded.',
+          key: 'credentials.remembered',
         });
       } catch (error) {
         setNotice({
-          text:
-            error instanceof Error
-              ? error.message
-              : 'Credentials could not be remembered.',
+          ...(error instanceof Error
+            ? { text: error.message }
+            : { key: 'credentials.rememberFailed' as const }),
           error: true,
         });
       }
@@ -123,7 +130,7 @@ export function useCredentials(
       keepLocal(values);
       session.forget(scope);
       setNotice({
-        text: 'Saved credentials were forgotten. The current form clears when closed.',
+        key: 'credentials.forgotten',
       });
     }
   }
@@ -144,7 +151,10 @@ export function useCredentials(
     remember,
     remembered,
     resetEpoch,
-    notice,
+    notice: {
+      text: notice.key ? t(notice.key) : (notice.text ?? ''),
+      error: notice.error,
+    },
     clearLocal: () => {
       keepLocal(emptyCredentials());
       setNotice({ text: '' });
@@ -152,7 +162,7 @@ export function useCredentials(
     clearAll: () => {
       local.current.values = emptyCredentials();
       session?.clearAll();
-      setNotice({ text: 'All API credentials cleared.' });
+      setNotice({ key: 'credentials.cleared' });
       redraw((value) => value + 1);
     },
   };
