@@ -249,3 +249,48 @@ test('classic catalog/details recover explicitly and an abandoned detail respons
     release.resolve();
   }
 });
+
+test('classic section navigation retains guides and restores endpoint navigation when switching to modern', async ({
+  page,
+}) => {
+  await classic(page);
+  const sections = page.getByRole('navigation', {
+    name: 'Documentation sections',
+  });
+  await expect(
+    sections.getByRole('button', { name: 'All', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await sections
+    .getByRole('button', { name: 'Documentation', exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/guides\//);
+  await expect(page.locator('.sidebar')).toBeVisible();
+  await expect(page.locator('.sidebar .nav-group a').first()).toBeVisible();
+  await expect(page.locator('.sidebar .endpoint-link')).toHaveCount(0);
+  await expect(page.locator('.classic-reference')).toHaveCount(0);
+
+  await sections
+    .getByRole('button', { name: 'API Reference', exact: true })
+    .click();
+  await expect(page.locator('.endpoint-disclosure').first()).toBeVisible();
+  await expect(page.locator('.endpoint-disclosure[open]')).toHaveCount(0);
+  await expect(page.locator('.sidebar')).not.toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.endpoint-disclosure').first()).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Toggle navigation' }),
+  ).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Open reader settings' }).click();
+  await page
+    .getByRole('dialog', { name: 'Reader settings', exact: true })
+    .getByRole('combobox', { name: 'Documentation layout', exact: true })
+    .selectOption('modern');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.classic-reference')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Toggle navigation' }).click();
+  await expect(page.locator('.sidebar .endpoint-link').first()).toBeVisible();
+  await expect(
+    page.locator('.sidebar .nav-group a:not(.endpoint-link)'),
+  ).toHaveCount(0);
+});

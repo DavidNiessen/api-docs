@@ -65,6 +65,8 @@ The CLI exports complete, artifact-hashed endpoint catalogs independently of the
 
 Validation passes formatting/lint, strict types, all 80 tooling tests and all 849 source tests. Seven new catalog/data cases include a real 121-endpoint export beyond sidebar limits, complete page coverage, manifest membership, invalid identities/counts/rows, byte budgets and cancellation. All 77 browser journeys pass, with three new classic workflows covering collapsed/lazy details, working real API requests, shared URLs/focus, large-list pagination, retry/late-result isolation, mobile containment and accessibility; the focused layout/settings run passes all 11 journeys. All 12 installed npm components pass with the emitted catalogs. Classic screenshots were inspected. The final focused pass additionally checks fragment scrolling after details load. The engineering estimate remains approximately 95%, pre-release; remaining translations, standards/deployment acceptance, independent reviews and signed/protected publication remain open. Hosted CI remains blocked by account billing.
 
+Follow-up navigation verification passes all eight focused classic/settings browser journeys, including a new desktop-to-mobile workflow that opens guide navigation, returns to collapsed API rows without a sidebar, then restores endpoint-only navigation in modern mode. Production builds, strict types, focused ESLint/Prettier and Markdown lint pass. The layout instructions now identify the settings selector explicitly. The estimate remains approximately 95%, pre-release.
+
 See [personal reader layouts](../reader-layout.md#personal-reader-settings) for classic navigation, paging, data loading, retries and shared fragments.
 
 ## Previous parameter-presence increment
