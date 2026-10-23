@@ -17,6 +17,12 @@ Updated: 2026-10-23. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**Canonical filesystem lookups now verify the final separator-delimited root prefix before resolution.** This complements the relative-path checks and canonical rebasing while allowing an explicitly selected filesystem root, project-root alias and the project directory itself. Targeted containment and artifact-cache checks pass with strict types.
+
+Hosted extraction at `2912184` confirms both Express resource-protection findings are resolved: **one High/five Medium** JavaScript matches remain, with no Java findings. The final path finding stays blocking pending a new extraction. Source-security acceptance, signed distribution and independent launch gates remain open; the estimate stays approximately **97%, pre-release**.
+
+## Previous Node-quota increment
+
 **Node documentation adapters now enforce bounded request quotas before authentication.** Express and Fastify share validated settings, monotonic fixed windows and a capped client table. Excess requests return uncached `429` responses with retry timing. IPv6 subnet grouping and IPv4-mapped addresses preserve client identities; host-owned routes keep their scope. Canonical source-path resolution now rebases approved descendants onto the resolved root before lookup. See [Node quota configuration and proxy requirements](../integrations.md#node-request-quotas).
 
 Local validation passes all **1,049 source cases**, strict types, **121 tooling cases** and **12 installed npm components**, including consumer dependency audit and offline reinstall. Regressions cover pre-authentication counting, root/subpath hosting, host-owned routes, IPv6 grouping, mapped IPv4 identities, quota rollover, bounded memory and invalid configuration.

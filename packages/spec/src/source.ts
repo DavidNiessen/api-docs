@@ -37,7 +37,13 @@ export async function confinedPath(
     )
       throw new Error(`Path escapes the project: ${path}`);
   }
-  const target = await realpath(resolve(base, requested));
+  const candidate = resolve(base, requested);
+  if (candidate === base) return base;
+  // Verify the actual lookup path as well as its relative spelling. Keep the
+  // separator on the root prefix so a sibling with the same name cannot match.
+  if (!candidate.startsWith(base.endsWith(sep) ? base : base + sep))
+    throw new Error(`Path escapes the project: ${path}`);
+  const target = await realpath(candidate);
   const local = relative(base, target);
   if (local === '..' || local.startsWith('..' + sep) || isAbsolute(local))
     throw new Error(`Path escapes the project: ${path}`);

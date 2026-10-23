@@ -1,7 +1,7 @@
 import { afterEach, expect, it } from 'vitest';
 import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, parse } from 'node:path';
 import { confinedPath } from '@api-docs/spec';
 
 const roots: string[] = [];
@@ -30,6 +30,11 @@ it('confines relative and absolute paths while allowing explicitly chosen projec
   expect(await confinedPath(project, join(project, 'inside.json'))).toBe(
     join(project, 'inside.json'),
   );
+  expect(await confinedPath(project, '')).toBe(project);
+  expect(await confinedPath(project, '.')).toBe(project);
+  expect(
+    await confinedPath(parse(project).root, join(project, 'inside.json')),
+  ).toBe(join(project, 'inside.json'));
 });
 
 it('rejects traversal before resolving outside entries, including nonexistent targets', async () => {
