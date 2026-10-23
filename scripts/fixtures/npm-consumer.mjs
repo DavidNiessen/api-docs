@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import { lstat, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -8,6 +10,7 @@ import express from 'express';
 import Fastify from 'fastify';
 import { createStaticServer } from '@api-docs/cli';
 import { verifyArtifact } from '@api-docs/compiler';
+import { downloadSpec } from '@api-docs/spec';
 import { createExpressDocs } from '@api-docs/node/express';
 import { apiDocsPlugin } from '@api-docs/node/fastify';
 import {
@@ -164,6 +167,50 @@ assert.equal(
   version,
 );
 await exec(process.execPath, [cli, 'init', 'docs']);
+const importedSource = Buffer.from(
+  '{"openapi":"3.1.0","info":{"title":"Packaged remote snapshot","version":"v1"},"paths":{},"components":{"schemas":{"Id":{"type":"integer","example":9007199254740993}}}}\n',
+);
+const importedDigest = createHash('sha256')
+  .update(importedSource)
+  .digest('hex');
+const sourceServer = createServer((_request, response) =>
+  response.end(importedSource),
+);
+await new Promise((resolve, reject) => {
+  sourceServer.once('error', reject);
+  sourceServer.listen(0, '127.0.0.1', resolve);
+});
+try {
+  const address = sourceServer.address();
+  assert(address && typeof address !== 'string');
+  const origin = `http://127.0.0.1:${address.port}`;
+  const snapshot = await downloadSpec(origin + '/openapi', {
+    allowedOrigins: [origin],
+    allowHttp: true,
+    allowPrivateNetwork: true,
+    expectedSha256: importedDigest,
+  });
+  assert.deepEqual(snapshot.source, importedSource);
+  const imported = await exec(process.execPath, [
+    cli,
+    'import-spec',
+    origin + '/openapi',
+    'docs',
+    '--allow-origin',
+    origin,
+    '--allow-http',
+    '--allow-private-network',
+    '--sha256',
+    importedDigest,
+    '--output',
+    'downloaded.json',
+  ]);
+  assert(imported.stdout.includes(importedDigest));
+  assert.deepEqual(await readFile('docs/downloaded.json'), importedSource);
+} finally {
+  sourceServer.closeAllConnections();
+  await new Promise((resolve) => sourceServer.close(resolve));
+}
 await exec(process.execPath, [cli, 'doctor', 'docs', '--strict']);
 const config = join(root, 'docs/docs.config.yaml');
 await writeFile(

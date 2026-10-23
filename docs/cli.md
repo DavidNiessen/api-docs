@@ -4,22 +4,25 @@ Use the [lifecycle inventory](lifecycle.md) to report deprecations, resolve migr
 
 Build the repository with `npm ci && npm run build`. Commands below use `node packages/cli/dist/main.js`; the packaged executable is named `api-docs`.
 
-| Command                 | Purpose                                                 |
-| ----------------------- | ------------------------------------------------------- |
-| `init [directory]`      | Create a project without overwriting existing files     |
-| `build [project]`       | Compile and verify a static publication                 |
-| `export [project]`      | Alias for build; output is portable static files        |
-| `dev [project]`         | Build, serve and watch inputs; refresh after rebuilding |
-| `serve <directory>`     | Serve an existing publication with security headers     |
-| `validate [project]`    | Check configuration, specs and guides                   |
-| `doctor [project]`      | Offline examples, links, fragments and coverage policy  |
-| `diff <before> <after>` | Classify breaking and uncertain API contract changes    |
+| Command                       | Purpose                                                 |
+| ----------------------------- | ------------------------------------------------------- |
+| `init [directory]`            | Create a project without overwriting existing files     |
+| `import-spec <url> [project]` | Explicitly validate and save a remote spec snapshot     |
+| `build [project]`             | Compile and verify a static publication                 |
+| `export [project]`            | Alias for build; output is portable static files        |
+| `dev [project]`               | Build, serve and watch inputs; refresh after rebuilding |
+| `serve <directory>`           | Serve an existing publication with security headers     |
+| `validate [project]`          | Check configuration, specs and guides                   |
+| `doctor [project]`            | Offline examples, links, fragments and coverage policy  |
+| `diff <before> <after>`       | Classify breaking and uncertain API contract changes    |
 
 `build` and `dev` accept `--config`, `--output`, and `--trust-plugins`. Output must stay inside the project's `.api-docs` directory to protect source files. `serve` and `dev` accept `--port` and `--host`; the default interface is loopback.
 
 `serve` verifies the publication manifest and all listed checksums before startup, then serves only listed files and directory aliases backed by a listed index page. Extra files and the manifest itself are not automatically public. A supplied programmatic mount must match the compiled `basePath`. Keep served artifacts immutable; startup verification does not rehash each response.
 
 Programmatic callers can use `await server.reloadPublication()` on the result of `createStaticServer` to verify a replacement publication and update the allowed file set. A failed reload makes documentation and `/health/ready` return 503 while `/health/live` remains available. Repair the artifact and reload to recover. A changed `basePath` requires restarting the server.
+
+See [remote spec importing](remote-import.md) for exact origin controls, authentication, SHA-256 pins, private generators and atomic refreshes.
 
 ## Configuration
 

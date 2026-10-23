@@ -35,6 +35,8 @@ import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
 import { createSearchIndex } from '@api-docs/search';
 import { confinedPath, readTextFile } from '@api-docs/spec';
+export { importRemoteSpec } from './import-spec.js';
+export type { ImportSpecOptions } from './import-spec.js';
 export interface BuildOptions {
   config?: string;
   output?: string;

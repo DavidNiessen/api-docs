@@ -17,6 +17,7 @@ import {
   createStaticServer,
   stageArtifact,
   createDevelopmentBuilder,
+  importRemoteSpec,
 } from './index.js';
 const program = new Command()
   .name('api-docs')
@@ -37,6 +38,74 @@ const buildOptions = (command: Command): Command =>
       '--trust-content',
       'allow reviewed MDX content to execute in bounded workers',
     );
+program
+  .command('import-spec <url> [project]')
+  .description('Download and validate a self-contained OpenAPI snapshot')
+  .requiredOption(
+    '--allow-origin <origin>',
+    'exact permitted origin (repeatable)',
+    (value: string, previous: string[]) => [...previous, value],
+    [],
+  )
+  .option(
+    '-o, --output <file>',
+    'relative JSON or YAML destination',
+    'openapi.yaml',
+  )
+  .option(
+    '--replace',
+    'atomically refresh an existing spec after successful validation',
+  )
+  .option('--sha256 <digest>', 'require these exact downloaded bytes')
+  .option(
+    '--bearer-env <name>',
+    'read a source bearer token from this environment variable',
+  )
+  .option('--allow-http', 'explicitly permit cleartext HTTP for this import')
+  .option(
+    '--allow-private-network',
+    'explicitly permit loopback and private-network sources',
+  )
+  .action(
+    async (
+      url: string,
+      project = '.',
+      options: {
+        allowOrigin: string[];
+        output: string;
+        replace?: boolean;
+        sha256?: string;
+        bearerEnv?: string;
+        allowHttp?: boolean;
+        allowPrivateNetwork?: boolean;
+      },
+    ) => {
+      let bearerToken: string | undefined;
+      if (options.bearerEnv !== undefined) {
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(options.bearerEnv))
+          throw new Error('Invalid bearer environment-variable name');
+        bearerToken = process.env[options.bearerEnv];
+        if (!bearerToken?.trim())
+          throw new Error(
+            'Import bearer environment variable is missing or empty',
+          );
+      }
+      const result = await importRemoteSpec(project, url, {
+        allowedOrigins: options.allowOrigin,
+        output: options.output,
+        replace: options.replace === true,
+        allowHttp: options.allowHttp === true,
+        allowPrivateNetwork: options.allowPrivateNetwork === true,
+        ...(options.sha256 !== undefined
+          ? { expectedSha256: options.sha256 }
+          : {}),
+        ...(bearerToken !== undefined ? { bearerToken } : {}),
+      });
+      console.log(
+        `Imported ${result.bytes} bytes to ${result.path} (SHA-256 ${result.sha256}).`,
+      );
+    },
+  );
 buildOptions(
   program
     .command('build [project]')

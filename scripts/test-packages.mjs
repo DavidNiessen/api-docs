@@ -99,6 +99,7 @@ try {
           'installed-module-origins',
           'public-types',
           'cli-init',
+          'remote-spec-import-and-isolated-validation',
           'trusted-mdx-and-plugin-workers',
           'doctor-strict',
           'artifact-verification',

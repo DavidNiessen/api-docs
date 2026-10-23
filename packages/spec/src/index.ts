@@ -23,6 +23,8 @@ export { resolveSchema, exampleFor } from '@api-docs/contracts';
 export { diffApi } from './diff.js';
 export type { ContractChange } from './diff.js';
 export { checkExamples } from './examples.js';
+export { downloadSpec } from './remote.js';
+export type { RemoteSpecOptions, RemoteSpecSnapshot } from './remote.js';
 
 export async function loadSpec(
   root: string,
