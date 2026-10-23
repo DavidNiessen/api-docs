@@ -16,7 +16,9 @@ import {
   runPluginFiles,
   checkPluginConformance,
   definePlugin,
+  applyPlugins,
 } from '@api-docs/plugin-sdk';
+import { themePresets } from '@api-docs/contracts';
 import type { SiteData } from '@api-docs/contracts';
 let site: SiteData;
 beforeAll(async () => {
@@ -34,6 +36,148 @@ async function fixture(code: string, run: (root: string) => Promise<void>) {
 const plugin = (transform = '(site) => site', extra = '') =>
   `export default { name: '@example/test', version: '1.0.0', pluginApi: '1', ${extra} transform: ${transform} };`;
 describe('trusted plugin process and conformance boundary', () => {
+  it('requires explicit theme capability while preserving existing transform declarations', () => {
+    const metadata = {
+      name: 'theme',
+      version: '1.0.0',
+      pluginApi: '1' as const,
+    };
+    expect(() => definePlugin({ ...metadata, theme: () => ({}) })).toThrow();
+    expect(() =>
+      definePlugin({
+        ...metadata,
+        capabilities: ['theme'],
+        transform: (site) => site,
+      }),
+    ).toThrow();
+    expect(() =>
+      definePlugin({ ...metadata, capabilities: ['theme', 'theme'] }),
+    ).toThrow();
+    expect(
+      definePlugin({ ...metadata, transform: (site) => site }),
+    ).toBeDefined();
+  });
+  it('composes theme tokens before transforms and subsequent plugins without mutating inputs', async () => {
+    const original = structuredClone(site);
+    const input = structuredClone(site);
+    input.config.theme.colors = {
+      light: { surface: '#ffffff', text: '#111111' },
+      dark: { background: '#111111' },
+    };
+    const result = await applyPlugins(input, [
+      {
+        name: 'brand',
+        version: '1.0.0',
+        pluginApi: '1',
+        capabilities: ['theme', 'transform'],
+        theme(current, { diagnostic }) {
+          // Even nested changes to the supplied snapshot cannot alter the source.
+          current.colors!.dark!.background = '#222222';
+          diagnostic({
+            code: 'brand',
+            severity: 'warning',
+            message: 'Brand applied',
+          });
+          return {
+            preset: 'ocean',
+            radius: 12,
+            colors: { light: { surface: '#fafafa' } },
+          };
+        },
+        transform(current) {
+          expect(current.config.theme.accent).toBe(themePresets.ocean);
+          expect(current.config.theme.radius).toBe(12);
+          return current;
+        },
+      },
+      {
+        name: 'spacing',
+        version: '1.0.0',
+        pluginApi: '1',
+        capabilities: ['theme'],
+        theme: (current) => ({ radius: current.radius + 1 }),
+      },
+    ]);
+    expect(result.config.theme).toMatchObject({
+      accent: themePresets.ocean,
+      radius: 13,
+      colors: {
+        light: { surface: '#fafafa', text: '#111111' },
+        dark: { background: '#111111' },
+      },
+    });
+    expect(result.diagnostics).toContainEqual({
+      code: 'brand',
+      severity: 'warning',
+      message: 'Brand applied',
+    });
+    expect(input.config.theme.radius).toBe(original.config.theme.radius);
+    expect(input.config.theme.colors.light!.surface).toBe('#ffffff');
+    expect(site).toEqual(original);
+  });
+  it.each([
+    'null',
+    '[]',
+    '{ unexpected: true }',
+    '{ colors: { sepia: {} } }',
+    '{ colors: { light: [] } }',
+  ])('rejects malformed theme-only worker output (%s)', async (output) => {
+    await fixture(
+      `export default { name: 'brand', version: '1.0.0', pluginApi: '1', capabilities: ['theme'], theme: () => (${output}) };`,
+      async (root) => {
+        await expect(
+          runPluginFiles(root, ['plugin.mjs'], site),
+        ).rejects.toThrow(/worker failed/);
+      },
+    );
+  });
+  it('terminates a non-cooperative theme-only hook', async () => {
+    await fixture(
+      `export default { name: 'brand', version: '1.0.0', pluginApi: '1', capabilities: ['theme'], theme() { while (true) {} } };`,
+      async (root) => {
+        await expect(
+          runPluginFiles(root, ['plugin.mjs'], site, { timeoutMs: 300 }),
+        ).rejects.toThrow(/execution limit/);
+      },
+    );
+  });
+  it('builds the theme example reproducibly and fingerprints its brand input', async () => {
+    const root = resolve('examples/plugins');
+    const baseline = await compileProject(root, 'docs.config.yaml', {
+      skipPlugins: true,
+    });
+    const checked = await checkPluginConformance(
+      root,
+      ['brand-theme.mjs'],
+      baseline,
+    );
+    expect(checked.site.config.theme).toMatchObject({
+      accent: '#087f5b',
+      radius: 12,
+      colors: { light: { surface: '#f4f8f6' } },
+    });
+    expect(checked.plugins[0]!.inputs.map((input) => input.path)).toEqual([
+      'brand-theme.mjs',
+      'brand.json',
+    ]);
+    const built = await compileProject(root, 'docs.config.yaml', {
+      trustPlugins: true,
+    });
+    expect(built.config.theme).toEqual(checked.site.config.theme);
+    await fixture(
+      `import { readFileSync } from 'node:fs'; export default { name: 'brand', version: '1.0.0', pluginApi: '1', inputs: ['brand.json'], capabilities: ['theme'], theme: () => JSON.parse(readFileSync('brand.json', 'utf8')) };`,
+      async (directory) => {
+        await writeFile(join(directory, 'brand.json'), '{"radius":12}');
+        const first = await runPluginFiles(directory, ['plugin.mjs'], site);
+        await writeFile(join(directory, 'brand.json'), '{"radius":14}');
+        const second = await runPluginFiles(directory, ['plugin.mjs'], site);
+        expect(first.plugins[0]!.sourceDigest).not.toBe(
+          second.plugins[0]!.sourceDigest,
+        );
+        expect(second.site.config.theme.radius).toBe(14);
+      },
+    );
+  });
   it('validates complete metadata and declared capabilities', () => {
     expect(() =>
       definePlugin({ name: 'test', version: '1.0.0trailing', pluginApi: '1' }),
@@ -231,6 +375,23 @@ describe('trusted plugin process and conformance boundary', () => {
         expect(
           await readFile(join(first.directory, 'manifest.json'), 'utf8'),
         ).toBe(manifest);
+        for (const theme of [
+          '{ radius: 25 }',
+          '{ colors: { light: { text: "#ffffff", background: "#ffffff" } } }',
+          '{ colors: { light: { unknown: "#ffffff" } } }',
+          '{ stylesheet: "../outside.css" }',
+        ]) {
+          await writeFile(
+            join(root, 'plugin.mjs'),
+            `export default { name: 'brand', version: '1.0.0', pluginApi: '1', capabilities: ['theme'], theme: () => (${theme}) };`,
+          );
+          await expect(buildSite(root, { trustPlugins: true })).rejects.toThrow(
+            /plugin project configuration/,
+          );
+          expect(
+            await readFile(join(first.directory, 'manifest.json'), 'utf8'),
+          ).toBe(manifest);
+        }
         const check = spawnSync(
           process.execPath,
           [

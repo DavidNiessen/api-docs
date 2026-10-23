@@ -1,12 +1,13 @@
 # Trusted build plugins
 
-The current experimental SDK supports a typed `transform` hook over the normalized site graph. Framework serving adapters are separate native integrations; see [integration instructions](integrations.md). Source loaders, custom browser components and dynamic snippet/search hooks remain roadmap work.
+The current experimental SDK supports typed `theme` and `transform` hooks over the normalized site graph. Framework serving adapters are separate native integrations; see [integration instructions](integrations.md). Source loaders, custom browser components and dynamic snippet/search hooks remain roadmap work.
 
 Start from [the runnable release-label example](../examples/plugins/release-label.mjs):
 
 ```sh
 npm run build
 node packages/cli/dist/main.js plugin-check release-label.mjs examples/plugins --trust-plugins
+node packages/cli/dist/main.js plugin-check brand-theme.mjs examples/plugins --trust-plugins
 node packages/cli/dist/main.js build examples/plugins --trust-plugins
 ```
 
@@ -36,6 +37,31 @@ export default definePlugin({
 ```
 
 `transform` receives a cloned graph and returns a graph; it can be asynchronous. Hooks run in configuration order, and each sees the preceding result. Duplicate plugin names, unsupported API versions, malformed graph fields, unknown security scheme references, duplicate routes, and invalid configuration fail the build. Guide HTML returned by plugins is sanitized again before rendering. Plugins must preserve the documented graph contract; arbitrary extension fields are rejected.
+
+### Theme tokens
+
+[The runnable brand-theme example](../examples/plugins/brand-theme.mjs) reads a declared `brand.json` file and returns a `ThemePatch`. Theme-only plugins require `capabilities: ['theme']`. A plugin implementing both hooks declares `['theme', 'transform']`; its theme hook runs first, so its transform sees the updated theme. Existing transform plugins without capability declarations remain supported.
+
+```js
+export default definePlugin({
+  name: '@example/brand',
+  version: '1.0.0',
+  pluginApi: '1',
+  capabilities: ['theme'],
+  theme(current, { signal }) {
+    if (signal.aborted) throw new Error('Cancelled');
+    return {
+      radius: 12,
+      accent: '#087f5b',
+      colors: { light: { surface: '#f4f8f6' } },
+    };
+  },
+});
+```
+
+The hook receives a separate theme snapshot; mutations to that snapshot are discarded. Return a plain partial token object. Omitted or undefined top-level values preserve existing tokens, and palette patches merge individual tokens within each mode, preserving the other mode. Selecting `preset` without `accent` applies that preset's default accent; an explicit accent takes precedence. Theme configuration supports colors, typography, radius, density, layout widths, code theme and a local public CSS asset path. This hook does not register browser components or execute client-side code. Custom CSS assets must already be inside the configured public assets directory.
+
+The compiler and `plugin-check` apply the same strict configuration validation, including token types/ranges, safe asset paths and 4.5:1 text contrast. Invalid output fails before replacing a previous publication. Both hooks share the plugin's abort deadline and diagnostic context. Theme plugins use the same fresh worker, declared-input fingerprinting and explicit trust boundary as transforms. SDK callers using `applyPlugins`/`runPluginFiles` directly must still validate the resulting project configuration, as described below.
 
 Entries must be compiled JavaScript (`.js`, `.mjs`, `.cjs`) inside the project. List helpers, configuration files and applicable lockfiles in `inputs`, relative to the project root. Entry files are always included. Paths are canonicalized and may not escape through traversal or symlinks. Inputs are regular files of at most 16 MiB each, with at most 128 declared inputs per plugin and 32 plugin files per invocation. Combined source reads are limited to 64 MiB per invocation, including repeated declarations. The generated manifest records plugin name/version, file hashes and a combined source digest. Changed declared files invalidate artifact identity even if the declared package version remains unchanged. Inputs that change during execution fail verification.
 

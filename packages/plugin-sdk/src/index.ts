@@ -1,14 +1,26 @@
-import type { Diagnostic, SiteData } from '@api-docs/contracts';
+import type { Diagnostic, SiteData, Theme } from '@api-docs/contracts';
 import { validatePluginSite } from './validation.js';
+import { applyThemePatch } from './theme.js';
+import type { ThemePatch } from './theme.js';
+export type { ThemePatch } from './theme.js';
+export type BuildPluginCapability = 'transform' | 'theme';
+export interface BuildPluginContext {
+  signal: AbortSignal;
+  diagnostic: (message: Diagnostic) => void;
+}
 export interface BuildPlugin {
   name: string;
   version: string;
   pluginApi: '1';
   inputs?: string[];
-  capabilities?: ['transform'];
+  capabilities?: readonly BuildPluginCapability[];
+  theme?: (
+    theme: Readonly<Theme>,
+    context: BuildPluginContext,
+  ) => Promise<ThemePatch> | ThemePatch;
   transform?: (
     site: Readonly<SiteData>,
-    context: { signal: AbortSignal; diagnostic: (message: Diagnostic) => void },
+    context: BuildPluginContext,
   ) => Promise<SiteData> | SiteData;
 }
 export function definePlugin(plugin: BuildPlugin): BuildPlugin {
@@ -22,6 +34,9 @@ export function definePlugin(plugin: BuildPlugin): BuildPlugin {
     plugin.pluginApi !== '1' ||
     (plugin.transform !== undefined &&
       typeof plugin.transform !== 'function') ||
+    (plugin.theme !== undefined &&
+      (typeof plugin.theme !== 'function' ||
+        !plugin.capabilities?.includes('theme'))) ||
     (plugin.inputs !== undefined &&
       (!Array.isArray(plugin.inputs) ||
         plugin.inputs.length > 128 ||
@@ -30,8 +45,14 @@ export function definePlugin(plugin: BuildPlugin): BuildPlugin {
         ))) ||
     (plugin.capabilities !== undefined &&
       (!Array.isArray(plugin.capabilities) ||
-        plugin.capabilities.length !== 1 ||
-        plugin.capabilities[0] !== 'transform'))
+        plugin.capabilities.length < 1 ||
+        plugin.capabilities.length > 2 ||
+        new Set(plugin.capabilities).size !== plugin.capabilities.length ||
+        plugin.capabilities.some(
+          (capability) => capability !== 'transform' && capability !== 'theme',
+        ) ||
+        (plugin.transform !== undefined &&
+          !plugin.capabilities.includes('transform'))))
   )
     throw new Error('Invalid plugin name, version or pluginApi (supported: 1)');
   return Object.freeze(plugin);
@@ -50,18 +71,25 @@ export async function applyPlugins(
     if (names.has(plugin.name))
       throw new Error(`Duplicate plugin: ${plugin.name}`);
     names.add(plugin.name);
-    if (!plugin.transform) continue;
+    if (!plugin.transform && !plugin.theme) continue;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const diagnostics: Diagnostic[] = [];
     try {
       current = await Promise.race([
-        Promise.resolve(
-          plugin.transform(structuredClone(current), {
+        (async () => {
+          const cloned = structuredClone(current);
+          const context: BuildPluginContext = {
             signal: controller.signal,
             diagnostic: (message) => diagnostics.push(message),
-          }),
-        ),
+          };
+          if (plugin.theme)
+            cloned.config.theme = applyThemePatch(
+              cloned.config.theme,
+              await plugin.theme(structuredClone(cloned.config.theme), context),
+            );
+          return plugin.transform ? plugin.transform(cloned, context) : cloned;
+        })(),
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => {
             controller.abort();

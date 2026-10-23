@@ -4,3 +4,4 @@ specs:
     path: openapi.yaml
 plugins:
   - release-label.mjs
+  - brand-theme.mjs
