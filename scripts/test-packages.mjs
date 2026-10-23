@@ -103,6 +103,7 @@ try {
           'doctor-strict',
           'artifact-verification',
           'static-server',
+          'static-server-manifest-allowlist-and-reload',
           'express-authenticated-subpath',
           'fastify-authenticated-subpath',
           'node-manifest-allowlist',

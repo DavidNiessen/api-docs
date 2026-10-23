@@ -261,6 +261,9 @@ buildOptions(
           const files = [...changes];
           changes.clear();
           const built = await builder.build(files);
+          // Incremental guide edits retain the exact file set. Full builds may
+          // replace routes/assets and need a freshly verified membership set.
+          if (built.mode === 'full') await app.reloadPublication();
           console.log(
             `${built.mode === 'incremental' ? 'Changed guides' : 'Documentation'} rebuilt. Refresh to see changes.`,
           );

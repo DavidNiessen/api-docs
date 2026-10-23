@@ -5,6 +5,27 @@ import type { ArtifactManifest } from '@api-docs/contracts';
 import { record } from '@api-docs/spec';
 export const digest = (source: string | Buffer): string =>
   createHash('sha256').update(source).digest('hex');
+/** Static membership for decoded local paths from an already verified manifest. */
+export function createArtifactPathFilter(manifest: ArtifactManifest) {
+  const files = new Set(Object.keys(manifest.files));
+  return (pathname: string): boolean => {
+    const path = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    if (
+      !/^[a-zA-Z0-9._/-]*$/.test(path) ||
+      path
+        .split('/')
+        .some(
+          (part, index, parts) =>
+            part.startsWith('.') || (!part && index !== parts.length - 1),
+        )
+    )
+      return false;
+    return (
+      files.has(path) ||
+      files.has(path + (path && !path.endsWith('/') ? '/' : '') + 'index.html')
+    );
+  };
+}
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value !== null && typeof value === 'object')

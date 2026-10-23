@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { verifyArtifact } from '@api-docs/compiler';
+import { verifyArtifact, createArtifactPathFilter } from '@api-docs/compiler';
 import type { SiteData } from '@api-docs/contracts';
 export const headers: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
@@ -12,8 +12,7 @@ export const headers: Record<string, string> = {
 export async function prepare(directory: string, mountPath?: string) {
   const root = resolve(directory);
   const manifest = await verifyArtifact(root);
-  const files = new Set(Object.keys(manifest.files));
-  if (!files.has('site.json'))
+  if (!Object.hasOwn(manifest.files, 'site.json'))
     throw new Error('Publication configuration must be listed in the manifest');
   const site = JSON.parse(
     await readFile(join(root, 'site.json'), 'utf8'),
@@ -21,23 +20,10 @@ export async function prepare(directory: string, mountPath?: string) {
   const basePath = mountPath ?? site.config.basePath;
   if (basePath !== site.config.basePath)
     throw new Error('Adapter mount path must match the publication basePath');
-  /** Accept a decoded local pathname; directory aliases require a listed index. */
-  const allowsPath = (pathname: string) => {
-    const path = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-    if (
-      !/^[a-zA-Z0-9._/-]*$/.test(path) ||
-      path
-        .split('/')
-        .some(
-          (part, index, parts) =>
-            part.startsWith('.') || (!part && index !== parts.length - 1),
-        )
-    )
-      return false;
-    return (
-      files.has(path) ||
-      files.has(path + (path && !path.endsWith('/') ? '/' : '') + 'index.html')
-    );
+  return {
+    root,
+    basePath,
+    allowsPath: createArtifactPathFilter(manifest),
+    hasNotFoundPage: Object.hasOwn(manifest.files, '404.html'),
   };
-  return { root, basePath, allowsPath, hasNotFoundPage: files.has('404.html') };
 }

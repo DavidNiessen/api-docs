@@ -5,7 +5,6 @@ import {
   cp,
   rename,
   rm,
-  stat,
   open,
   realpath,
 } from 'node:fs/promises';
@@ -13,6 +12,7 @@ import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import {
   compileProject,
@@ -23,6 +23,7 @@ import {
   artifactIdentity,
   loadPublicAssets,
   digest,
+  createArtifactPathFilter,
 } from '@api-docs/compiler';
 import {
   guideHref,
@@ -207,14 +208,61 @@ export async function buildSite(
     await rm(lockPath, { force: true });
   }
 }
-export async function createStaticServer(directory: string, basePath?: string) {
+export type StaticDocsServer = FastifyInstance & {
+  reloadPublication(): Promise<void>;
+};
+export async function createStaticServer(
+  directory: string,
+  basePath?: string,
+): Promise<StaticDocsServer> {
   const root = resolve(directory);
-  await stat(join(root, 'index.html'));
-  const site = JSON.parse(
-    await readFile(join(root, 'site.json'), 'utf8'),
-  ) as SiteData;
-  const prefix = basePath ?? site.config.basePath;
+  async function loadPublication() {
+    const manifest = await verifyArtifact(root);
+    if (
+      !Object.hasOwn(manifest.files, 'site.json') ||
+      !Object.hasOwn(manifest.files, 'index.html')
+    )
+      throw new Error('Publication must list its configuration and root page');
+    const site = JSON.parse(
+      await readFile(join(root, 'site.json'), 'utf8'),
+    ) as SiteData;
+    const prefix = site?.config?.basePath;
+    if (
+      typeof prefix !== 'string' ||
+      !(
+        prefix === '' ||
+        (/^\/[a-zA-Z0-9][a-zA-Z0-9/_-]*$/.test(prefix) && !prefix.endsWith('/'))
+      )
+    )
+      throw new Error('Invalid publication basePath');
+    return {
+      prefix,
+      allowsPath: createArtifactPathFilter(manifest),
+      hasNotFoundPage: Object.hasOwn(manifest.files, '404.html'),
+    };
+  }
+  let publication: Awaited<ReturnType<typeof loadPublication>> | undefined =
+    await loadPublication();
+  const prefix = basePath ?? publication.prefix;
+  if (prefix !== publication.prefix)
+    throw new Error('Server mount path must match the publication basePath');
+  let revision = 0;
+  /** Reverify a replacement publication; a failed reload makes readiness unavailable. */
+  async function reloadPublication() {
+    const generation = ++revision;
+    publication = undefined;
+    const next = await loadPublication();
+    if (next.prefix !== prefix)
+      throw new Error(
+        'Publication basePath changed; restart the documentation server',
+      );
+    if (generation === revision) publication = next;
+  }
   const app = Fastify({ logger: false, bodyLimit: 1024 });
+  app.addHook('onRequest', async (request, reply) => {
+    if (!publication && request.routeOptions.url !== '/health/live')
+      return reply.code(503).send({ status: 'unavailable' });
+  });
   app.addHook('onSend', async (_request, reply) => {
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Referrer-Policy', 'no-referrer');
@@ -233,12 +281,15 @@ export async function createStaticServer(directory: string, basePath?: string) {
     dotfiles: 'deny',
     maxAge: 0,
     redirect: true,
+    allowedPath: (pathname) => publication?.allowsPath(pathname) ?? false,
   });
   app.setNotFoundHandler(async (_request, reply) => {
     reply.code(404).type('text/html');
-    return await readFile(join(root, '404.html'), 'utf8');
+    return publication?.hasNotFoundPage
+      ? await readFile(join(root, '404.html'), 'utf8').catch(() => 'Not found')
+      : 'Not found';
   });
-  return app;
+  return Object.assign(app, { reloadPublication }) as StaticDocsServer;
 }
 
 export async function stageArtifact(

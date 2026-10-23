@@ -233,11 +233,31 @@ assert(
     await readFile(join(directory, 'guides/installed/index.html'), 'utf8')
   ).includes('Packaged MDX works.'),
 );
+await writeFile(join(directory, 'private.txt'), 'unlisted-consumer-fixture');
+await writeFile(
+  join(directory, 'assets/private.txt'),
+  'unlisted-consumer-fixture',
+);
+const unlistedPaths = [
+  '/reference/private.txt',
+  '/reference/assets/private.txt',
+  '/reference/manifest.json',
+];
 const staticServer = await createStaticServer(directory);
 try {
   const response = await staticServer.inject('/reference/');
   assert.equal(response.statusCode, 200);
   assert(response.body.includes('Packaged consumer'));
+  for (const url of unlistedPaths) {
+    for (const method of ['GET', 'HEAD']) {
+      const rejected = await staticServer.inject({ url, method });
+      assert.equal(rejected.statusCode, 404);
+      assert(!rejected.body.includes('unlisted-consumer-fixture'));
+    }
+  }
+  await staticServer.reloadPublication();
+  assert.equal((await staticServer.inject('/health/ready')).statusCode, 200);
+
   assert.equal(
     (await staticServer.inject('/reference/assets/reader.js')).statusCode,
     200,
@@ -253,16 +273,6 @@ try {
   await staticServer.close();
 }
 const headers = { authorization: 'Bearer fixture' };
-await writeFile(join(directory, 'private.txt'), 'unlisted-consumer-fixture');
-await writeFile(
-  join(directory, 'assets/private.txt'),
-  'unlisted-consumer-fixture',
-);
-const unlistedPaths = [
-  '/reference/private.txt',
-  '/reference/assets/private.txt',
-  '/reference/manifest.json',
-];
 const paths = [
   '/reference/',
   '/reference/guides/installed/',

@@ -6,7 +6,12 @@ import {
   parseArtifactManifest,
   digestFile,
 } from './manifest.js';
-export { digest, artifactIdentity, parseArtifactManifest } from './manifest.js';
+export {
+  digest,
+  artifactIdentity,
+  parseArtifactManifest,
+  createArtifactPathFilter,
+} from './manifest.js';
 import {
   loadSpec,
   parseConfig,

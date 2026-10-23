@@ -17,6 +17,10 @@ Build the repository with `npm ci && npm run build`. Commands below use `node pa
 
 `build` and `dev` accept `--config`, `--output`, and `--trust-plugins`. Output must stay inside the project's `.api-docs` directory to protect source files. `serve` and `dev` accept `--port` and `--host`; the default interface is loopback.
 
+`serve` verifies the publication manifest and all listed checksums before startup, then serves only listed files and directory aliases backed by a listed index page. Extra files and the manifest itself are not automatically public. A supplied programmatic mount must match the compiled `basePath`. Keep served artifacts immutable; startup verification does not rehash each response.
+
+Programmatic callers can use `await server.reloadPublication()` on the result of `createStaticServer` to verify a replacement publication and update the allowed file set. A failed reload makes documentation and `/health/ready` return 503 while `/health/live` remains available. Repair the artifact and reload to recover. A changed `basePath` requires restarting the server.
+
 ## Configuration
 
 ```yaml
@@ -71,7 +75,7 @@ Build, export, validate and dev accept `--trust-content` for reviewed MDX. It is
 
 ## Incremental local preview
 
-After the initial verified build, `dev` reuses its API graph for plain Markdown body edits whose navigation metadata stays unchanged. It updates the affected pages, search data and manifest, then asks you to refresh the browser. Navigation, configuration, spec, assets, plugins and trusted MDX changes use a full rebuild. Do not edit generated preview files manually. Staging and publishing always verify the complete artifact. See the [measured limits and invalidation behavior](performance.md).
+After the initial verified build, `dev` reuses its API graph for plain Markdown body edits whose navigation metadata stays unchanged. It updates the affected pages, search data and manifest, then asks you to refresh the browser. Navigation, configuration, spec, assets, plugins and trusted MDX changes use a full rebuild. Full development rebuilds reload the verified file set; incremental guide edits retain the same paths and avoid another full checksum pass. Restart `dev` after changing `basePath`. Do not edit generated preview files manually. Staging and publishing always verify the complete artifact. See the [measured limits and invalidation behavior](performance.md).
 
 ## Plugin conformance
 
