@@ -17,6 +17,18 @@ docker compose -f deploy/compose.yaml build
 docker compose -f deploy/compose.yaml up -d --wait
 ```
 
+`DOCS_IMAGE` selects the server and migration image; its default is the local `api-docs:local` build. For a reviewed prebuilt distribution, set it to your full repository reference with `@sha256:...` and pull the selected image before using `up --no-build`. Recovery helpers honor the same selection. No public release image is implied by this setting.
+
+You can also pin an image built locally without changing shared tags:
+
+```sh
+docker build --target server --iidfile /tmp/api-docs-server.id .
+export DOCS_IMAGE="$(cat /tmp/api-docs-server.id)"
+docker compose -f deploy/compose.yaml up -d --no-build --pull never --wait
+```
+
+Keep `DOCS_IMAGE` set to the compatible immutable image during backup and fresh-target restoration. Retain or mirror that image and the pinned PostgreSQL image with the recovery set. A configuration ID identifies a locally cached image; registry distribution uses its repository manifest digest. Build or load required images before using `--pull never`.
+
 The setup script refuses to replace existing secrets. The containing directory is private (0700); files inside it are read-only and readable by the different container users through Docker secret bind mounts. Do not relax the parent directory permissions. Configure your secret manager in place of these files on a managed platform. Store an encrypted copy separately from the application backups. Database password changes require PostgreSQL role rotation as well as updating the matching connection secret; replacing a file alone does not change a database password.
 
 Only for local evaluation, use `PUBLIC_URL=http://127.0.0.1:8080 INSECURE_DEVELOPMENT=true`. Production requires the actual HTTPS origin. Visit `/admin/` and supply the operator token from your secret store through its secure input. The token is exchanged for an opaque session. Do not pass tokens as command line arguments or paste them into issue reports.
@@ -91,6 +103,14 @@ SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container
 
 The harness uses the shipped Compose file with a unique project, fresh credentials, an unpublished loopback port and owned volumes/networks. It refuses external resource reuse and does not select an existing deployment. A fixture is compiled offline inside that exact server image, then published only to the disposable installation. Acceptance verifies schema/runtime role grants, UID 1000, a read-only root, no capabilities, seccomp, no new privileges and explicit test limits (512 MiB, two CPUs, 128 PIDs). These limits are test overrides; choose production capacity for your workload.
 
-It checks private HTML, page/site data, search catalog/shards and browser assets after authorized access, viewer-token revocation, restart persistence and publication idempotence. PostgreSQL is stopped deliberately: readiness and private content must return 503 without content leakage while liveness stays available. Restarting PostgreSQL must restore the same publication. The harness removes only its owned containers, networks, volumes and temporary files, verifies cleanup, and prints a JSON receipt on success. It never receives production credentials. This covers a single-host installation and outage recovery, not reverse-proxy, backup/restore or multi-replica acceptance.
+It checks private HTML, page/site data, search catalog/shards and browser assets after authorized access, viewer-token revocation, restart persistence and publication idempotence. PostgreSQL is stopped deliberately: readiness and private content must return 503 without content leakage while liveness stays available. Restarting PostgreSQL must restore the same publication. The harness removes only its owned containers, networks, volumes and temporary files, verifies cleanup, and prints a JSON receipt on success. It never receives production credentials. This covers a single-host installation, outage recovery and the fresh-target restore rehearsal below; reverse-proxy and multi-replica acceptance remain separate.
 
 Both normal quality and prepared-version release rehearsal run this acceptance and retain the receipt. The rehearsal also checks that the running server reports the prepared tool version and matches the selected image ID. Follow the managed environment's proxy/CA setup when building behind a TLS-intercepting proxy; TLS verification must stay enabled.
+
+### Automated fresh-target restore rehearsal
+
+The same container acceptance command also runs `scripts/recovery.mjs` against its owned fixture. It backs up the private publication, validates recovery checksums and directory permissions, and then stops/removes that source before creating a different fresh project with new database/operator secrets. The target restores into the supported named artifact volume using the same selected image. Source and target are sequential, avoiding shared resources and excessive Docker storage use.
+
+Before restoration, incomplete/corrupt sets must fail without creating target containers. After restoration, exact published HTML, private HTML/data/search/asset denial, active and revoked scoped tokens, rotated operator credentials, append-only runtime grants, audit history and publication idempotence must match expectations. The fixture creates a browser session through the API and seeds a pending OIDC record before backup; both tables must be empty after restoration while the scoped token remains usable. A restore into the populated target must refuse without changing served bytes.
+
+Both source and target cleanup are checked before the JSON receipt reports success. The prepared release gate requires at least nine recovery checks, the selected server image, matching artifact identity and verified target cleanup. No existing deployment, external volume or production credential is selected. This exercises a small single-host fixture with cached images; site-specific recovery time/point objectives, major PostgreSQL upgrades, encrypted off-host storage and full air-gapped installation remain operator acceptance work.

@@ -18,7 +18,7 @@ services:
       retries: 10
     networks: [backend]
   migrate:
-    image: api-docs:local
+    image: ${DOCS_IMAGE:-api-docs:local}
     command: ['node', 'apps/server/dist/migrate.js']
     depends_on:
       db:
@@ -36,7 +36,7 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: api-docs:local
+    image: ${DOCS_IMAGE:-api-docs:local}
     restart: unless-stopped
     depends_on:
       db:

@@ -16,6 +16,8 @@ import { join, resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { verifyArtifact } from '@api-docs/compiler';
 import { toolVersion } from '@api-docs/contracts';
+import { assertOwnedCompose } from './lib/compose-fixtures.mjs';
+import { verifyServerRecovery } from './lib/server-recovery-fixture.mjs';
 
 assert.equal(process.platform, 'linux', 'Use a local Linux Docker daemon.');
 const requestedImage = process.env.SERVER_TEST_IMAGE;
@@ -294,27 +296,7 @@ try {
   );
   step('owned Compose configuration');
   const configuration = JSON.parse(await compose('config', '--format', 'json'));
-  assert.equal(configuration.name, project);
-  assert.deepEqual(Object.keys(configuration.services).sort(), [
-    'db',
-    'docs',
-    'migrate',
-  ]);
-  for (const entry of [
-    ...Object.values(configuration.volumes ?? {}),
-    ...Object.values(configuration.networks ?? {}),
-  ]) {
-    assert(
-      !entry.external && entry.name.startsWith(project + '_'),
-      'Acceptance must not reuse external deployment resources.',
-    );
-  }
-  assert.equal(configuration.networks.backend.internal, true);
-  assert.equal(configuration.services.db.ports?.length ?? 0, 0);
-  assert.match(
-    configuration.services.db.image,
-    /^postgres:17-alpine@sha256:[a-f0-9]{64}$/,
-  );
+  assertOwnedCompose(configuration, project, image);
   await docker([
     'image',
     'inspect',
@@ -322,8 +304,6 @@ try {
     '--format',
     '{{.Id}}',
   ]);
-  assert.equal(configuration.services.docs.image, image);
-  assert.equal(configuration.services.migrate.image, image);
   composeOwned = true;
   step('Compose installation');
   await compose(
@@ -550,7 +530,30 @@ try {
   const restored = await request(privateRoot, rootToken);
   assert.equal(restored.status, 200);
   assert.equal(await restored.text(), expected);
+  const recovery = await verifyServerRecovery({
+    environment,
+    project,
+    image,
+    compose,
+    step,
+    sanitize,
+    secretValues,
+    projectId: created.id,
+    rootToken,
+    request,
+    json,
+    base,
+    privateRoot,
+    privateMarker,
+    expected,
+    paths,
+    revokedToken: viewer.token,
+    artifactId,
+    publicationPayload: payload,
+    publicationId: publication.id,
+  });
   report = {
+    recovery,
     toolVersion,
     requestedImage,
     resolvedImage: image,

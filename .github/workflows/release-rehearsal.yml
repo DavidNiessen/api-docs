@@ -307,6 +307,10 @@ jobs:
           assert.equal(server.resolvedImage, serverImage);
           assert.equal(server.cleanupVerified, true);
           assert(server.checks.length >= 9 && server.privateFiles >= 8);
+          assert.equal(server.recovery.resolvedImage, serverImage);
+          assert.equal(server.recovery.artifactId, server.artifactId);
+          assert.equal(server.recovery.cleanupVerified, true);
+          assert(server.recovery.checks.length >= 9);
           const inventory = JSON.parse(await readFile('.api-docs/container-inventory-evidence.json', 'utf8'));
           assert.equal(inventory.toolVersion, toolVersion);
           assert.equal(inventory.resolvedImage, serverImage);
