@@ -86,7 +86,10 @@ it('bounds real lock waits and recovers ordinary reads after releasing the lock'
   try {
     await blocker.query('LOCK TABLE docs_projects IN ACCESS EXCLUSIVE MODE');
     const began = Date.now();
-    await expect(bounded.projects()).rejects.toMatchObject({ code: '57014' });
+    await expect(bounded.projects()).rejects.toMatchObject({
+      name: 'RepositoryUnavailableError',
+      code: '57014',
+    });
     expect(Date.now() - began).toBeLessThan(4000);
   } finally {
     await blocker.query('ROLLBACK');
@@ -106,6 +109,7 @@ it('rolls back project and role writes when audit insertion times out, then supp
   try {
     await blocker.query('LOCK TABLE docs_audit IN ACCESS EXCLUSIVE MODE');
     await expect(bounded.createProject(input)).rejects.toMatchObject({
+      name: 'RepositoryUnavailableError',
       code: '57014',
     });
     expect(await bounded.project(slug)).toBeUndefined();
@@ -192,7 +196,10 @@ it('discards an indeterminate transaction client when the timeout response is lo
       )
       .toBe(1);
     link.freeze();
-    expect(await outcome).toMatchObject({ message: 'Query read timeout' });
+    expect(await outcome).toMatchObject({
+      name: 'RepositoryUnavailableError',
+      message: 'Query read timeout',
+    });
     link.restore();
     await blocker.query('ROLLBACK');
     expect(await owner.project(slug)).toBeUndefined();

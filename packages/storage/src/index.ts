@@ -1,4 +1,5 @@
 import { PostgresBuildJobs, readBuildQueueLimits } from './build-jobs.js';
+import { databaseError } from './database-error.js';
 import type { SqlClient, SqlDatabase } from './sql.js';
 import {
   migrations,
@@ -121,16 +122,24 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
       /* Health checks expose availability without logging connection credentials. */
     });
   }
-  private query<Row extends pg.QueryResultRow = pg.QueryResultRow>(
+  private async query<Row extends pg.QueryResultRow = pg.QueryResultRow>(
     text: string,
     values?: unknown[],
   ) {
-    return this.pool.query<Row>(timedQuery(text, values, this.queryTimeoutMs));
+    try {
+      return await this.pool.query<Row>(
+        timedQuery(text, values, this.queryTimeoutMs),
+      );
+    } catch (error) {
+      throw databaseError(error);
+    }
   }
   private async transaction<T>(
     work: (client: SqlClient) => Promise<T>,
   ): Promise<T> {
-    const client = await this.pool.connect();
+    const client = await this.pool.connect().catch((error: unknown) => {
+      throw databaseError(error);
+    });
     const query: SqlClient['query'] = <
       Row extends pg.QueryResultRow = pg.QueryResultRow,
     >(
@@ -144,6 +153,8 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
       await query('COMMIT');
       committed = true;
       return result;
+    } catch (error) {
+      throw databaseError(error);
     } finally {
       // Destroying a failed connection rolls back its open transaction on PostgreSQL.
       // Never reuse a client with an uncertain transaction or a timed-out query still in flight.
@@ -439,7 +450,11 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
         }),
       ],
     };
-    await this.relayAuditPool.query(query);
+    try {
+      await this.relayAuditPool.query(query);
+    } catch (error) {
+      throw databaseError(error);
+    }
   }
   async createToken(
     projectId: string,

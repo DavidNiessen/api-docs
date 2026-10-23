@@ -46,7 +46,8 @@
     "release:prepare": "node scripts/release-prepare.mjs",
     "test:java-consumers": "node scripts/test-java-consumers.mjs",
     "worker": "node apps/worker/dist/main.js",
-    "test:build-worker": "node scripts/test-build-worker.mjs"
+    "test:build-worker": "node scripts/test-build-worker.mjs",
+    "test:server-container": "node scripts/test-server-container.mjs"
   },
   "devDependencies": {
     "@api-docs/cli": "0.1.0",

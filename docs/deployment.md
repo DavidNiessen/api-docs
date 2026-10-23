@@ -79,3 +79,18 @@ Compiler output, CLI staging, Node adapters and the management server share mani
 Node verification hashes small payload files with a bounded buffer of at most 1 MiB plus a growth sentinel; larger files use 64 KiB chunks. A size change or checksum mismatch fails verification. Node source/manifest/payload reads require regular files; POSIX nonblocking opens reject named pipes rather than waiting for a writer. Build output cannot contain symlinks or special files. Java also validates regular manifest inputs, confines listed payload paths and streams payload checksums.
 
 Artifacts must remain immutable after staging. These checks establish content integrity; publisher authentication and protected deployment/release procedures establish who may activate it. Keep generated static roots free of unrelated files. The standalone preview server serves its generated directory; immutable staged server publications additionally enforce the verified manifest's file allowlist on reader requests.
+
+## Disposable server-container acceptance
+
+Build the default server target and test its immutable image with a local Linux Docker daemon and cgroup v2. Cache the exact PostgreSQL digest from `deploy/compose.yaml` first. Run from the repository root after `npm ci --ignore-scripts && npm run build`:
+
+```sh
+docker build --target server --iidfile /tmp/api-docs-server.id .
+SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent
+```
+
+The harness uses the shipped Compose file with a unique project, fresh credentials, an unpublished loopback port and owned volumes/networks. It refuses external resource reuse and does not select an existing deployment. A fixture is compiled offline inside that exact server image, then published only to the disposable installation. Acceptance verifies schema/runtime role grants, UID 1000, a read-only root, no capabilities, seccomp, no new privileges and explicit test limits (512 MiB, two CPUs, 128 PIDs). These limits are test overrides; choose production capacity for your workload.
+
+It checks private HTML, page/site data, search catalog/shards and browser assets after authorized access, viewer-token revocation, restart persistence and publication idempotence. PostgreSQL is stopped deliberately: readiness and private content must return 503 without content leakage while liveness stays available. Restarting PostgreSQL must restore the same publication. The harness removes only its owned containers, networks, volumes and temporary files, verifies cleanup, and prints a JSON receipt on success. It never receives production credentials. This covers a single-host installation and outage recovery, not reverse-proxy, backup/restore or multi-replica acceptance.
+
+Both normal quality and prepared-version release rehearsal run this acceptance and retain the receipt. The rehearsal also checks that the running server reports the prepared tool version and matches the selected image ID. Follow the managed environment's proxy/CA setup when building behind a TLS-intercepting proxy; TLS verification must stay enabled.

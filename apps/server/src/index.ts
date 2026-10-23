@@ -11,6 +11,7 @@ import { confinedPath } from '@api-docs/spec';
 import {
   can,
   ConflictError,
+  RepositoryUnavailableError,
   BuildInputError,
   BuildLeaseLostError,
   BuildCapacityError,
@@ -232,17 +233,19 @@ export async function createServer(options: ServerOptions) {
       validation?: unknown;
     };
     const status =
-      typed instanceof ConflictError || typed instanceof BuildLeaseLostError
-        ? 409
-        : typed instanceof BuildInputError
-          ? 400
-          : typed instanceof BuildCapacityError
-            ? 429
-            : typed instanceof BuildNotFoundError
-              ? 404
-              : typed.validation
-                ? 400
-                : (typed.statusCode ?? 500);
+      typed instanceof RepositoryUnavailableError
+        ? 503
+        : typed instanceof ConflictError || typed instanceof BuildLeaseLostError
+          ? 409
+          : typed instanceof BuildInputError
+            ? 400
+            : typed instanceof BuildCapacityError
+              ? 429
+              : typed instanceof BuildNotFoundError
+                ? 404
+                : typed.validation
+                  ? 400
+                  : (typed.statusCode ?? 500);
     if (status >= 500) app.log.error({ type: typed.name }, 'Request failed');
     reply.code(status).send({
       error:

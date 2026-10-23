@@ -94,6 +94,18 @@ export interface Repository {
   consumeOidc(hash: string): Promise<OidcTransaction | undefined>;
 }
 export class ConflictError extends Error {}
+/** Dependency unavailability does not establish whether a write committed. Never retry mutations automatically. */
+export class RepositoryUnavailableError extends Error {
+  readonly code: string | undefined;
+  constructor(
+    message = 'The repository is temporarily unavailable.',
+    options?: ErrorOptions & { code?: string },
+  ) {
+    super(message, options);
+    this.name = 'RepositoryUnavailableError';
+    this.code = options?.code;
+  }
+}
 export interface RelayAuditWriter {
   recordRelay(
     projectId: string,
