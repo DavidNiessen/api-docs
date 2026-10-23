@@ -66,7 +66,15 @@ The `settings.*` and `appearance.*` IDs cover the personal appearance-mode, prep
 
 Message overrides change display text. Theme preset IDs, layout/mode values, configuration keys and endpoint paths retain their public values. Authored API titles, tags and descriptions remain literal source text. Existing valid mode, layout and preset preferences are shared across this project's language routes. Removed custom-theme/editor controls are no longer rendered; their previous catalog IDs remain accepted for configuration compatibility.
 
-Pagination exposes named values (`{page}`, `{pages}`, `{count}`), so translators can reorder labels. Counts do not currently provide ICU plural rules; use wording that works for all counts, such as `Endpunkte: {count}`. Loading/retry feedback retains semantic state and resolves its current label when rendered. Other API-detail headings, advanced request/authentication forms and Studio administration still have English product wording.
+Pagination exposes named values (`{page}`, `{pages}`, `{count}`), so translators can reorder labels. Counts do not currently provide ICU plural rules; use wording that works for all counts, such as `Endpunkte: {count}`. Loading/retry feedback retains semantic state and resolves its current label when rendered. Advanced request/authentication forms and Studio administration still have English product wording.
+
+## Endpoint reference and parameter controls
+
+`api.*` covers endpoint authorization notices, parameter-section headings, fallback parameter descriptions, request-body/response headings and incoming-event example labels. `parameter.*` covers accessible input names, value placeholders, optional presence/empty-value actions and draft/empty guidance. Named context retains the parameter name and wire location while allowing translated wording and order. The same reference headings render before JavaScript loads and inside classic endpoint details.
+
+`examples.*` covers response example selectors, generated titles and the explanation that external example URLs remain offline. Authored example names/summaries, values, security-scheme identifiers, media types and path/query/header/cookie wire identities remain literal. Generated/inline display labels are localized by their stable example IDs; a matching authored label is not rewritten. `code.*` covers code-copy controls and clipboard failures; copying retains the exact displayed code.
+
+The German example demonstrates these labels and an optional `limit` query parameter. Browser acceptance checks translated inclusion controls, retained drafts, exact query URL/code copying, mobile accessibility, English fallback and reference headings without JavaScript. SDK validation errors, advanced body editors, authentication/relay forms and Studio wording retain their existing English fallback. This does not establish complete linguistic or right-to-left acceptance.
 
 ## Schema and lifecycle guidance
 

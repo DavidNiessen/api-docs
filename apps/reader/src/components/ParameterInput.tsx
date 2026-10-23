@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import type { Parameter } from '@api-docs/contracts';
+import { useUi } from '../ui-translation.js';
 
 export function ParameterInput({
   parameter,
@@ -19,12 +20,13 @@ export function ParameterInput({
   onPresence: (value: boolean | undefined) => void;
 }) {
   const id = useId();
+  const t = useUi();
   const included = presence ?? value !== '';
   const hint =
     !parameter.required && !included && value
-      ? 'Omitted; entered text is kept as a draft.'
+      ? t('parameter.omitted')
       : included && value === ''
-        ? 'Sends an empty value. The API still validates the value.'
+        ? t('parameter.empty')
         : '';
   return (
     <div className="parameter-input">
@@ -33,12 +35,19 @@ export function ParameterInput({
           <code>{parameter.name}</code>
           <small>
             {parameter.in}
-            {parameter.required ? ' · required' : ''}
+            {parameter.required ? ' · ' + t('schema.required') : ''}
           </small>
         </span>
         <input
           id={id}
-          aria-label={`${parameter.name}${qualified ? ' ' + parameter.in : ''} parameter`}
+          aria-label={
+            qualified
+              ? t('parameter.qualifiedLabel', {
+                  name: parameter.name,
+                  location: parameter.in,
+                })
+              : t('parameter.label', { name: parameter.name })
+          }
           aria-describedby={hint ? id + '-presence' : undefined}
           value={value}
           placeholder={
@@ -46,7 +55,7 @@ export function ParameterInput({
               ? '["value"]'
               : parameter.schema.type === 'object'
                 ? '{"key":"value"}'
-                : 'Enter a value'
+                : t('parameter.value')
           }
           onChange={(event) => onChange(event.target.value)}
         />
@@ -55,7 +64,15 @@ export function ParameterInput({
         <label className="parameter-presence">
           <input
             type="checkbox"
-            aria-label={`${parameter.required ? 'Allow empty value' : 'Include in request'}: ${parameter.in} ${parameter.name}`}
+            aria-label={t('parameter.presenceLabel', {
+              action: t(
+                parameter.required
+                  ? 'parameter.allowEmpty'
+                  : 'parameter.include',
+              ),
+              location: parameter.in,
+              name: parameter.name,
+            })}
             checked={parameter.required ? presence === true : included}
             onChange={(event) =>
               onPresence(
@@ -66,7 +83,9 @@ export function ParameterInput({
             }
           />
           <span>
-            {parameter.required ? 'Allow empty value' : 'Include in request'}
+            {t(
+              parameter.required ? 'parameter.allowEmpty' : 'parameter.include',
+            )}
           </span>
         </label>
       )}

@@ -40,7 +40,7 @@ import type {
 } from '@api-docs/contracts';
 import { PanelResizeHandle } from './PanelResizeHandle.js';
 import { LocaleMenu } from './LocaleMenu.js';
-import { UiContext } from '../ui-translation.js';
+import { UiContext, useUi } from '../ui-translation.js';
 import { Icon } from './Icon.js';
 import { Playground } from './Playground.js';
 import type { PlaygroundHandle } from './Playground.js';
@@ -1071,14 +1071,14 @@ export function App({
                 ) : (
                   <aside
                     className="explorer-column"
-                    aria-label="Event payload examples"
+                    aria-label={t('api.eventExamples')}
                   >
                     {Object.entries(
                       activeOperation.requestBody?.content ?? {},
                     ).map(([type, media]) => (
                       <MediaExamples
                         key={type}
-                        title={`Incoming payload · ${type}`}
+                        title={t('api.incomingPayload', { type })}
                         media={media}
                         mediaType={type}
                         schemas={activeApi.schemas}
@@ -1347,6 +1347,7 @@ function OperationDetails({
   headingLevel?: 2 | 3;
 }) {
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
+  const t = useUi();
   const [responseStatus, setResponseStatus] = useState(
     operation.responses[0]?.status ?? '200',
   );
@@ -1367,7 +1368,7 @@ function OperationDetails({
         <section id={idPrefix + 'authentication'}>
           <Heading>
             <Icon name="lock" size={19} />
-            Authorization
+            {t('api.authorization')}
           </Heading>
           <div className="callout">
             <Icon name="shield" />
@@ -1375,31 +1376,37 @@ function OperationDetails({
               {operation.security.some(
                 (alternative) => Object.keys(alternative).length === 0,
               )
-                ? 'Authentication is optional.'
-                : 'Authentication is required.'}{' '}
+                ? t('api.authOptional')
+                : t('api.authRequired')}{' '}
               {operation.security
                 .map(
                   (alternative) =>
-                    Object.keys(alternative).join(' + ') || 'Anonymous',
+                    Object.keys(alternative).join(' + ') || t('api.anonymous'),
                 )
-                .join(' or ')}
+                .join(' ' + t('api.or') + ' ')}
               <br />
-              <small>
-                Enter credentials in the playground. They are never saved.
-              </small>
+              <small>{t('api.credentialsHint')}</small>
             </span>
           </div>
         </section>
       )}
-      {['path', 'query', 'header', 'cookie'].map((location) => {
+      {(['path', 'query', 'header', 'cookie'] as const).map((location) => {
         const parameters = operation.parameters.filter(
           (parameter) => parameter.in === location,
         );
         return parameters.length ? (
           <section key={location} id={`${idPrefix}${location}-parameters`}>
             <Heading>
-              {location[0]?.toUpperCase()}
-              {location.slice(1)} parameters
+              {t(
+                (
+                  {
+                    path: 'api.pathParameters',
+                    query: 'api.queryParameters',
+                    header: 'api.headerParameters',
+                    cookie: 'api.cookieParameters',
+                  } as const
+                )[location],
+              )}
             </Heading>
             {parameters.map((parameter) => (
               <div className="parameter-row" key={parameter.name}>
@@ -1409,12 +1416,15 @@ function OperationDetails({
                     {String(parameter.schema.type ?? 'string')}
                   </span>
                   {parameter.required && (
-                    <span className="required">required</span>
+                    <span className="required">{t('schema.required')}</span>
                   )}
                 </div>
                 <p>
                   {parameter.description ||
-                    `The ${parameter.name} ${location} parameter.`}
+                    t('api.parameterDescription', {
+                      name: parameter.name,
+                      location,
+                    })}
                 </p>
                 <SchemaView
                   schema={parameter.schema}
@@ -1431,9 +1441,9 @@ function OperationDetails({
       {operation.requestBody && (
         <section id={idPrefix + 'request-body'}>
           <Heading>
-            Request body
+            {t('api.requestBody')}
             {operation.requestBody.required && (
-              <span className="required">required</span>
+              <span className="required">{t('schema.required')}</span>
             )}
           </Heading>
           {operation.requestBody.description && (
@@ -1456,10 +1466,8 @@ function OperationDetails({
         </section>
       )}
       <section id={idPrefix + 'responses'}>
-        <Heading>Response</Heading>
-        {!operation.responses.length && (
-          <p>No responses are documented in this specification.</p>
-        )}
+        <Heading>{t('response.title')}</Heading>
+        {!operation.responses.length && <p>{t('api.noResponses')}</p>}
         <div className="status-tabs">
           {operation.responses.map((item) => (
             <button
@@ -1486,7 +1494,7 @@ function OperationDetails({
           <>
             {responseTypes.length > 1 ? (
               <label className="example-selector">
-                Response content type
+                {t('api.responseContentType')}
                 <select
                   value={mediaType}
                   onChange={(event) => setResponseType(event.target.value)}

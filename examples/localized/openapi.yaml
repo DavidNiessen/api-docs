@@ -17,6 +17,11 @@ paths:
       operationId: listProjects
       summary: Projekte auflisten
       tags: [Projekte]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
       responses:
         '200':
           description: Projekte
