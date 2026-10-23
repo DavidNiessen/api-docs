@@ -40,7 +40,7 @@ test('publication is manual and read-only by default; each writer needs policy v
   for (const kind of ['npm', 'maven', 'container']) {
     const job = workflow.jobs['publish-' + kind];
     assert.equal(job.if, 'inputs.confirm-publication');
-    assert.equal(job.needs, 'plan');
+    assert.deepEqual(job.needs, ['plan', 'preflight']);
     assert.equal(job.environment, 'release');
     assert.equal(job.permissions.contents, 'read');
     assert.equal(
@@ -65,10 +65,40 @@ test('publication is manual and read-only by default; each writer needs policy v
       (step) => step.run === `node scripts/publish-${kind}.mjs`,
     );
     assert(publishing > verification);
+    assert(
+      job.steps
+        .slice(verification + 1, publishing)
+        .some(
+          (step) =>
+            step.uses === './.github/actions/verify-publication-preflight',
+        ),
+    );
     for (const step of job.steps)
       if (step.uses && !step.uses.startsWith('./'))
         assert.match(step.uses, /^[a-zA-Z0-9._/-]+@[a-f0-9]{40}$/);
   }
+});
+
+test('a confirmed publication rescans accepted bytes and attests only reports created by its preflight job', () => {
+  const job = workflow.jobs.preflight;
+  assert.equal(job.if, 'inputs.confirm-publication');
+  assert.equal(job.needs, 'plan');
+  assert.equal(job.environment, undefined);
+  assert.equal(job.permissions.packages, undefined);
+  assert(!JSON.stringify(job).includes('secrets.'));
+  assert(
+    job.steps.some(
+      (step) => step.run === 'node scripts/scan-publication-candidate.mjs',
+    ),
+  );
+  const attest = job.steps.find((step) =>
+    step.uses?.startsWith('actions/attest-build-provenance@'),
+  );
+  assert.equal(
+    attest.with['subject-path'],
+    '.api-docs/publication-preflight/*',
+  );
+  assert(!job.steps.some((step) => step.run?.includes('docker build')));
 });
 
 test('fresh registry consumers receive only read permissions and the aggregate rejects skipped gates', () => {

@@ -27,7 +27,7 @@ The additional approval-check mode verifies actual GitHub environment metadata b
 
 ## Protected execution
 
-Leave confirmation disabled to review the verified plan. To publish, dispatch the same tag with the same successful candidate run/attempt and `confirm-publication: true`. The plan first verifies all source-policy decisions, the reviewed public signing key and actual protections. Three separate publishing jobs then require the `release` environment, re-download/re-verify the immutable candidate bytes and producer signatures, and receive only their own registry capabilities. Maven credentials and the optional npm bootstrap token are step-scoped protected environment secrets. Only npm and OCI jobs can request OIDC; only OCI can write GitHub Packages.
+Leave confirmation disabled to review the verified plan. To publish, dispatch the same tag with the same successful candidate run/attempt and `confirm-publication: true`. The plan first verifies all source-policy decisions, the reviewed public signing key and actual protections. A preflight job first audits the locked dependencies and rescans the original accepted image with current vulnerability data. Three separate publishing jobs then require the `release` environment, re-download/re-verify the immutable candidate bytes and producer signatures, and receive only their own registry capabilities. Maven credentials and the optional npm bootstrap token are step-scoped protected environment secrets. Only npm, OCI and the scan producer can request OIDC; the scan producer attests only the reports it generated, and only OCI can write GitHub Packages.
 
 Each publisher is followed by its own fresh read-only consumer runner. Those runners have no environment secrets, package-write permission or OIDC capability. The final acceptance job fails on any failed, cancelled or skipped distribution gate. Publication receipts and consumer evidence remain separate from the source policy's `publicationApproved: false`; the protected workflow gate supplies approval. No package is rebuilt during promotion. The workflow does not create a GitHub release announcement automatically.
 
@@ -38,6 +38,16 @@ The workflow implementation and its permissions/argument-boundary checks pass lo
 The plan records the exact candidate run/attempt, source/tag/version, proposed registry destinations and channels, verified subject digests, source-policy blockers and the separate planning run identity. Signature-verification results accompany it for 14 days. Credential values are never included.
 
 Do not edit a generated plan to bypass checks. Policy, naming or coordinate changes belong in reviewed source and require a new matching candidate. Before stable publication, complete namespace/signing setup, required reviews and protected environment/tag configuration, then approve the exact tested subject digests through the publishing gate.
+
+## Fresh security before promotion
+
+Candidate review can outlive its original vulnerability scan. Confirmed publication therefore loads the original verified Docker archive and reruns the pinned inventory/scanner tools with a current official database, alongside a fresh lockfile dependency audit. It never rebuilds the image to refresh security data. The original producer attestations remain required.
+
+The preflight job signs its own raw inventory, unsuppressed findings and assessment receipt. Every publisher and fresh consumer verifies those signatures against the exact publishing workflow/tag/commit, rehashes and reassesses the raw bytes, and checks the original archive/config ID, candidate run/attempt, current publication run/attempt and lockfile hash. The dependency audit and image scan must be at most 24 hours old; the official vulnerability database must be at most 48 hours old. High, Critical, Unknown, suppressed or malformed findings block promotion under the existing policy.
+
+If approval waits beyond freshness limits, rerun **all publication jobs** with the same candidate inputs. This refreshes the scan while preserving accepted package/image bytes, allowing exact already-published versions to be reused. Do not rerun only failed jobs: artifact names and receipts bind to the current attempt. Candidate artifacts still have their documented 14-day retention.
+
+The nonpublishing candidate workflow exercises the same loader, audit and scanner path with `--candidate`. Its `candidate-rehearsal` receipt cannot substitute for a signed `publication-preflight` receipt. Local tests cover freshness, source/run/image binding, raw-data tampering, new blocking findings and verifier constraints. Actual clean-tag execution and protected end-to-end publication remain pending.
 
 ## npm transport and fresh consumers
 

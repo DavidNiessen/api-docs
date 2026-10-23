@@ -17,6 +17,12 @@ Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**Publication now refreshes dependency and image security for the original accepted bytes.** A confirmed run audits the lockfile, loads the tested Docker archive and scans it with current pinned tools/official data. The scanner signs only the reports it generated. Publishers and public consumers verify those signatures, image/archive/source/run bindings, raw hashes and the existing unsuppressed severity/freshness policy. Delayed approval can rerun all publication jobs without rebuilding accepted artifacts. The candidate workflow has a separate nonpublishing rehearsal path that cannot authorize publication.
+
+All **164 tooling tests** and local formatting/lint/workflow checks pass. New cases reject stale audits/scans, mismatched publishing attempts or images, changed raw data and newly blocking findings. Hosted source/browser acceptance at `bb02e9d` passes after the pipe fix; fresh hosted acceptance of this preflight increment and actual clean-tag execution remain pending. The estimate stays approximately **97%, pre-release**.
+
+## Previous subprocess-input increment
+
 **Release subprocess input now handles early pipe closure without an uncaught Node stream error.** Hosted source acceptance at `4ebcb50` exposed an `EPIPE` in the real GnuPG fixture, despite the local and pnpm suites passing. Signing and Docker commands now share a helper that awaits both stdin completion and process exit, closes empty input without a write, and converts pipe failure through the existing sanitized error paths. Regression tests force repeated early child exits with large binary input and verify diagnostic redaction. Actual protected publication remains pending.
 
 All **160 tooling tests** and local formatting/lint checks pass. Both hosted push and proposed-merge Quality runs passed every job for `e3ca622`; raw source/image reports were rehashed and reassessed, retaining zero High/Critical source findings, zero High/Critical/unknown image findings, five source Medium and three image Medium findings. The final workflow and pipe fix still require fresh hosted acceptance. Repository rulesets and a tag-only release environment exist, but conversation resolution, a required release reviewer and private vulnerability reporting remain owner-controlled settings to complete. The estimate stays approximately **97%, pre-release**.
