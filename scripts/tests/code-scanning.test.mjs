@@ -123,3 +123,40 @@ test('CodeQL refuses missing or malformed security severity without dropping fin
   assert.equal(result.passed, true);
   assert.equal(result.counts.other, 1);
 });
+
+test('CodeQL resolves query-pack extension rules and rejects ambiguous component references', () => {
+  const report = fixture('7.5');
+  const run = report.runs[0];
+  run.tool.extensions = [
+    { name: 'codeql/javascript-queries', rules: run.tool.driver.rules },
+  ];
+  run.tool.driver.rules = [];
+  delete run.results[0].ruleIndex;
+  run.results[0].rule = {
+    id: 'js/example',
+    index: 0,
+    toolComponent: { index: 0 },
+  };
+  assert.equal(assessCodeScanning(report).blockingFindings, 1);
+  for (const mutate of [
+    (r) => {
+      r.runs[0].results[0].rule.toolComponent.index = 1;
+    },
+    (r) => {
+      r.runs[0].results[0].rule.toolComponent.index = -1;
+    },
+    (r) => {
+      r.runs[0].results[0].rule.toolComponent.name = 'another-pack';
+    },
+    (r) => {
+      r.runs[0].results[0].rule.id = 'another-rule';
+    },
+    (r) => {
+      r.runs[0].results[0].rule.index = 1;
+    },
+  ]) {
+    const changed = structuredClone(report);
+    mutate(changed);
+    assert.throws(() => assessCodeScanning(changed));
+  }
+});

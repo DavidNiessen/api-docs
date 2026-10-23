@@ -7,12 +7,21 @@ export function assessCodeScanning(report) {
   const counts = { critical: 0, high: 0, medium: 0, low: 0, other: 0 };
   for (const run of report.runs) {
     assert.equal(run.tool?.driver?.name, 'CodeQL');
-    assert(Array.isArray(run.tool.driver.rules));
-    const rules = run.tool.driver.rules;
-    const byId = new Map(rules.map((rule) => [rule.id, rule]));
-    assert.equal(byId.size, rules.length, 'Duplicate CodeQL rule identities.');
-    for (const rule of rules)
-      assert(typeof rule.id === 'string' && rule.id.length > 0);
+    assert(
+      run.tool.extensions === undefined || Array.isArray(run.tool.extensions),
+    );
+    const components = [run.tool.driver, ...(run.tool.extensions ?? [])];
+    for (const component of components) {
+      assert(component.rules === undefined || Array.isArray(component.rules));
+      const rules = component.rules ?? [];
+      assert.equal(
+        new Set(rules.map((rule) => rule.id)).size,
+        rules.length,
+        'Duplicate CodeQL rule identities.',
+      );
+      for (const rule of rules)
+        assert(typeof rule.id === 'string' && rule.id.length > 0);
+    }
     assert(run.invocations === undefined || Array.isArray(run.invocations));
     for (const invocation of run.invocations ?? [])
       assert.equal(
@@ -32,14 +41,31 @@ export function assessCodeScanning(report) {
         result.baselineState === undefined || result.baselineState !== 'absent',
         'Assess current results rather than a baseline comparison.',
       );
-      const rule = byId.get(result.ruleId);
-      assert(rule, 'Unresolved CodeQL result rule.');
-      if (result.ruleIndex !== undefined)
+      const reference = result.rule;
+      const componentReference = reference?.toolComponent;
+      let component = run.tool.driver;
+      if (componentReference !== undefined) {
         assert(
-          Number.isInteger(result.ruleIndex) &&
-            rules[result.ruleIndex] === rule,
-          'CodeQL result rule ID/index mismatch.',
+          Number.isInteger(componentReference.index) &&
+            componentReference.index >= 0,
         );
+        component = run.tool.extensions?.[componentReference.index];
+        assert(component, 'Unresolved CodeQL tool component.');
+        for (const field of ['name', 'guid'])
+          if (componentReference[field] !== undefined)
+            assert.equal(componentReference[field], component[field]);
+      }
+      const rules = component.rules ?? [];
+      const ruleId = result.ruleId ?? reference?.id;
+      const rule = rules.find((rule) => rule.id === ruleId);
+      assert(rule, 'Unresolved CodeQL result rule.');
+      if (reference?.id !== undefined) assert.equal(reference.id, rule.id);
+      for (const index of [result.ruleIndex, reference?.index])
+        if (index !== undefined)
+          assert(
+            Number.isInteger(index) && rules[index] === rule,
+            'CodeQL result rule ID/index mismatch.',
+          );
       const value = rule.properties?.['security-severity'];
       const security = rule.properties?.tags?.includes('security');
       if (value === undefined) {
