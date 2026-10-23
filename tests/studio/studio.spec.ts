@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { buildSite, stageArtifact } from '@api-docs/cli';
+const temporary: string[] = [];
+test.afterAll(async () => {
+  for (const directory of temporary)
+    await rm(directory, { recursive: true, force: true });
+});
 test('an operator creates a private project, publishes, reads it and audits the result', async ({
   page,
 }) => {
@@ -21,6 +26,7 @@ test('an operator creates a private project, publishes, reads it and audits the 
     page.getByRole('status').filter({ hasText: 'Project created' }),
   ).toBeVisible();
   const root = resolve('.api-docs/studio-test', slug);
+  temporary.push(root);
   await mkdir(root, { recursive: true });
   await cp(resolve('examples/demo'), root, {
     recursive: true,
@@ -36,6 +42,7 @@ test('an operator creates a private project, publishes, reads it and audits the 
     built.directory,
     resolve('.api-docs/studio-test/artifacts'),
   );
+  temporary.push(resolve('.api-docs/studio-test/artifacts', artifact));
   await page.getByRole('button', { name: 'Publications', exact: true }).click();
   await page.getByLabel('Artifact SHA-256').fill(artifact);
   await page.getByRole('button', { name: 'Verify and publish' }).click();

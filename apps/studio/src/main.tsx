@@ -1,6 +1,15 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { BuildAction } from './Builds.js';
 import { createStudioApi } from './api.js';
+import { createStudioRequestScope } from './request-scope.js';
 import { createRoot } from 'react-dom/client';
 import type { Project, Publication } from '@api-docs/domain';
 import './styles.css';
@@ -20,6 +29,11 @@ function Studio() {
   }, []);
   const [token, setToken] = useState('');
   const [connected, setConnected] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [requestEpoch, setRequestEpoch] = useState(0);
+  const connection = useRef<AbortController | null>(null);
+  const probe = useRef<AbortController | null>(null);
+  const logoutRequest = useRef<AbortController | null>(null);
   const [buildsAvailable, setBuildsAvailable] = useState(false);
   const [pendingBuildActions, setPendingBuildActions] = useState<
     Record<string, BuildAction | undefined>
@@ -31,7 +45,6 @@ function Studio() {
   const [selected, setSelected] = useState('');
   const selectedProject = useRef(selected);
   selectedProject.current = selected;
-  useEffect(() => setArtifactDraft(''), [selected]);
   const [tab, setTab] = useState('Overview');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -40,58 +53,179 @@ function Studio() {
   const [audit, setAudit] = useState<Record<string, unknown>[]>([]);
   const [issuedToken, setIssuedToken] = useState('');
   const project = projects.find((item) => item.id === selected);
-  const api = useMemo(() => createStudioApi(token), [token]);
+  const transport = useMemo(() => createStudioApi(token), [token]);
+  function clearWorkspace() {
+    setToken('');
+    setConnected(false);
+    setBuildsAvailable(false);
+    setPendingBuildActions({});
+    setArtifactDraft('');
+    setProjects([]);
+    setSelected('');
+    setSubject('');
+    setPublications([]);
+    setAudit([]);
+    setIssuedToken('');
+    setMessage('');
+  }
+  const scope = useMemo(
+    () =>
+      createStudioRequestScope(transport, () => {
+        clearWorkspace();
+        setError('Your session has expired. Sign in again to continue.');
+      }),
+    [transport, connected, selected, tab, requestEpoch],
+  );
+  const api = scope.api;
+  const running = useRef<typeof scope | null>(null);
+  useLayoutEffect(() => {
+    setBusy(false);
+    setPublications([]);
+    setAudit([]);
+    setIssuedToken('');
+    return scope.cancel;
+  }, [scope]);
+  useLayoutEffect(() => {
+    setArtifactDraft('');
+  }, [selected]);
+  useEffect(
+    () => () => {
+      probe.current?.abort();
+      connection.current?.abort();
+      logoutRequest.current?.abort();
+    },
+    [],
+  );
+  function navigate(next: string) {
+    setError('');
+    setMessage('');
+    setTab(next);
+  }
+  function chooseProject(id: string) {
+    setError('');
+    setMessage('');
+    setSelected(id);
+  }
   async function work(task: () => Promise<void>) {
+    if (scope.signal.aborted || running.current === scope) return;
+    running.current = scope;
     setBusy(true);
     setError('');
     setMessage('');
     try {
       await task();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'The operation failed');
+      if (!scope.signal.aborted)
+        setError(
+          error instanceof Error ? error.message : 'The operation failed',
+        );
     } finally {
-      setBusy(false);
+      if (running.current === scope) running.current = null;
+      if (!scope.signal.aborted) setBusy(false);
     }
   }
   async function refresh() {
     const data = await api<Project[]>('/api/projects');
     setProjects(data);
-    if (!selected && data[0]) setSelected(data[0].id);
   }
   async function connect() {
-    await work(async () => {
-      const me = await api<{
+    if (connection.current || logoutRequest.current) return;
+    probe.current?.abort();
+    const controller = new AbortController();
+    connection.current = controller;
+    const signal = controller.signal;
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const me = await transport<{
         subject: string | null;
         oidc: boolean;
         builds?: boolean;
-      }>('/api/me');
+      }>('/api/me', 'GET', undefined, signal);
+      signal.throwIfAborted();
       setOidc(me.oidc);
-      setBuildsAvailable(me.builds === true);
       if (!me.subject)
         throw new Error(
           'Sign in with your identity provider or enter an operator/project token.',
         );
+      if (token) await transport('/auth/token', 'POST', undefined, signal);
+      signal.throwIfAborted();
+      const data = await createStudioApi('')<Project[]>(
+        '/api/projects',
+        'GET',
+        undefined,
+        signal,
+      );
+      signal.throwIfAborted();
       setSubject(me.subject);
-      if (token) await api('/auth/token', 'POST');
-      await refresh();
+      setBuildsAvailable(me.builds === true);
+      setProjects(data);
+      setSelected(data[0]?.id ?? '');
       setToken('');
       setConnected(true);
       setTab('Overview');
-    });
+    } catch (error) {
+      if (!signal.aborted)
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Sign-in could not be confirmed.',
+        );
+    } finally {
+      if (connection.current === controller) connection.current = null;
+      if (!signal.aborted) setBusy(false);
+    }
+  }
+  async function signOut() {
+    if (logoutRequest.current) return;
+    scope.cancel();
+    probe.current?.abort();
+    connection.current?.abort();
+    const controller = new AbortController();
+    logoutRequest.current = controller;
+    setSigningOut(true);
+    setIssuedToken('');
+    setError('');
+    setMessage('');
+    try {
+      await transport('/auth/logout', 'POST', undefined, controller.signal);
+      controller.signal.throwIfAborted();
+      clearWorkspace();
+    } catch {
+      if (!controller.signal.aborted)
+        setError('Server sign-out could not be confirmed. Try Sign out again.');
+    } finally {
+      if (logoutRequest.current === controller) logoutRequest.current = null;
+      if (!controller.signal.aborted) {
+        setSigningOut(false);
+        setRequestEpoch((value) => value + 1);
+      }
+    }
   }
   useEffect(() => {
-    void api<{ subject: string | null; oidc: boolean }>('/api/me')
+    const controller = new AbortController();
+    probe.current = controller;
+    void transport<{ subject: string | null; oidc: boolean }>(
+      '/api/me',
+      'GET',
+      undefined,
+      controller.signal,
+    )
       .then((me) => {
+        if (controller.signal.aborted) return;
         setOidc(me.oidc);
         if (me.subject) void connect();
       })
-      .catch(() => setError('The management API is unavailable.'));
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setError('The management API is unavailable.');
+      });
+    return () => controller.abort();
   }, []);
   useEffect(() => {
-    setPublications([]);
-    setAudit([]);
-    setIssuedToken('');
-    if (!selected || !['Publications', 'Audit log'].includes(tab)) return;
+    if (!connected || !selected || !['Publications', 'Audit log'].includes(tab))
+      return;
     void work(async () => {
       if (tab === 'Publications')
         setPublications(
@@ -104,7 +238,7 @@ function Studio() {
           ),
         );
     });
-  }, [selected, tab]);
+  }, [scope]);
   async function publish(artifactId: string) {
     if (!project) return;
     await api(`/api/projects/${project.id}/artifacts`, 'POST', { artifactId });
@@ -131,21 +265,10 @@ function Studio() {
         {connected && (
           <button
             type="button"
-            onClick={() => {
-              void work(async () => {
-                await api('/auth/logout', 'POST');
-                setToken('');
-                setConnected(false);
-                setBuildsAvailable(false);
-                setPendingBuildActions({});
-                setArtifactDraft('');
-                setProjects([]);
-                setSelected('');
-                setSubject('');
-              });
-            }}
+            disabled={signingOut}
+            onClick={() => void signOut()}
           >
-            Sign out
+            {signingOut ? 'Signing out…' : 'Sign out'}
           </button>
         )}
       </header>
@@ -170,6 +293,7 @@ function Studio() {
               Operator or project token
               <input
                 type="password"
+                disabled={busy}
                 autoComplete="off"
                 value={token}
                 onChange={(event) => setToken(event.target.value)}
@@ -194,6 +318,7 @@ function Studio() {
       ) : (
         <div
           className="studio-layout"
+          inert={signingOut}
           style={{
             gridTemplateColumns: `min(${sidebarWidth}px, 30vw) minmax(0, 1fr)`,
           }}
@@ -205,7 +330,7 @@ function Studio() {
               <select
                 aria-label="Current project"
                 value={selected}
-                onChange={(event) => setSelected(event.target.value)}
+                onChange={(event) => chooseProject(event.target.value)}
               >
                 <option value="">Select a project</option>
                 {projects.map((item) => (
@@ -228,7 +353,7 @@ function Studio() {
                   key={name}
                   className={tab === name ? 'selected' : ''}
                   aria-label={name}
-                  onClick={() => setTab(name)}
+                  onClick={() => navigate(name)}
                 >
                   <span>
                     {
@@ -280,7 +405,7 @@ function Studio() {
               </div>
             </div>
           </aside>
-          <main className="workspace-main">
+          <main className="workspace-main" key={`${selected}:${tab}`}>
             <div className="workspace-heading">
               <div>
                 <p className="eyebrow">
@@ -723,14 +848,16 @@ function Studio() {
                         onClick={() => {
                           void navigator.clipboard
                             .writeText(issuedToken)
-                            .then(() =>
-                              setMessage('Token copied. Store it securely.'),
-                            )
-                            .catch(() =>
-                              setError(
-                                'Clipboard unavailable. Select the token and copy it manually.',
-                              ),
-                            );
+                            .then(() => {
+                              if (!scope.signal.aborted)
+                                setMessage('Token copied. Store it securely.');
+                            })
+                            .catch(() => {
+                              if (!scope.signal.aborted)
+                                setError(
+                                  'Clipboard unavailable. Select the token and copy it manually.',
+                                );
+                            });
                         }}
                       >
                         Copy token

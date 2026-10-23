@@ -31,6 +31,14 @@ OIDC login uses `/auth/login` and the registered callback `/auth/callback`. Stat
 
 Session cookies are opaque, HttpOnly, Secure on HTTPS, SameSite=Lax, and backed by expiring database records. Studio exchanges a supplied operator/project token through `POST /auth/token` for a session; raw credentials are cleared from the form. Token-backed sessions recheck revocation on every request, and rotating the operator token invalidates its existing sessions. Cookie-authenticated mutations require the exact configured origin. Logout deletes the session. Role revocation is checked on subsequent requests, including direct requests for search indexes, JSON data, specs and JavaScript assets.
 
+### Studio sessions and navigation
+
+Studio binds requests to the current project and screen. Navigation cancels outstanding requests, clears displayed tokens and resets project-specific forms. Late responses cannot populate a different project or restore an old token. Multi-request workflows stop before their next request when their originating screen closes. A 401 clears private workspace state and returns to sign-in; a 403 leaves the authenticated session available for permitted actions.
+
+Sign-out immediately cancels workspace requests and clears any displayed token. The workspace is disabled while server sign-out is pending. Confirmed sign-out clears session-local state, including pending build actions. If server sign-out cannot be confirmed, Studio reports that uncertainty and keeps **Sign out** available for retry. It does not claim the remote session has ended. A delayed startup authentication probe cannot override a later successful sign-in.
+
+Cancelling a request does not undo an action already accepted by the server. Review publication/build history and audit events after an uncertain response. A token created before navigation may remain valid even though its response was discarded; use its creation audit entry to find the token ID and revoke it if needed. Never put a token in an issue, screenshot or build log.
+
 ## Deployment boundary
 
 Terminate TLS at a trusted reverse proxy. The server does not blindly trust forwarded client addresses. Rate limits use the directly connected address; configure the proxy's limits as well. Management/authentication traffic has a separate 300-request/minute bucket; credential-bearing reader traffic has a 12,000-request/minute bucket. Anonymous static traffic does not consume those buckets. Keep the management API private when practical and grant publishers only access to the projects they maintain.
