@@ -3,6 +3,7 @@ import {
   parseJsonValue,
   serializeJsonValue,
   setJsonProperty,
+  schemaVariants,
 } from '@api-docs/contracts';
 import type { JsonValueNode, Schema } from '@api-docs/contracts';
 import type { ReactNode } from 'react';
@@ -93,13 +94,37 @@ function FieldValue({
       : undefined;
   const current = serializeJsonValue(value);
   const sensitive = schema.writeOnly === true || schema.format === 'password';
-  if (Object.hasOwn(schema, 'const'))
+  if (Object.hasOwn(schema, 'const')) {
+    const fixed = JSON.stringify(schema.const);
     return (
-      <p className="body-constant">
-        Fixed value:{' '}
-        <code>{sensitive ? '••••••' : JSON.stringify(schema.const)}</code>
-      </p>
+      <div className="body-constant">
+        <p>
+          Fixed value: <code>{sensitive ? '••••••' : fixed}</code>
+        </p>
+        {current !== fixed && (
+          <>
+            <p className="subtle">
+              Use this constant explicitly to replace the current value.
+            </p>
+            <button
+              type="button"
+              aria-label={`Use fixed value for body ${name}`}
+              onClick={() => {
+                try {
+                  onChange(parseJsonValue(fixed));
+                  onError(name, '');
+                } catch {
+                  onError(name, 'Use JSON to apply this fixed value.');
+                }
+              }}
+            >
+              Use fixed value
+            </button>
+          </>
+        )}
+      </div>
     );
+  }
   const commit = (input: string) => {
     setDraft(input);
     try {
@@ -570,6 +595,7 @@ export function BodyEditor({
   onChange,
   onError,
   initialMode = 'json',
+  allowVariants = true,
 }: {
   body: string;
   schema: Schema;
@@ -578,15 +604,27 @@ export function BodyEditor({
   onChange: (body: string) => void;
   onError: (error: string) => void;
   initialMode?: 'json' | 'fields';
+  allowVariants?: boolean;
 }) {
   const [mode, setMode] = useState<'json' | 'fields'>(initialMode);
+  const [variant, setVariant] = useState<number | undefined>();
+  const [revision, setRevision] = useState(0);
+  const variants = useMemo(
+    () => (allowVariants ? schemaVariants(schema, schemas, legacy) : undefined),
+    [schema, schemas, legacy, allowVariants],
+  );
+  const selectedSchema =
+    variant === undefined
+      ? schema
+      : (variants?.choices[variant]?.schema ?? schema);
+
   const errors = useRef(new Map<string, string>()),
     report = useRef(onError);
   report.current = onError;
   useEffect(() => () => report.current(''), []);
   const model = useMemo(
-    () => bodyFieldModel(body, schema, schemas, legacy),
-    [body, schema, schemas, legacy],
+    () => bodyFieldModel(body, selectedSchema, schemas, legacy),
+    [body, selectedSchema, schemas, legacy],
   );
   const available = model.available;
   const shownMode = available ? mode : 'json';
@@ -606,6 +644,39 @@ export function BodyEditor({
   };
   return (
     <div className="body-editor">
+      {variants && (
+        <div className="body-variant-selector">
+          <label>
+            Editing schema ({variants.keyword})
+            <select
+              aria-label="Request body schema branch"
+              value={variant === undefined ? '' : String(variant)}
+              onChange={(event) => {
+                setVariant(
+                  event.target.value === ''
+                    ? undefined
+                    : Number(event.target.value),
+                );
+                setRevision((value) => value + 1);
+                errors.current.clear();
+                report.current('');
+              }}
+            >
+              <option value="">Choose a branch for field controls</option>
+              {variants.choices.map((choice, index) => (
+                <option key={index} value={index}>
+                  {choice.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="subtle">
+            Selecting a schema changes the field controls, not the request body.
+            Existing values are retained. This does not validate which branches
+            match.
+          </p>
+        </div>
+      )}
       <div
         className="body-editor-modes"
         role="group"
@@ -642,7 +713,7 @@ export function BodyEditor({
           {!available && <p className="subtle">{model.error}</p>}
         </>
       ) : (
-        <fieldset className="body-fields">
+        <fieldset className="body-fields" key={revision}>
           <legend>Request fields</legend>
           <p className="subtle">
             Complex schemas use JSON. Unknown and read-only values are retained;

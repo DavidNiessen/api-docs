@@ -89,6 +89,7 @@ export function FormBodyEditor({
           schema={media.schema}
           schemas={schemas}
           legacy={openapiVersion?.startsWith('3.0') ?? false}
+          allowVariants={false}
           initialMode="fields"
           onError={onError}
           onChange={(value) => onChange(value, 'json')}

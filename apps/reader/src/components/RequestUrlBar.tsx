@@ -22,7 +22,7 @@ export function RequestUrlBar({
   return (
     <div className="playground-target request-url-bar">
       <span className={`method-badge ${method}`}>{method}</span>
-      <code aria-label={t('playground.requestUrl')} title={url}>
+      <code tabIndex={0} aria-label={t('playground.requestUrl')} title={url}>
         {target ? (
           <>
             <span className="url-origin">{target.origin}</span>

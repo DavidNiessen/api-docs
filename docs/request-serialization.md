@@ -28,7 +28,7 @@ Referenced parameter schemas resolve against the API's schema map, retaining the
 
 Cookie parameters cannot be set manually. Browser-controlled headers, invalid names, control characters and values outside the browser's header character range fail explicitly. OpenAPI header parameters named `Accept`, `Content-Type` or `Authorization` are ignored as required by the format; use media selection and security schemes instead. Header names are handled without case-sensitive duplicates, including API-key authentication.
 
-The API must permit the request through CORS. Requests omit browser cookies and refuse redirects. The reader asks before potentially destructive methods. JSON object bodies support [schema-aware field editing](explorer-bodies.md) with a raw editor for exact control. [Form-urlencoded bodies](form-bodies.md) support logical values and literal encoded text in both the reader and SDK. Multipart upload and streaming remain separate work.
+The API must permit the request through CORS. Requests omit browser cookies and refuse redirects. The reader asks before potentially destructive methods. JSON object bodies support [schema-aware field editing](explorer-bodies.md) with a raw editor for exact control. [Form-urlencoded bodies](form-bodies.md) support logical values and literal encoded text in both the reader and SDK. Binary/text/JSON [multipart uploads](multipart-bodies.md) are also supported. Streaming remains separate work.
 
 The parameter suite checks the style/explode combinations, content parameters, referenced schemas, delimiter-sensitive values and error boundaries. A loopback HTTP fixture also verifies the actual URL and header bytes received by a server.
 

@@ -186,6 +186,7 @@ export function MultipartBodyEditor({
         schema={model.value.textSchema}
         schemas={schemas}
         legacy={legacy}
+        allowVariants={false}
         initialMode="fields"
         onChange={onChange}
         onError={onError}

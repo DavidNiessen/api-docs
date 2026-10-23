@@ -336,3 +336,6 @@ export {
   guideAlternates,
   validateGuideTranslations,
 } from './guide-translations.js';
+
+export { schemaVariants } from './schema-variants.js';
+export type { SchemaVariant, SchemaVariants } from './schema-variants.js';

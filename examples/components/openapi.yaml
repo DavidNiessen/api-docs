@@ -210,6 +210,74 @@ paths:
           content:
             application/json:
               schema: { type: object }
+  /body-variants:
+    post:
+      operationId: editBodyVariants
+      summary: Edit polymorphic request bodies
+      description: Choose an editing schema without rewriting the request or inferring validation.
+      tags: [Examples]
+      servers:
+        - url: http://127.0.0.1:4010/v1
+      security:
+        - bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: { type: integer }
+                responseOnly: { type: string, readOnly: true }
+              required: [id]
+              discriminator:
+                propertyName: kind
+                mapping:
+                  person: '#/components/schemas/PersonBody'
+                  organization: '#/components/schemas/OrganizationBody'
+              oneOf:
+                - $ref: '#/components/schemas/PersonBody'
+                - $ref: '#/components/schemas/OrganizationBody'
+            example:
+              kind: person
+              id: 1
+              name: Ada
+              token: fixture-variant-secret
+              responseOnly: retained
+          application/vnd.api-docs.variants+json:
+            schema:
+              anyOf:
+                - title: Organizations
+                  type: array
+                  items: { $ref: '#/components/schemas/OrganizationBody' }
+                - title: Names
+                  type: array
+                  items: { type: string }
+            example:
+              - {
+                  kind: organization,
+                  company: Ada Lab,
+                  token: fixture-variant-secret,
+                }
+          application/vnd.api-docs.constrained+json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                kind: { type: string }
+                name: { type: string }
+                company: { type: string }
+                token: { type: string }
+              oneOf:
+                - $ref: '#/components/schemas/PersonBody'
+                - $ref: '#/components/schemas/OrganizationBody'
+            example: { kind: person, name: Ada }
+      responses:
+        '200':
+          description: Received request text
+          content:
+            application/json:
+              schema: { type: object }
   /serialization/{color}:
     get:
       operationId: serializeParameters
@@ -406,6 +474,31 @@ components:
       required: true
       schema: { type: string, writeOnly: true }
   schemas:
+    PersonBody:
+      title: Individual
+      type: object
+      required: [kind, name]
+      properties:
+        kind: { type: string, const: person }
+        name: { type: string }
+        count: { type: integer }
+        secretFixed:
+          { type: string, const: fixture-fixed-variant-secret, writeOnly: true }
+        token: { type: string, writeOnly: true }
+        profile:
+          allOf:
+            - type: object
+              properties: { city: { type: string } }
+            - type: object
+              properties: { postalCode: { type: string } }
+    OrganizationBody:
+      title: Organization
+      type: object
+      required: [kind, company]
+      properties:
+        kind: { type: string, const: organization }
+        company: { type: string }
+        token: { type: string, writeOnly: true }
     BodyIdentity:
       type: object
       required: [name, enabled, count, id]

@@ -29,6 +29,7 @@ import {
   setJsonProperty,
   toolVersion,
   objectFieldSchema,
+  schemaVariants,
   feedbackHref,
   isRelayEndpoint,
   createUiTranslation,
@@ -64,6 +65,35 @@ const browserSession = createReaderExtensionSession(
 assert.equal(await browserSession.ready, true);
 browserSession.dispose();
 assert.deepEqual(browserPages, ['/']);
+
+const installedVariants = schemaVariants(
+  {
+    type: 'object',
+    properties: { id: { type: 'integer' } },
+    oneOf: [
+      {
+        title: 'Named',
+        type: 'object',
+        properties: { name: { type: 'string' } },
+      },
+      {
+        title: 'Counted',
+        type: 'object',
+        properties: { count: { type: 'integer' } },
+      },
+    ],
+  },
+  {},
+);
+assert.equal(installedVariants.keyword, 'oneOf');
+assert.equal(installedVariants.choices[1].label, '2. Counted');
+assert.deepEqual(
+  Object.keys(
+    objectFieldSchema(installedVariants.choices[1].schema, {}, false)
+      .properties,
+  ),
+  ['id', 'count'],
+);
 
 const feedbackConfig = parseConfig({
   name: 'Installed feedback',

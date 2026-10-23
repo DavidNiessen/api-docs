@@ -122,7 +122,9 @@ const server = createServer(async (request, response) => {
       send(400, { error: 'invalid_multipart' });
     }
   } else if (
-    ['/v1/body-editor', '/v1/form-editor'].includes(url.pathname) &&
+    ['/v1/body-editor', '/v1/form-editor', '/v1/body-variants'].includes(
+      url.pathname,
+    ) &&
     request.method === 'POST'
   ) {
     send(200, { received: rawBody });
