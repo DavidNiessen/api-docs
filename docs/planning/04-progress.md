@@ -17,6 +17,12 @@ Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**An unpublished `0.2.0-candidate.1` is prepared for clean-tag acceptance.** Saved source-bound planning and a preview aligned all 16 npm packages, both lockfiles, runtime identity and three Java POMs, then generated the initial changelog from conventional commits. No tag, registry distribution or GitHub release has been published by this preparation. Names remain provisional and source publication policy stays disabled.
+
+The prepared tree passes release-mode alignment, frozen pnpm policy/lockfile checks, formatting/lint, all **164 tooling** and **1,049 source tests**, all **12 installed npm components**, and baseline Java 21/Spring Boot 3.5.16 MVC/WebFlux consumers (**8 tests, no skips**, plus both offline compilations). The full hosted matrix, actual clean-tag keyless verification and protected registry acceptance remain pending. Hosted [Quality 40039470302](https://github.com/DavidNiessen/api-docs/actions/runs/40039470302) passed every job at `bb02e9d`, confirming the subprocess-input fix before this prepared-version increment. The estimate stays approximately **97%, pre-release**.
+
+## Previous fresh-security increment
+
 **Publication now refreshes dependency and image security for the original accepted bytes.** A confirmed run audits the lockfile, loads the tested Docker archive and scans it with current pinned tools/official data. The scanner signs only the reports it generated. Publishers and public consumers verify those signatures, image/archive/source/run bindings, raw hashes and the existing unsuppressed severity/freshness policy. Delayed approval can rerun all publication jobs without rebuilding accepted artifacts. The candidate workflow has a separate nonpublishing rehearsal path that cannot authorize publication.
 
 All **164 tooling tests** and local formatting/lint/workflow checks pass. New cases reject stale audits/scans, mismatched publishing attempts or images, changed raw data and newly blocking findings. Hosted source/browser acceptance at `bb02e9d` passes after the pipe fix; fresh hosted acceptance of this preflight increment and actual clean-tag execution remain pending. The estimate stays approximately **97%, pre-release**.

@@ -68,7 +68,7 @@ cd integrations/java
 ./mvnw --batch-mode --no-transfer-progress --strict-checksums install
 ```
 
-Add `dev.niessen:api-docs-spring-boot-starter` to your application after installing or publishing the local artifacts. The current development version is `0.1.0-SNAPSHOT`. Registry publication is separate release work.
+Add `dev.niessen:api-docs-spring-boot-starter` to your application after installing or publishing the local artifacts. Use the version declared in `integrations/java/pom.xml`. Local snapshots and prepared prereleases do not imply registry availability; the protected release workflow verifies public distributions separately.
 
 The local installation includes source and Javadoc archives. Spring-aware IDEs can complete the documented `api-docs` properties from the starter’s generated configuration metadata.
 

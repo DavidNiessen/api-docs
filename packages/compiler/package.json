@@ -1,6 +1,6 @@
 {
   "name": "@api-docs/compiler",
-  "version": "0.1.0",
+  "version": "0.2.0-candidate.1",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -13,10 +13,10 @@
     }
   },
   "dependencies": {
-    "@api-docs/contracts": "0.1.0",
-    "@api-docs/spec": "0.1.0",
-    "@api-docs/content": "0.1.0",
-    "@api-docs/plugin-sdk": "0.1.0",
-    "@api-docs/search": "0.1.0"
+    "@api-docs/contracts": "0.2.0-candidate.1",
+    "@api-docs/spec": "0.2.0-candidate.1",
+    "@api-docs/content": "0.2.0-candidate.1",
+    "@api-docs/plugin-sdk": "0.2.0-candidate.1",
+    "@api-docs/search": "0.2.0-candidate.1"
   }
 }
