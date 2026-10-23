@@ -17,6 +17,12 @@ Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**The Maven transport signs and promotes accepted Java files with explicit Central validation and separate public consumer acceptance.** All nine POM/binary/source/Javadoc files retain their tested hashes; local signing verifies every detached signature and produces Central's required layout/checksums. Uploads use manual validation before publication, retain safe deployment receipts and refuse conflicting/partially visible public coordinates. Fresh public acceptance verifies signatures with the reviewed public key, then runs MVC/WebFlux and offline compilation from an empty Maven repository without installing project JARs. Workflow integration and actual registry publication remain pending.
+
+All **146 tooling tests** pass. Real ephemeral-key signing and tamper rejection pass for the nine-file bundle; mocked Central states enforce validation-before-publication and retain failed deployment IDs. The extracted fixture-only compiler builds all three Java publication fixtures with matching manifest digests. No production key, registry write or public installation is claimed. Completion remains approximately **97%, pre-release**.
+
+## Previous npm-publication increment
+
 **The npm transport now promotes exact tested archives and has a separate fresh public-registry consumer verifier.** It preflights all immutable versions, rejects conflicting or unprovenanced existing bytes, orders workspace dependencies, disables lifecycle scripts and keeps token values out of arguments, files and receipts. Public verification starts with an empty cache, requires registry integrity/signatures/provenance, then runs audit, offline reinstall and the installed CLI/type/adapter journeys. The current workflow remains read-only; publishing integration, actual registry acceptance, Maven/container transports and owner launch decisions remain pending.
 
 All **141 tooling tests** pass, including new conflict, archive-integrity, credential-cleanup, redaction and bounded registry HTTP cases. A real read-only npm registry request also passes through the session proxy. These results do not claim a registry write, public installation of this project's packages or completed cryptographic release acceptance. Completion remains approximately **97%, pre-release**.
