@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, writeFile, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { loadGuides } from '@api-docs/content';
+import { loadGuides, renderMarkdown } from '@api-docs/content';
 import { contrastRatio, readableAccent } from '@api-docs/contracts';
 async function project(source: string, filename = 'intro.md') {
   const root = await mkdtemp(join(tmpdir(), 'api-docs-content-'));
@@ -11,6 +11,17 @@ async function project(source: string, filename = 'intro.md') {
   return root;
 }
 describe('authored guide boundaries', () => {
+  it('makes sanitized code blocks keyboard-scrollable without allowing authored focus order or handlers', async () => {
+    const markdown = await renderMarkdown('```txt\nlong code line\n```');
+    expect(markdown.html).toContain('<pre tabindex="0">');
+    const authored = await renderMarkdown(
+      '<pre tabindex="7" onclick="alert(1)"><code>text</code></pre>',
+      true,
+    );
+    expect(authored.html).toContain('<pre tabindex="0">');
+    expect(authored.html).not.toContain('onclick');
+    expect(authored.html).not.toContain('tabindex="7"');
+  });
   it('accepts empty frontmatter, derives headings and indexes only sanitized content', async () => {
     const root = await project(
       '---\n---\n# Introduction\n\nReadable text.\n\n<script>not_indexed()</script>',

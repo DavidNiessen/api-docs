@@ -139,6 +139,7 @@ export interface Theme {
   density: 'comfortable' | 'compact';
 }
 export interface ProjectConfig {
+  feedback?: { url: string; label?: string; includePage?: boolean };
   explorer?: {
     credentialReuse?: boolean;
     oauthClients?: Record<
@@ -264,6 +265,7 @@ export {
 } from './theme.js';
 
 export { pageMetadata } from './metadata.js';
+export { feedbackHref, safeFeedbackUrl } from './feedback.js';
 export {
   exampleChoices,
   formatExample,

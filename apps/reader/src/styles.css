@@ -88,6 +88,7 @@ select:focus {
 }
 button:focus-visible,
 a:focus-visible,
+pre:focus-visible,
 summary:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: 4px;
@@ -716,6 +717,8 @@ h3 {
 }
 .article-footer {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
   border-top: 1px solid var(--border);
@@ -733,6 +736,16 @@ h3 {
 }
 .article-footer > span {
   white-space: nowrap;
+}
+.article-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--heading);
 }
 .endpoint-address {
   display: flex;

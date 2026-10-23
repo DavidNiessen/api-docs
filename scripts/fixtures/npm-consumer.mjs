@@ -10,7 +10,7 @@ import express from 'express';
 import Fastify from 'fastify';
 import { createStaticServer } from '@api-docs/cli';
 import { verifyArtifact } from '@api-docs/compiler';
-import { downloadSpec } from '@api-docs/spec';
+import { downloadSpec, parseConfig } from '@api-docs/spec';
 import { createExpressDocs } from '@api-docs/node/express';
 import { apiDocsPlugin } from '@api-docs/node/fastify';
 import {
@@ -19,6 +19,7 @@ import {
   setJsonProperty,
   toolVersion,
   objectFieldSchema,
+  feedbackHref,
 } from '@api-docs/contracts';
 import {
   redactJsonBody,
@@ -30,6 +31,19 @@ import {
 } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
+const feedbackConfig = parseConfig({
+  name: 'Installed feedback',
+  specs: [{ id: 'fixture', path: 'openapi.yaml' }],
+  siteUrl: 'https://docs.example.test',
+  basePath: '/installed',
+  feedback: { url: 'https://issues.example.test/new', includePage: true },
+});
+assert.equal(
+  new URL(
+    feedbackHref(feedbackConfig, '/guide/?token=secret#private'),
+  ).searchParams.get('body'),
+  'Documentation page: https://docs.example.test/installed/guide/',
+);
 const composed = objectFieldSchema(
   {
     allOf: [

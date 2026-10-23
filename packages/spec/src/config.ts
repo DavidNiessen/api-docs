@@ -4,6 +4,7 @@ import {
   contrastRatio,
   resolvePalette,
   themePresets,
+  safeFeedbackUrl,
 } from '@api-docs/contracts';
 
 const safePath = z
@@ -130,6 +131,19 @@ export const configSchema = z
         }),
       )
       .default([]),
+    feedback: z
+      .object({
+        url: z
+          .string()
+          .refine(
+            safeFeedbackUrl,
+            'Feedback URL must be a bounded HTTPS URL without credentials or control characters',
+          ),
+        label: z.string().trim().min(1).max(60).optional(),
+        includePage: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     redirects: z
       .record(
         z.string().regex(/^\/(?!\/)[a-zA-Z0-9/_-]*$/),
@@ -207,6 +221,13 @@ export const configSchema = z
   })
   .strict()
   .superRefine((config, context) => {
+    if (config.feedback?.includePage && !config.siteUrl)
+      context.addIssue({
+        code: 'custom',
+        path: ['feedback', 'includePage'],
+        message:
+          'Page feedback context requires an explicitly configured public siteUrl',
+      });
     if (
       new Set(config.specs.map((spec) => spec.id + ':' + (spec.version ?? '')))
         .size !== config.specs.length

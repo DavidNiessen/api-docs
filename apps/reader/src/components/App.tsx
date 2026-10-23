@@ -34,6 +34,7 @@ import { Playground } from './Playground.js';
 import type { PlaygroundHandle } from './Playground.js';
 import { SchemaView } from './SchemaView.js';
 import { MediaExamples } from './MediaExamples.js';
+import { PageFooter } from './PageFooter.js';
 import { DeprecationCenter, OperationLifecycle } from './Lifecycle.js';
 
 const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
@@ -814,7 +815,11 @@ export function App({
                   api={activeApi}
                   operation={activeOperation}
                 />
-                <PageFooter source={activeOperation.source} />
+                <PageFooter
+                  source={activeOperation.source}
+                  config={config}
+                  path={path}
+                />
               </article>
               {!activeOperation.kind || activeOperation.kind === 'endpoint' ? (
                 <Playground
@@ -885,7 +890,11 @@ export function App({
                       </a>
                     ))}
                 </div>
-                <PageFooter source={activeGuide.source} />
+                <PageFooter
+                  source={activeGuide.source}
+                  config={config}
+                  path={path}
+                />
               </article>
               <aside className="page-toc">
                 <h2>
@@ -1231,18 +1240,5 @@ function OperationDetails({
         )}
       </section>
     </>
-  );
-}
-function PageFooter({ source }: { source: string }) {
-  return (
-    <footer className="article-footer">
-      <div>
-        <Icon name="code" size={15} />
-        <span>
-          Source: <code>{source}</code>
-        </span>
-      </div>
-      <span>Built with api-docs</span>
-    </footer>
   );
 }

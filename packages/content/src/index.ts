@@ -119,6 +119,8 @@ export async function renderMarkdown(
   const links: NonNullable<Guide['links']> = [],
     anchors: string[] = [];
   visit(result, 'element', (node: Element) => {
+    // Overflowing code must be keyboard-scrollable, including without JavaScript.
+    if (node.tagName === 'pre') node.properties.tabIndex = 0;
     if (typeof node.properties.id === 'string')
       anchors.push(node.properties.id);
     if (node.tagName === 'a' && typeof node.properties.href === 'string') {

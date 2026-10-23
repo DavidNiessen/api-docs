@@ -8,6 +8,10 @@ specs:
 
 basePath: /gallery
 siteUrl: https://docs.example.test
+feedback:
+  url: https://issues.example.test/new?template=docs&body=Documentation%20issue
+  label: Report documentation issue
+  includePage: true
 explorer:
   oauthClients:
     gallery:

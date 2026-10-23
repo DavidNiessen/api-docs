@@ -2,6 +2,8 @@
 
 Put `.md` files under the configured `guides` directory. Subdirectories produce nested URLs; `guides/setup/java.md` becomes `/guides/setup/java/`. Markdown supports tables, task lists, code fences, stable heading links and sanitized content. The search index contains rendered text, so removed scripts and MDX source code are not indexed.
 
+Enable an optional [page feedback link](feedback.md) to send readers to your configured issue tracker from guides and API pages. It also works without JavaScript; canonical page context is opt-in.
+
 ## Frontmatter
 
 ```yaml

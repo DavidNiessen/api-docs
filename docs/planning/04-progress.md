@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated: 2026-10-23. **Approximately 86% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-23. **Approximately 87% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
 ## Current milestone status
 
@@ -16,6 +16,20 @@ Updated: 2026-10-23. **Approximately 86% complete; pre-release.** This is an eng
 | M7 — Launch              | Local automated validation and documented performance experiments                                                                                                                                                                                                                                                                                          | Independent pilots, security/accessibility review, complete license/distribution audit, protected release approval and registry installation verification |
 
 ## Latest completed increment
+
+**Guide and API pages can expose an optional issue-tracker feedback link.** Operators configure a validated HTTPS destination and optional label. The link works in prerendered HTML, opens with no opener/referrer and makes no background report request. Canonical page context is a separate opt-in requiring an explicit public `siteUrl`; it follows SPA navigation while excluding browser queries/fragments, credentials, playground bodies and source filenames. Invalid/excessive context falls back to the configured destination. Sites without feedback configuration retain the existing footer. This completed static feedback workflow raises the estimate to approximately 87%; internationalization, remaining product scope and launch gates are still open.
+
+Mobile accessibility validation also exposed an existing overflowing guide code block that could not receive keyboard focus. Sanitized Markdown/MDX code blocks now receive a controlled zero tabindex after sanitization and a visible focus outline. Authored event handlers and custom positive focus order remain excluded.
+
+Validation for this increment:
+
+- Formatting/lint, type checking, all 73 tooling tests and all 571 compiler/component tests pass. Thirteen feedback cases cover destination validation, explicit public-context opt-in, default-off behavior, canonical subpaths, query/fragment exclusion and output limits. One additional content case checks keyboard access after sanitization without retaining authored handlers/focus order.
+- All 40 reader browser journeys pass. Two new journeys cover route updates, absent background tracker requests, exclusion of entered credentials, a keyboard-opened mocked tracker, no-JavaScript rendering, mobile containment, both themes and automated accessibility checks. Existing Scalar-style URL bar and response-only Monaco journeys remain green.
+- All 12 installed npm components pass, including the public feedback helper/configuration, canonical-context behavior, source/declaration maps, offline reinstall, dependency audit and candidate SBOM.
+
+See [page feedback](../feedback.md). This is an optional link to the operator's tracker; it does not submit reports, collect analytics or provide a moderation service. Hosted CI, independent review and protected release acceptance remain open.
+
+## Previous multipart-style increment
 
 **Explicit multipart styles now follow the API dialect.** OpenAPI 3.1 supports flat form, space/pipe-delimited and deep-object text fields through the shared query-style codec; explicit style flags override content type. OpenAPI 3.0 ignores those multipart flags and retains content-based text/JSON/file behavior, as required by that specification. Exact numeric lexemes survive, expanded fields inherit their logical property's custom headers/presence checks, and ambiguous cross-property wire names fail explicitly. All copied styled values use placeholders because flattened wire data cannot safely reconstruct nested sensitivity annotations. This consumer workflow raises the estimate to approximately 86%; styled binary uploads, undefined/nested style combinations and remaining product/launch gates are still open.
 
