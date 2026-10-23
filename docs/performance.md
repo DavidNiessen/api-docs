@@ -75,6 +75,19 @@ Budgets passed: LCP p95 ≤2500 ms, CLS ≤0.1, scripted interaction p95 ≤200 
 
 The measured artifact digest was `4b7c4e06fd2aba92af89f6f62b67525798dfbfc2176b37e99b06e257da64a6bb`. The run used an in-progress working tree and records that fact alongside the base commit and artifact digest; it is not a released artifact certification. Browser/CDP emulation, shared host resources, small fixture size, and a short sample window limit extrapolation to physical phones, large content, other browsers or production networks. The benchmark intentionally fails on missing paint data, hydration failure, browser errors, unexpected external requests, or exceeded budgets.
 
+### Reader feature follow-up: 23 October 2026
+
+A clean checkout at `6e2857f` repeated the same ten-cold-context mobile profile after the modal, response editor, richer body controls and credential-memory work. Chromium 154.0.8037.57, Node 24.19.0, the four-CPU host, viewport, throttling, disabled caches and uncompressed loopback delivery were unchanged. No external asset or API requests were needed.
+
+| Fixture                | LCP median / p95 | Maximum CLS | Search-open latency p95 | Initial JS gzip |
+| ---------------------- | ---------------- | ----------- | ----------------------- | --------------- |
+| Quickstart guide       | 840 / 868 ms     | 0           | 107.3 ms                | 104.6 KiB       |
+| List-projects endpoint | 820 / 856 ms     | 0           | 89.7 ms                 | 104.6 KiB       |
+
+All existing LCP, CLS, interaction and guide-JavaScript budgets passed. The calculated initial JavaScript size was 107,122 gzip bytes from 349,979 downloaded bytes. Hydration samples were approximately 2.47–2.59 seconds under this uncompressed/throttled profile; the reported interaction starts after hydration. The lab measurement and small-fixture limitations above still apply, including the distinction from field INP.
+
+The source was clean, and the verified artifact digest was `457b80d1188a4bc57340d81d0578652f450cff88afea76c820093e9e991830b3`. Retained evidence: `.api-docs/browser-benchmark/1792718640703/report.json`. This is local pre-release evidence, without hosted-CI or release certification.
+
 ## Artifact verification regression check
 
 After introducing strict shared manifest validation and bounded/streaming file hashing, a separate run used the 10,000-operation/50,000-schema-node fixture with one guide on Node 24.19.0, four available CPUs and a 1536 MiB old-space limit. The full verified build took **108.54 seconds**, peak process RSS was **852.2 MiB**, warm search p95 was **8.63 ms** (100 queries), and incremental guide p95 was **208.9 ms** (20 edits). Endpoint HTML was **97.9 KiB**. All existing budgets passed. These are observed runs, not a controlled attribution of individual changes.

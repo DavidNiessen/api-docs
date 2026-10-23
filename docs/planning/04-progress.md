@@ -24,6 +24,7 @@ Validation for this increment:
 - Formatting/lint, type checking, all 73 tooling tests and all 459 compiler/component tests pass. Fifteen credential-policy/configuration cases cover consent, scope/destination/policy separation, copies, expiry, clearing, prototype names and retention limits.
 - All 37 reader browser journeys pass. Five new journeys cover real authenticated requests after SPA navigation, server and OAuth-scope separation, storage/boot-data checks, provider expiry while closed, reload, namespace fallback, pending-request/popup cancellation, response clearing and keyboard focus. Both themes, mobile containment and automated accessibility checks pass; the Scalar-style bar and response-only Monaco behavior remain covered.
 - All 12 installed npm components pass outside the workspace, including public types, CLI/worker execution, verified hosting, offline reinstall, dependency audit and candidate SBOM.
+- A clean `6e2857f` rerun of the controlled mobile benchmark passed all current budgets: guide/endpoint LCP p95 868/856 ms, CLS 0, search-open p95 107.3/89.7 ms and 104.6 KiB calculated initial gzip JavaScript. See the [dated evidence and limitations](../performance.md#reader-feature-follow-up-23-october-2026).
 
 See [authentication and credential memory](../explorer-auth.md). This is local automated evidence; hosted CI remains blocked by account billing/spending settings, and independent security/accessibility review and release gates remain required.
 

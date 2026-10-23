@@ -1,6 +1,6 @@
 # Architecture and engineering design
 
-Status: proposed technical baseline for the [product contract](01-product.md). Validate choices with the early vertical slice and performance fixtures before stabilizing public APIs. No application packages described here exist yet.
+Status: proposed technical baseline for the [product contract](01-product.md). Validate choices with the early vertical slice and performance fixtures before stabilizing public APIs. Implementation is underway; the [progress record](04-progress.md) distinguishes existing packages and verified behavior from remaining interfaces and launch gates.
 
 ## 1. Architecture decisions
 
