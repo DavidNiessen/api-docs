@@ -17,6 +17,12 @@ Updated: 2026-10-23. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**Translated settings headings now fit compact dialogs without losing the close control.** Headings wrap within the available space, close buttons retain their width, and narrow settings forms use one column. The existing German 320-pixel journey now also requires its close button to stay in the viewport. Two remaining request-cancellation assertions accept the engines' real cancellation messages; the icon-font check normalizes quoted family names and waits for actual loading.
+
+The first hosted prepared matrix at `1f10018` passed all 106 Chromium journeys but correctly rejected a Firefox reader run (85/86) and WebKit reader run (82/86): the shared translated-heading overflow plus WebKit assertion portability failures. Local follow-up passes all 18 affected Firefox journeys and the same 18 Chromium journeys. The full source check passes formatting/lint/types, 97 tooling cases and 1,026 source cases. Full hosted cross-engine acceptance remains pending; no failed journey is skipped. The estimate stays approximately 97%, pre-release.
+
+## Previous browser-matrix increment
+
 **Browser acceptance now supports Chromium, Firefox and WebKit across the reader, mock demo and Studio.** A shared validated engine selector preserves Chromium defaults and confines its executable/flags to Chromium. A daily/manual read-only workflow runs all three suites independently per engine; prepared release rehearsal reuses that matrix and requires its success. Studio retains separate group reports and failure traces while preserving fresh production rate limits. Engine-neutral assertions check actual request cancellation and the platform's resolved native scrollbar width.
 
 Local Firefox 157.0 passes all 86 reader/playground journeys, five mock-demo journeys and 15 Studio journeys, with isolated database/role cleanup verified. Formatting, ESLint/Markdown, strict types, all 97 tooling cases and actionlint pass. WebKit downloaded locally but cannot launch without missing system libraries; hosted jobs explicitly install the selected engine's dependencies. Full hosted and prepared browser-matrix acceptance remains pending, alongside independent accessibility and real-device review. The estimate remains approximately 97%, pre-release.

@@ -126,6 +126,8 @@ test('closing the playground aborts an in-flight request', async ({ page }) => {
     request.url().includes('/v1/serialization/'),
   );
   await page.keyboard.press('Escape');
-  expect((await failed).failure()?.errorText).toContain('ABORTED');
+  expect((await failed).failure()?.errorText).toMatch(
+    /ERR_ABORTED|NS_BINDING_ABORTED|cancelled/i,
+  );
   await expect(dialog).not.toBeVisible();
 });

@@ -185,13 +185,17 @@ test('response-only Monaco highlights and folds read-only JSON while copying the
       .evaluate((el) => el.scrollWidth <= el.clientWidth),
   ).toBe(true);
   await page.screenshot({ path: '.api-docs/response-editor-mobile-dark.png' });
-  expect(
-    await page.evaluate(() =>
-      [...document.fonts].some(
-        (face) => face.family === 'codicon' && face.status === 'loaded',
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        [...document.fonts].some(
+          (face) =>
+            face.family.replace(/^['"]|['"]$/g, '') === 'codicon' &&
+            face.status === 'loaded',
+        ),
       ),
-    ),
-  ).toBe(true);
+    )
+    .toBe(true);
   expect(external).toEqual([]);
   expect(failures).toEqual([]);
 });

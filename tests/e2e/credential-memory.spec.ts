@@ -285,7 +285,9 @@ test('clear all aborts an active API request and prevents remembered credentials
   await playground
     .getByRole('button', { name: 'Clear all API credentials' })
     .click();
-  expect((await aborted).failure()?.errorText).toContain('ABORTED');
+  expect((await aborted).failure()?.errorText).toMatch(
+    /ERR_ABORTED|NS_BINDING_ABORTED|cancelled/i,
+  );
   await expect(
     playground.getByLabel('bearer credential', { exact: true }),
   ).toHaveValue('');

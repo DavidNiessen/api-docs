@@ -35,6 +35,12 @@ test('localized prepared themes retain portable choices across languages and fit
       (element) => element.scrollWidth <= element.clientWidth,
     ),
   ).toBe(true);
+  await expect(
+    dialog.getByRole('button', {
+      name: 'Leseeinstellungen schließen',
+      exact: true,
+    }),
+  ).toBeInViewport();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.keyboard.press('Escape');
   await expect(open).toBeFocused();

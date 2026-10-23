@@ -41,6 +41,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+}
+.reader-settings-heading > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.reader-settings-heading > button {
+  flex-shrink: 0;
 }
 .reader-settings h2 {
   margin: 4px 0 0;
@@ -135,5 +143,10 @@
   }
   .reader-settings {
     padding: 20px;
+  }
+}
+@media (max-width: 520px) {
+  .reader-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
