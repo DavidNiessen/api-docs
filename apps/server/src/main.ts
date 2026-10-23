@@ -1,3 +1,4 @@
+import { databaseOptions } from './database-options.js';
 import { readFile, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { PostgresRepository } from '@api-docs/storage';
@@ -43,7 +44,10 @@ async function start() {
       const rootToken = await secret('ROOT_TOKEN');
       const publicUrl = required('PUBLIC_URL');
       if (signal.aborted) return;
-      repository = new PostgresRepository(connection);
+      repository = new PostgresRepository(
+        connection,
+        databaseOptions(process.env),
+      );
       app = await createServer({
         ...(relay ? { relay } : {}),
         repository,

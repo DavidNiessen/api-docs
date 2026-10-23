@@ -6,18 +6,20 @@ An operator can explicitly enable the [authenticated API relay](api-relay.md) wi
 
 ## Required configuration
 
-| Variable                        | Purpose                                                                               |
-| ------------------------------- | ------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                  | PostgreSQL connection string; configure verified TLS for remote production databases  |
-| `ROOT_TOKEN`                    | Random operator bearer token with at least 32 characters; generate and store securely |
-| `PUBLIC_URL`                    | External HTTPS origin used for cookies, OIDC callbacks and CSRF checks                |
-| `ARTIFACT_ROOT`                 | Durable immutable artifact storage directory; default `/data/artifacts`               |
-| `HOST`, `PORT`                  | Listening interface and port; defaults `0.0.0.0:8080`                                 |
-| `OIDC_ISSUER`, `OIDC_CLIENT_ID` | Optional identity provider discovery issuer and client id                             |
-| `OIDC_CLIENT_SECRET`            | Optional confidential-client credential, supplied through a secret store              |
-| `OIDC_ALLOWED_HOSTS`            | Additional operator-approved hostnames for OIDC endpoints                             |
-| `SHUTDOWN_TIMEOUT_MS`           | Graceful shutdown deadline, default 30000 ms; integer from 1000 to 300000             |
-| `INSECURE_DEVELOPMENT`          | Explicitly allow HTTP on loopback for local testing; never use in production          |
+| Variable                        | Purpose                                                                                                |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                  | PostgreSQL connection string; configure verified TLS for remote production databases                   |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | Optional per-statement deadline, including locks; runtime default 10000 ms, migration default 60000 ms |
+| `DATABASE_QUERY_TIMEOUT_MS`     | Optional response-read deadline; defaults to statement timeout plus 5000 ms                            |
+| `ROOT_TOKEN`                    | Random operator bearer token with at least 32 characters; generate and store securely                  |
+| `PUBLIC_URL`                    | External HTTPS origin used for cookies, OIDC callbacks and CSRF checks                                 |
+| `ARTIFACT_ROOT`                 | Durable immutable artifact storage directory; default `/data/artifacts`                                |
+| `HOST`, `PORT`                  | Listening interface and port; defaults `0.0.0.0:8080`                                                  |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID` | Optional identity provider discovery issuer and client id                                              |
+| `OIDC_CLIENT_SECRET`            | Optional confidential-client credential, supplied through a secret store                               |
+| `OIDC_ALLOWED_HOSTS`            | Additional operator-approved hostnames for OIDC endpoints                                              |
+| `SHUTDOWN_TIMEOUT_MS`           | Graceful shutdown deadline, default 30000 ms; integer from 1000 to 300000                              |
+| `INSECURE_DEVELOPMENT`          | Explicitly allow HTTP on loopback for local testing; never use in production                           |
 
 Run `npm run build`, execute `node apps/server/dist/migrate.js` with the schema-owner connection, then run `npm run server` with the runtime connection. `DATABASE_URL_FILE` and `ROOT_TOKEN_FILE` support read-only secret files instead of environment values. Do not put production secrets in committed environment files. See the [container deployment and recovery runbook](deployment.md).
 
@@ -42,6 +44,18 @@ Artifacts are trusted executable web content and must be produced by reviewed bu
 Back up PostgreSQL and all referenced immutable artifact directories as one recovery set. Retain metadata and artifacts through the rollback window. Restore into a fresh environment, verify artifact checksums, then reconnect the metadata database before exposing traffic. A prior container alone cannot roll back a database schema migration.
 
 The initial migration uses a transaction and advisory lock. The Compose deployment separates migration ownership from the runtime role and enforces an append-only audit log for that role. Never delete referenced artifacts during backup or publication. The recovery command restores only into a fresh deployment and verifies artifact checksums. Multi-replica shared storage and isolated build queues remain release gates.
+
+## Database deadlines and failed transactions
+
+Runtime metadata statements default to 10 seconds on PostgreSQL and 15 seconds for the driver to receive a result. The migration executable defaults to 60/65 seconds. `DATABASE_STATEMENT_TIMEOUT_MS` accepts integer milliseconds from 100 to 300000. `DATABASE_QUERY_TIMEOUT_MS` must exceed the statement deadline and stay at or below 360000; when omitted it is the statement value plus 5000. Both executables validate their options before opening pools. Connection acquisition retains its five-second timeout. These are per-query budgets; a transaction with several statements can take longer.
+
+The driver deadline is applied explicitly to every metadata/transaction query, including BEGIN and COMMIT, so a legacy `query_timeout=0` in the connection URL cannot remove it. PostgreSQL receives the statement deadline and an idle-open-transaction limit matching the driver deadline. Other PostgreSQL startup options in an operator-supplied connection URL can override server-side settings; keep them consistent with the application configuration. Relay audit writes retain their separate four-second statement/five-second read budgets and pool.
+
+Failed transactions discard their connection. PostgreSQL rolls back the open transaction when that connection closes; an uncertain or still-running query cannot return to the pool. A lost COMMIT acknowledgement can leave an uncertain publication result. Check publication history and retry with the original idempotency key and expected pointer. Database/read timeouts produce generic server errors, and readiness returns unavailable when its database read fails. Queries and credentials are not added to response logs.
+
+Programmatic consumers can import `PostgresRepositoryOptions` and pass `statementTimeoutMs`/`queryTimeoutMs` to `new PostgresRepository(connectionString, options)`. `migrate: true` selects the longer defaults and schema-owner workflow. The migration flag is captured when the repository is constructed. These controls preserve verified TLS and the existing runtime/migration role boundary.
+
+Acceptance uses actual PostgreSQL table locks and a local TCP proxy. It verifies statement cancellation, atomic project/role/audit rollback and retry, a blackholed authenticated response, health recovery, and a lost timeout response during a transaction. The proxy remains a test fixture; no production relay or TCP proxy is introduced.
 
 ## Process shutdown
 

@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import Fastify from 'fastify';
 import { createStaticServer } from '@api-docs/cli';
+import { PostgresRepository } from '@api-docs/storage';
 import { verifyArtifact } from '@api-docs/compiler';
 import {
   downloadSpec,
@@ -49,6 +50,19 @@ import {
 } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
+const disconnectedStore = new PostgresRepository(
+  'postgresql://fixture@127.0.0.1/unused',
+  { statementTimeoutMs: 1000, queryTimeoutMs: 2000 },
+);
+await disconnectedStore.close();
+assert.throws(
+  () =>
+    new PostgresRepository('postgresql://fixture@127.0.0.1/unused', {
+      statementTimeoutMs: 0,
+    }),
+  /PostgreSQL/,
+);
+
 const browserPages = [];
 const installedParameter = {
   name: 'empty',
@@ -351,6 +365,10 @@ for (const name of Object.keys(metadata.dependencies).filter((name) =>
 }
 typeImports.push(`import {defineReaderExtension as defineTypedReaderExtension} from '@api-docs/plugin-sdk/browser';
 const typedReaderExtension=defineTypedReaderExtension({id:'typed-reader',version:'1.0.0',pluginApi:'1',capabilities:['page','footer'],activate(context){context.setFooter(page=>{const element=document.createElement('p');element.textContent=page.title;return {element};});}});void typedReaderExtension;`);
+typeImports.push(`import {PostgresRepository as TypedPostgresRepository} from '@api-docs/storage';
+import type {PostgresRepositoryOptions} from '@api-docs/storage';
+const databaseOptions: PostgresRepositoryOptions = {statementTimeoutMs:1000,queryTimeoutMs:2000};
+const typedStore = new TypedPostgresRepository('postgresql://fixture@127.0.0.1/unused',databaseOptions);void typedStore;`);
 await writeFile(
   'types.mts',
   typeImports.join('\n') +

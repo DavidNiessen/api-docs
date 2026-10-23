@@ -1,3 +1,4 @@
+import { databaseOptions } from './database-options.js';
 import { readFile } from 'node:fs/promises';
 import { PostgresRepository } from '@api-docs/storage';
 async function migrate() {
@@ -13,7 +14,10 @@ async function migrate() {
     throw new Error(
       'DATABASE_URL or DATABASE_URL_FILE is required for migration',
     );
-  const repository = new PostgresRepository(connection, { migrate: true });
+  const repository = new PostgresRepository(connection, {
+    ...databaseOptions(process.env),
+    migrate: true,
+  });
   try {
     await repository.initialize();
     if (process.env.DB_RUNTIME_ROLE)

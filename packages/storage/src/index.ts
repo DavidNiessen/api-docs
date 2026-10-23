@@ -14,16 +14,80 @@ const projectColumns =
   'id, slug, name, visibility, active_publication_id AS "activePublicationId"';
 const publicationColumns =
   'id, project_id AS "projectId", artifact_id AS "artifactId", subject, created_at::text AS "createdAt", idempotency_key AS "idempotencyKey"';
+// The runtime supports a per-query deadline; upstream QueryConfig currently
+// declares query_timeout only on connection configuration.
+interface TimedQueryConfig extends pg.QueryConfig {
+  query_timeout: number;
+}
+function timedQuery(
+  text: string,
+  values: unknown[] | undefined,
+  timeout: number,
+): TimedQueryConfig {
+  return { text, values: values ?? [], query_timeout: timeout };
+}
+interface SqlClient {
+  query<Row extends pg.QueryResultRow = pg.QueryResultRow>(
+    text: string,
+    values?: unknown[],
+  ): Promise<pg.QueryResult<Row>>;
+}
+export interface PostgresRepositoryOptions {
+  migrate?: boolean;
+  /** Per-statement server deadline, including lock waits. Runtime default: 10000 ms; migration: 60000 ms. */
+  statementTimeoutMs?: number;
+  /** Driver response deadline. Defaults to the statement deadline plus 5000 ms. */
+  queryTimeoutMs?: number;
+}
+function databaseTimeouts(options: PostgresRepositoryOptions) {
+  if (
+    !options ||
+    typeof options !== 'object' ||
+    Array.isArray(options) ||
+    (options.migrate !== undefined && typeof options.migrate !== 'boolean')
+  )
+    throw new Error('Invalid PostgreSQL repository options');
+  const statement =
+    options.statementTimeoutMs === undefined
+      ? options.migrate
+        ? 60000
+        : 10000
+      : options.statementTimeoutMs;
+  const query =
+    options.queryTimeoutMs === undefined
+      ? statement + 5000
+      : options.queryTimeoutMs;
+  if (
+    !Number.isSafeInteger(statement) ||
+    statement < 100 ||
+    statement > 300000 ||
+    !Number.isSafeInteger(query) ||
+    query <= statement ||
+    query > 360000
+  )
+    throw new Error(
+      'PostgreSQL statement timeout must be 100–300000 ms; query timeout must be greater and at most 360000 ms',
+    );
+  return { statement, query };
+}
 export class PostgresRepository implements Repository, RelayAuditWriter {
   private readonly pool: pg.Pool;
+  private readonly queryTimeoutMs: number;
+  private readonly migrate: boolean;
   private readonly relayAuditPool: pg.Pool;
   constructor(
     connectionString: string,
-    private readonly options: { migrate?: boolean } = {},
+    options: PostgresRepositoryOptions = {},
   ) {
+    const timeouts = databaseTimeouts(options);
+    this.migrate = options.migrate === true;
+    this.queryTimeoutMs = timeouts.query;
     this.pool = new pg.Pool({
       connectionString,
       max: 10,
+      statement_timeout: timeouts.statement,
+      query_timeout: timeouts.query,
+      idle_in_transaction_session_timeout: timeouts.query,
       connectionTimeoutMillis: 5000,
       idleTimeoutMillis: 30_000,
     });
@@ -42,10 +106,39 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
       /* Health checks expose availability without logging connection credentials. */
     });
   }
+  private query<Row extends pg.QueryResultRow = pg.QueryResultRow>(
+    text: string,
+    values?: unknown[],
+  ) {
+    return this.pool.query<Row>(timedQuery(text, values, this.queryTimeoutMs));
+  }
+  private async transaction<T>(
+    work: (client: SqlClient) => Promise<T>,
+  ): Promise<T> {
+    const client = await this.pool.connect();
+    const query: SqlClient['query'] = <
+      Row extends pg.QueryResultRow = pg.QueryResultRow,
+    >(
+      text: string,
+      values?: unknown[],
+    ) => client.query<Row>(timedQuery(text, values, this.queryTimeoutMs));
+    let committed = false;
+    try {
+      await query('BEGIN');
+      const result = await work({ query });
+      await query('COMMIT');
+      committed = true;
+      return result;
+    } finally {
+      // Destroying a failed connection rolls back its open transaction on PostgreSQL.
+      // Never reuse a client with an uncertain transaction or a timed-out query still in flight.
+      client.release(!committed);
+    }
+  }
   async initialize(): Promise<void> {
-    if (!this.options.migrate) {
+    if (!this.migrate) {
       const version = (
-        await this.pool.query<{ version: number }>(
+        await this.query<{ version: number }>(
           'SELECT max(version) AS version FROM docs_schema_migrations',
         )
       ).rows[0]?.version;
@@ -55,9 +148,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
         );
       return;
     }
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
+    return this.transaction(async (client) => {
       await client.query('SELECT pg_advisory_xact_lock(193271)');
       await client.query(`CREATE TABLE IF NOT EXISTS docs_schema_migrations (version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
         CREATE TABLE IF NOT EXISTS docs_projects (id uuid PRIMARY KEY, slug text UNIQUE NOT NULL, name text NOT NULL, visibility text NOT NULL CHECK (visibility IN ('public','private')), active_publication_id uuid);
@@ -71,21 +162,15 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
         CREATE INDEX IF NOT EXISTS docs_sessions_expiry ON docs_sessions(expires_at);
         CREATE INDEX IF NOT EXISTS docs_publications_project ON docs_publications(project_id,created_at DESC);
         INSERT INTO docs_schema_migrations(version) VALUES(1) ON CONFLICT DO NOTHING;`);
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
   async grantRuntimeRole(role: string): Promise<void> {
-    if (!this.options.migrate || !/^[a-z_][a-z0-9_]{0,62}$/.test(role))
+    if (!this.migrate || !/^[a-z_][a-z0-9_]{0,62}$/.test(role))
       throw new Error(
         'A valid runtime role and migration connection are required',
       );
     const name = `"${role}"`;
-    await this.pool.query(
+    await this.query(
       `GRANT USAGE ON SCHEMA public TO ${name}; GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO ${name}; GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO ${name}; REVOKE UPDATE,DELETE ON docs_audit FROM ${name}; REVOKE INSERT,UPDATE,DELETE ON docs_schema_migrations FROM ${name};`,
     );
   }
@@ -94,7 +179,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
   }
   async healthy() {
     try {
-      await this.pool.query('SELECT 1');
+      await this.query('SELECT 1');
       return true;
     } catch {
       return false;
@@ -102,14 +187,14 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
   }
   async projects(): Promise<Project[]> {
     return (
-      await this.pool.query<Project>(
+      await this.query<Project>(
         `SELECT ${projectColumns} FROM docs_projects ORDER BY slug`,
       )
     ).rows;
   }
   async project(idOrSlug: string): Promise<Project | undefined> {
     return (
-      await this.pool.query<Project>(
+      await this.query<Project>(
         `SELECT ${projectColumns} FROM docs_projects WHERE id::text=$1 OR slug=$1`,
         [idOrSlug],
       )
@@ -121,38 +206,34 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
     visibility: 'public' | 'private';
     subject: string;
   }): Promise<Project> {
-    const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
-      const id = randomUUID();
-      const project = (
-        await client.query<Project>(
-          `INSERT INTO docs_projects(id,slug,name,visibility) VALUES($1,$2,$3,$4) RETURNING ${projectColumns}`,
-          [id, input.slug, input.name, input.visibility],
-        )
-      ).rows[0]!;
-      await client.query(
-        'INSERT INTO docs_roles(project_id,subject,role) VALUES($1,$2,$3)',
-        [id, input.subject, 'admin'],
-      );
-      await client.query(
-        'INSERT INTO docs_audit(project_id,actor,action) VALUES($1,$2,$3)',
-        [id, input.subject, 'project.created'],
-      );
-      await client.query('COMMIT');
-      return project;
+      return await this.transaction(async (client) => {
+        const id = randomUUID();
+        const project = (
+          await client.query<Project>(
+            `INSERT INTO docs_projects(id,slug,name,visibility) VALUES($1,$2,$3,$4) RETURNING ${projectColumns}`,
+            [id, input.slug, input.name, input.visibility],
+          )
+        ).rows[0]!;
+        await client.query(
+          'INSERT INTO docs_roles(project_id,subject,role) VALUES($1,$2,$3)',
+          [id, input.subject, 'admin'],
+        );
+        await client.query(
+          'INSERT INTO docs_audit(project_id,actor,action) VALUES($1,$2,$3)',
+          [id, input.subject, 'project.created'],
+        );
+        return project;
+      });
     } catch (error) {
-      await client.query('ROLLBACK');
       if ((error as { code?: string }).code === '23505')
         throw new ConflictError('Project slug already exists');
       throw error;
-    } finally {
-      client.release();
     }
   }
   async role(projectId: string, subject: string): Promise<Role | undefined> {
     return (
-      await this.pool.query<{ role: Role }>(
+      await this.query<{ role: Role }>(
         'SELECT role FROM docs_roles WHERE project_id=$1 AND subject=$2',
         [projectId, subject],
       )
@@ -164,9 +245,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
     role: Role | null,
     actor: string,
   ): Promise<void> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
+    return this.transaction(async (client) => {
       if (role)
         await client.query(
           'INSERT INTO docs_roles(project_id,subject,role) VALUES($1,$2,$3) ON CONFLICT(project_id,subject) DO UPDATE SET role=excluded.role',
@@ -186,22 +265,14 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
           JSON.stringify({ subject, role }),
         ],
       );
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
   async registerArtifact(
     projectId: string,
     artifactId: string,
     subject: string,
   ): Promise<void> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
+    return this.transaction(async (client) => {
       await client.query(
         'INSERT INTO docs_artifacts(project_id,artifact_id) VALUES($1,$2) ON CONFLICT DO NOTHING',
         [projectId, artifactId],
@@ -215,13 +286,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
           JSON.stringify({ artifactId }),
         ],
       );
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
   async publish(
     projectId: string,
@@ -230,68 +295,63 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
     key: string,
     subject: string,
   ): Promise<Publication> {
-    const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
-      const project = (
-        await client.query<{ active: string | null }>(
-          'SELECT active_publication_id AS active FROM docs_projects WHERE id=$1 FOR UPDATE',
-          [projectId],
-        )
-      ).rows[0];
-      if (!project) throw new Error('Project not found');
-      const existing = (
-        await client.query<Publication>(
-          `SELECT ${publicationColumns} FROM docs_publications WHERE project_id=$1 AND idempotency_key=$2`,
-          [projectId, key],
-        )
-      ).rows[0];
-      if (existing) {
-        if (existing.artifactId !== artifactId)
+      return await this.transaction(async (client) => {
+        const project = (
+          await client.query<{ active: string | null }>(
+            'SELECT active_publication_id AS active FROM docs_projects WHERE id=$1 FOR UPDATE',
+            [projectId],
+          )
+        ).rows[0];
+        if (!project) throw new Error('Project not found');
+        const existing = (
+          await client.query<Publication>(
+            `SELECT ${publicationColumns} FROM docs_publications WHERE project_id=$1 AND idempotency_key=$2`,
+            [projectId, key],
+          )
+        ).rows[0];
+        if (existing) {
+          if (existing.artifactId !== artifactId)
+            throw new ConflictError(
+              'Idempotency key was already used for another artifact',
+            );
+          return existing;
+        }
+        if (project.active !== expected)
           throw new ConflictError(
-            'Idempotency key was already used for another artifact',
+            'Publication changed; refresh before publishing',
           );
-        await client.query('COMMIT');
-        return existing;
-      }
-      if (project.active !== expected)
-        throw new ConflictError(
-          'Publication changed; refresh before publishing',
+        const publication = (
+          await client.query<Publication>(
+            `INSERT INTO docs_publications(id,project_id,artifact_id,subject,idempotency_key) VALUES($1,$2,$3,$4,$5) RETURNING ${publicationColumns}`,
+            [randomUUID(), projectId, artifactId, subject, key],
+          )
+        ).rows[0]!;
+        await client.query(
+          'UPDATE docs_projects SET active_publication_id=$1 WHERE id=$2',
+          [publication.id, projectId],
         );
-      const publication = (
-        await client.query<Publication>(
-          `INSERT INTO docs_publications(id,project_id,artifact_id,subject,idempotency_key) VALUES($1,$2,$3,$4,$5) RETURNING ${publicationColumns}`,
-          [randomUUID(), projectId, artifactId, subject, key],
-        )
-      ).rows[0]!;
-      await client.query(
-        'UPDATE docs_projects SET active_publication_id=$1 WHERE id=$2',
-        [publication.id, projectId],
-      );
-      await client.query(
-        'INSERT INTO docs_audit(project_id,actor,action,metadata) VALUES($1,$2,$3,$4)',
-        [
-          projectId,
-          subject,
-          'publication.activated',
-          JSON.stringify({
-            publicationId: publication.id,
-            artifactId,
-            previousPublicationId: expected,
-          }),
-        ],
-      );
-      await client.query('COMMIT');
-      return publication;
+        await client.query(
+          'INSERT INTO docs_audit(project_id,actor,action,metadata) VALUES($1,$2,$3,$4)',
+          [
+            projectId,
+            subject,
+            'publication.activated',
+            JSON.stringify({
+              publicationId: publication.id,
+              artifactId,
+              previousPublicationId: expected,
+            }),
+          ],
+        );
+        return publication;
+      });
     } catch (error) {
-      await client.query('ROLLBACK');
       if ((error as { code?: string }).code === '23503')
         throw new ConflictError(
           'Register a verified artifact before publishing',
         );
       throw error;
-    } finally {
-      client.release();
     }
   }
   async publication(
@@ -299,7 +359,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
     publicationId: string,
   ): Promise<Publication | undefined> {
     return (
-      await this.pool.query<Publication>(
+      await this.query<Publication>(
         `SELECT ${publicationColumns} FROM docs_publications WHERE project_id=$1 AND id=$2`,
         [projectId, publicationId],
       )
@@ -307,7 +367,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
   }
   async publications(projectId: string): Promise<Publication[]> {
     return (
-      await this.pool.query<Publication>(
+      await this.query<Publication>(
         `SELECT ${publicationColumns} FROM docs_publications WHERE project_id=$1 ORDER BY created_at DESC LIMIT 100`,
         [projectId],
       )
@@ -315,7 +375,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
   }
   async audit(projectId: string): Promise<Record<string, unknown>[]> {
     return (
-      await this.pool.query(
+      await this.query(
         'SELECT id::text,actor,action,metadata,created_at::text FROM docs_audit WHERE project_id=$1 ORDER BY id DESC LIMIT 100',
         [projectId],
       )
@@ -337,9 +397,10 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
       responseBytes,
       durationMs,
     } = event;
-    await this.relayAuditPool.query(
-      'INSERT INTO docs_audit(project_id,actor,action,metadata) VALUES($1,$2,$3,$4)',
-      [
+    const query: TimedQueryConfig = {
+      query_timeout: 5000,
+      text: 'INSERT INTO docs_audit(project_id,actor,action,metadata) VALUES($1,$2,$3,$4)',
+      values: [
         projectId,
         subject,
         'relay.' + phase,
@@ -354,7 +415,8 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
           durationMs,
         }),
       ],
-    );
+    };
+    await this.relayAuditPool.query(query);
   }
   async createToken(
     projectId: string,
@@ -365,9 +427,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
     actor: string,
   ): Promise<string> {
     const id = randomUUID();
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
+    return this.transaction(async (client) => {
       await client.query(
         'INSERT INTO docs_tokens(id,project_id,token_hash,label,role,expires_at) VALUES($1,$2,$3,$4,$5,$6)',
         [id, projectId, hash, label, role, expiresAt],
@@ -381,20 +441,14 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
           JSON.stringify({ tokenId: id, role, label }),
         ],
       );
-      await client.query('COMMIT');
       return id;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
   async token(
     hash: string,
   ): Promise<{ subject: string; projectId: string; role: Role } | undefined> {
     const token = (
-      await this.pool.query<{ id: string; projectId: string; role: Role }>(
+      await this.query<{ id: string; projectId: string; role: Role }>(
         'SELECT id,project_id AS "projectId",role FROM docs_tokens WHERE token_hash=$1 AND revoked=false AND expires_at>now()',
         [hash],
       )
@@ -412,9 +466,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
     tokenId: string,
     actor: string,
   ): Promise<void> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
+    return this.transaction(async (client) => {
       await client.query(
         'UPDATE docs_tokens SET revoked=true WHERE id=$1 AND project_id=$2',
         [tokenId, projectId],
@@ -423,41 +475,33 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
         'INSERT INTO docs_audit(project_id,actor,action,metadata) VALUES($1,$2,$3,$4)',
         [projectId, actor, 'token.revoked', JSON.stringify({ tokenId })],
       );
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
   async createSession(
     hash: string,
     subject: string,
     expiresAt: Date,
   ): Promise<void> {
-    await this.pool.query('DELETE FROM docs_sessions WHERE expires_at<now()');
-    await this.pool.query(
+    await this.query('DELETE FROM docs_sessions WHERE expires_at<now()');
+    await this.query(
       'INSERT INTO docs_sessions(token_hash,subject,expires_at) VALUES($1,$2,$3)',
       [hash, subject, expiresAt],
     );
   }
   async session(hash: string): Promise<string | undefined> {
     return (
-      await this.pool.query<{ subject: string }>(
+      await this.query<{ subject: string }>(
         'SELECT subject FROM docs_sessions WHERE token_hash=$1 AND expires_at>now()',
         [hash],
       )
     ).rows[0]?.subject;
   }
   async deleteSession(hash: string): Promise<void> {
-    await this.pool.query('DELETE FROM docs_sessions WHERE token_hash=$1', [
-      hash,
-    ]);
+    await this.query('DELETE FROM docs_sessions WHERE token_hash=$1', [hash]);
   }
   async saveOidc(transaction: OidcTransaction): Promise<void> {
-    await this.pool.query('DELETE FROM docs_oidc WHERE expires_at<now()');
-    await this.pool.query(
+    await this.query('DELETE FROM docs_oidc WHERE expires_at<now()');
+    await this.query(
       'INSERT INTO docs_oidc(state_hash,nonce,verifier,expires_at) VALUES($1,$2,$3,$4)',
       [
         transaction.stateHash,
@@ -469,7 +513,7 @@ export class PostgresRepository implements Repository, RelayAuditWriter {
   }
   async consumeOidc(hash: string): Promise<OidcTransaction | undefined> {
     return (
-      await this.pool.query<OidcTransaction>(
+      await this.query<OidcTransaction>(
         'DELETE FROM docs_oidc WHERE state_hash=$1 AND expires_at>now() RETURNING state_hash AS "stateHash",nonce,verifier,expires_at AS "expiresAt"',
         [hash],
       )
