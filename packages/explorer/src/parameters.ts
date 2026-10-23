@@ -16,6 +16,26 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 const isScalar = (value: unknown): value is Scalar =>
   value === null || ['string', 'number', 'boolean'].includes(typeof value);
+// Sticky matching consumes each validated token once, without restarting at later quotes.
+function rewriteJson(raw: string, quoteNumbers: boolean): string {
+  JSON.parse(raw);
+  const tokens =
+    /\s+|"(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}:,]|\[|\]/y;
+  const output: string[] = [];
+  let offset = 0;
+  while (offset < raw.length) {
+    tokens.lastIndex = offset;
+    const match = tokens.exec(raw);
+    if (!match) throw new Error('Invalid JSON token');
+    const token = match[0],
+      first = token[0]!;
+    offset = tokens.lastIndex;
+    if (quoteNumbers && (first === '-' || (first >= '0' && first <= '9')))
+      output.push(JSON.stringify(token));
+    else if (quoteNumbers || token.trim()) output.push(token);
+  }
+  return output.join('');
+}
 function shape(
   schema: Schema,
   schemas: Record<string, Schema>,
@@ -58,14 +78,8 @@ function valueFor(
   if (!expected) return raw;
   let value: unknown;
   try {
-    JSON.parse(raw);
     // Styled scalars become wire text. Preserve numeric lexemes before JS can round them.
-    value = JSON.parse(
-      raw.replace(
-        /"(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/g,
-        (token) => (token.startsWith('"') ? token : JSON.stringify(token)),
-      ),
-    );
+    value = JSON.parse(rewriteJson(raw, true));
   } catch {
     throw new Error(`${parameter.name} must be valid JSON`);
   }
@@ -240,10 +254,7 @@ function parameterValue(
     serialized = raw;
     if (isJsonMediaType(media[0]!)) {
       try {
-        JSON.parse(raw);
-        serialized = raw.replace(/"(?:[^"\\]|\\.)*"|\s+/g, (token) =>
-          token.startsWith('"') ? token : '',
-        );
+        serialized = rewriteJson(raw, false);
       } catch {
         throw new Error(`${parameter.name} must be valid JSON`);
       }

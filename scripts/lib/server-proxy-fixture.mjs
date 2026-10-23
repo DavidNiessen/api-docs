@@ -77,7 +77,7 @@ export async function verifyServerProxy(source) {
       configuration,
       '{\n  local_certs\n  skip_install_trust\n  admin off\n  auto_https disable_redirects\n}\n\n' +
         template,
-      { mode: 0o644 },
+      { mode: 0o644, flag: 'wx' },
     );
     owned = true;
     const proxy = await docker([

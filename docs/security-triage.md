@@ -1,0 +1,29 @@
+# Security findings and acceptance status
+
+Updated: 2026-10-23. This record distinguishes initial scanner matches, implemented changes and completed acceptance. It supplies no waiver, suppression or permission to publish. Scanner matches need investigation; a match alone does not prove exploitability.
+
+## Source analysis
+
+The first hosted CodeQL extraction at `0d4288b` completed for JavaScript/TypeScript and Java. Java reported no findings. JavaScript reported 43 results: 38 High and five Medium. The SARIF checksum is `d0d4b463a71b9acae8710bfd43f1a370c6d72105a64b4a2387fe552f63354b08`. The query rules reside in SARIF tool extensions; the corrected reader validates component/rule identities and assesses those results. It does not omit extension findings.
+
+| Query                        | Initial matches | Severity | Current work                                                                                                                                                                                                                                                                             |
+| ---------------------------- | --------------: | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `js/polynomial-redos`        |               3 | High     | Explorer placeholder detection now scans once; JSON wire processing uses sticky tokens after grammar validation. Long brace/escape inputs and exact numeric tokens pass local regressions. Fresh CodeQL validation is pending.                                                           |
+| `js/xss-through-dom`         |              25 | High     | Reader HTML and URL flows from bootstrapped page data require investigation and remediation or supported evidence. They remain blocking; existing compiler sanitization alone is not a source-security acceptance result.                                                                |
+| `js/path-injection`          |               1 | High     | Review the spec source path resolution/containment boundary. The initial finding is at canonical path resolution; it remains blocking pending investigation and validation.                                                                                                              |
+| `js/missing-rate-limiting`   |               2 | High     | Review Express adapter resource protection and its host-application boundary. Host policy assumptions are not an automatic waiver. Findings remain blocking.                                                                                                                             |
+| `js/insecure-temporary-file` |               1 | High     | The TLS fixture creates its private configuration exclusively with `wx`; an existing entry cannot be overwritten. Local deployment validation covers this path; fresh CodeQL validation is pending.                                                                                      |
+| `js/file-system-race`        |               6 | High     | Tooling reads inspect and consume the same bounded regular-file descriptor. The security receipt hashes the exact bytes it parses. Archive corruption/restoration uses a verified open descriptor; the test marker uses the existing bounded reader. Fresh CodeQL validation is pending. |
+| `js/bad-code-sanitization`   |               3 | Medium   | Generated plugin-test modules need context review. Results remain visible in the report.                                                                                                                                                                                                 |
+| `js/file-access-to-http`     |               1 | Medium   | Review the benchmark fixture's file-to-network flow. Result remains visible.                                                                                                                                                                                                             |
+| `js/missing-origin-check`    |               1 | Medium   | Review the dedicated search worker's message boundary and validation. Result remains visible.                                                                                                                                                                                            |
+
+The initial 38 High matches remain the recorded scanner verdict until a new extraction and assessment validates the changes. No count is reduced merely because a source edit or local test passed. The [source-security gate](code-security.md) continues to block High/Critical results and rejects suppressions.
+
+## Dependencies and containers
+
+The prepared npm consumer audit found High-severity Zod advisory [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) in 4.3.6. All four direct dependencies and both locks now use patched 4.6.6. Source, root audit and installed npm consumer checks pass locally after the update. A fresh image and hosted prepared-version verification are still required for those dependency bytes.
+
+The preceding Node 24.22.1 prepared image passed all 44 deployment checks and its Grype threshold, with zero High/Critical/unknown-severity matches. It retains three Medium matches for CVE-2025-60876 across BusyBox packages; the scanner supplied no fix version. The raw findings remain visible. This image predates the Zod update and cannot stand in for acceptance of a newly built image. See [container policy and evidence](container-security.md).
+
+Independent security/isolation review, final license review, authenticated signed distributions and release-owner approval remain separate launch gates. The project is pre-release.

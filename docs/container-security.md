@@ -29,6 +29,8 @@ Each unique `.api-docs/container-security-candidates/` directory retains `server
 
 The vulnerability database cache is under `.api-docs/tools/grype-db`; allow several GiB plus extraction space. Temporary scan input is removed after the command. Protect scanner configuration and cache paths from untrusted writers. Do not include database caches, credentials or live API responses in public artifacts. Air-gapped operators can perform this connected-host assessment before mirroring reviewed application images; offline startup does not establish a current advisory verdict.
 
+The receipt checker opens the raw findings as a bounded regular file, checks its descriptor and computes the checksum and policy assessment from the same byte snapshot. It refuses symbolic links and special files on the supported Linux scanner host. See the [triage record](security-triage.md) for findings and subsequent dependency changes that need a fresh image assessment.
+
 ## Runtime remediation
 
 The current Docker targets build with Node 24.22.1 and distribute a digest-pinned Alpine 3.24 runtime with the same Node version. npm, npx, Yarn and Corepack are removed from the runtime because source builds and dependency installation belong to the build stage. Runtime acceptance checks the absence of their executables in addition to the existing non-root, filesystem, resource and kernel controls. The isolated build image still includes the preinstalled application/compiler dependencies and executes approved offline builds; it does not install packages. Custom native dependencies must target Alpine/musl and be installed in a separately reviewed build stage/image.

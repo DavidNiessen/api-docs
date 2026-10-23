@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { assessCodeScanning } from './lib/code-scanning.mjs';
+import { readRegularFile } from './lib/read-regular-file.mjs';
 
 const files = process.argv.slice(2);
 assert(
@@ -13,11 +14,7 @@ assert(
 assert.equal(new Set(files.map((file) => resolve(file))).size, files.length);
 const results = [];
 for (const file of files) {
-  const info = await lstat(file);
-  assert(
-    info.isFile() && !info.isSymbolicLink() && info.size <= 64 * 1024 * 1024,
-  );
-  const bytes = await readFile(file);
+  const bytes = await readRegularFile(file, 64 * 1024 * 1024);
   results.push({
     file,
     sha256: createHash('sha256').update(bytes).digest('hex'),

@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util';
-import { readFile, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { prepareRelease } from './lib/release-prepare.mjs';
+import { readRegularFile } from './lib/read-regular-file.mjs';
 
 try {
   const { values } = parseArgs({
@@ -20,9 +20,11 @@ Default: stage and audit proposed metadata without changing repository files.
 No commands install packages, commit, tag, push or publish.
 Keep the plan outside the checkout, or in its ignored .api-docs directory.`);
   else {
-    if (!values.plan || (await stat(values.plan)).size > 16 * 1024 * 1024)
-      throw new Error('Supply a release --plan JSON file of at most 16 MiB.');
-    const plan = JSON.parse(await readFile(values.plan, 'utf8'));
+    const message = 'Supply a release --plan JSON file of at most 16 MiB.';
+    if (!values.plan) throw new Error(message);
+    const plan = JSON.parse(
+      await readRegularFile(values.plan, 16 * 1024 * 1024, message),
+    );
     console.log(
       JSON.stringify(
         await prepareRelease(

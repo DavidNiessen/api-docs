@@ -1,16 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import {
-  appendFile,
-  mkdtemp,
-  readFile,
-  rm,
-  stat,
-  truncate,
-  writeFile,
-} from 'node:fs/promises';
+import { constants, createReadStream } from 'node:fs';
+import { mkdtemp, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -203,7 +195,8 @@ export async function verifyOfflineInstall(source) {
       );
     const originalTags = await tags();
     await docker(['image', 'save', '--output', archive, ...images]);
-    const archiveBytes = (await stat(archive)).size;
+    const archiveMetadata = await stat(archive);
+    const archiveBytes = archiveMetadata.size;
     assert(archiveBytes > 0);
     const manifest = JSON.parse(
       (await command('tar', ['-xOf', archive, 'manifest.json'])).stdout,
@@ -231,11 +224,27 @@ export async function verifyOfflineInstall(source) {
     const checksums = join(root, 'SHA256SUMS');
     await writeFile(checksums, archiveSha256 + '  images.tar\n');
     source.step('offline archive checksum refusal and import');
-    await appendFile(archive, 'Corrupt offline archive');
+    const archiveFile = await open(
+      archive,
+      constants.O_RDWR | constants.O_NOFOLLOW,
+    );
     try {
-      await assert.rejects(command('sha256sum', ['--check', checksums]));
+      const current = await archiveFile.stat();
+      assert.equal(current.dev, archiveMetadata.dev);
+      assert.equal(current.ino, archiveMetadata.ino);
+      assert.equal(current.size, archiveBytes);
+      try {
+        await archiveFile.write(
+          'Corrupt offline archive',
+          archiveBytes,
+          'utf8',
+        );
+        await assert.rejects(command('sha256sum', ['--check', checksums]));
+      } finally {
+        await archiveFile.truncate(archiveBytes);
+      }
     } finally {
-      await truncate(archive, archiveBytes);
+      await archiveFile.close();
     }
     await command('sha256sum', ['--check', checksums]);
     assert.equal(await hashFile(archive), archiveSha256);

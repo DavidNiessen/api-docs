@@ -83,7 +83,15 @@ export function prepareRequest(
     path = path.replaceAll(`{${name}}`, value);
   if (path.split('/').some((segment) => /^(?:\.|%2e){1,2}$/i.test(segment)))
     throw new Error('Path parameters cannot resolve to URL dot segments');
-  if (/\{[^}]+\}/.test(path)) throw new Error('Unresolved path parameter');
+  let placeholder = -1;
+  for (let index = 0; index < path.length; index++) {
+    if (path[index] === '{' && placeholder < 0) placeholder = index;
+    else if (path[index] === '}') {
+      if (placeholder >= 0 && index > placeholder + 1)
+        throw new Error('Unresolved path parameter');
+      placeholder = -1;
+    }
+  }
   const url = new URL(base.href.replace(/\/$/, '') + path);
   if (operation.security.length) {
     const alternative =

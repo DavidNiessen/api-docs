@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { glob, readFile, realpath, stat } from 'node:fs/promises';
+import { glob, realpath } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
+import { readRegularFile } from './read-regular-file.mjs';
 
 export async function readRepositoryFile(root, path, maximum = 1024 * 1024) {
   const canonical = await realpath(root);
@@ -10,12 +11,13 @@ export async function readRepositoryFile(root, path, maximum = 1024 * 1024) {
     local && local !== '..' && !local.startsWith('..' + sep),
     'Repository metadata must stay inside the checkout.',
   );
-  const metadata = await stat(file);
-  assert(
-    metadata.isFile() && metadata.size <= maximum,
-    `Invalid or excessive repository metadata: ${path}`,
-  );
-  return readFile(file, 'utf8');
+  return (
+    await readRegularFile(
+      file,
+      maximum,
+      `Invalid or excessive repository metadata: ${path}`,
+    )
+  ).toString('utf8');
 }
 export async function readWorkspacePackages(root) {
   const metadata = JSON.parse(await readRepositoryFile(root, 'package.json'));

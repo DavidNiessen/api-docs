@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { toolVersion } from '@api-docs/contracts';
-import { sha256 } from './lib/container-inventory.mjs';
+import { readRegularFile } from './lib/read-regular-file.mjs';
 import {
   validateContainerSecurity,
   vulnerabilityScanner,
@@ -52,16 +53,13 @@ assert(
 await assert.rejects(lstat(join(directory, '.incomplete')), { code: 'ENOENT' });
 assert.equal(receipt.findings.file, 'server.grype.json');
 const raw = join(directory, receipt.findings.file);
-const info = await lstat(raw);
-assert(
-  info.isFile() && !info.isSymbolicLink() && info.size <= 64 * 1024 * 1024,
-);
 assert.equal(relative(directory, await realpath(raw)), 'server.grype.json');
-assert.equal(await sha256(raw), receipt.findings.sha256);
-const assessment = validateContainerSecurity(
-  JSON.parse(await readFile(raw, 'utf8')),
-  image,
+const bytes = await readRegularFile(raw, 64 * 1024 * 1024);
+assert.equal(
+  createHash('sha256').update(bytes).digest('hex'),
+  receipt.findings.sha256,
 );
+const assessment = validateContainerSecurity(JSON.parse(bytes), image);
 assert.deepEqual(receipt.assessment, assessment);
 assert.equal(
   assessment.passed,

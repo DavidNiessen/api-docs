@@ -56,6 +56,54 @@ function request(parameter: Partial<Parameter>, raw: string, extra = {}) {
   );
 }
 describe('OpenAPI parameter wire serialization', () => {
+  it('handles long brace sequences without repeated placeholder searches', () => {
+    const path = '/' + '{'.repeat(200_000);
+    const prepared = prepareRequest(
+      { ...operation, path },
+      {},
+      {
+        server: 'https://api.example.test',
+        parameters: {},
+      },
+    );
+    expect(new URL(prepared.url).pathname.length).toBe(1 + 3 * 200_000);
+    expect(prepared.url.endsWith('%7B'.repeat(100))).toBe(true);
+    expect(() =>
+      prepareRequest(
+        { ...operation, path: path + '}' },
+        {},
+        {
+          server: 'https://api.example.test',
+          parameters: {},
+        },
+      ),
+    ).toThrow('Unresolved path parameter');
+    expect(() =>
+      prepareRequest(
+        { ...operation, path: '/}{}{later}' },
+        {},
+        {
+          server: 'https://api.example.test',
+          parameters: {},
+        },
+      ),
+    ).toThrow('Unresolved path parameter');
+  });
+  it('preserves escaped strings and exact numeric tokens with linear JSON token consumption', () => {
+    const text = '\\"'.repeat(25_000),
+      raw = `[${JSON.stringify(text)},9007199254740993,1e400,-0,true,null]`;
+    const styled = request({ schema: { type: 'array' }, explode: false }, raw);
+    expect(new URL(styled.url).searchParams.get('color')).toBe(
+      `${text},9007199254740993,1e400,-0,true,null`,
+    );
+    const content = request(
+      { schema: {}, content: { 'application/json': { schema: {} } } },
+      ` { "value": ${JSON.stringify(text)}, "n": 9007199254740993, "huge": 1e400 } `,
+    );
+    expect(new URL(content.url).searchParams.get('color')).toBe(
+      `{"value":${JSON.stringify(text)},"n":9007199254740993,"huge":1e400}`,
+    );
+  });
   it.each(['query', 'header', 'path'] as const)(
     'supports explicit empty %s scalars while preserving omission defaults',
     (location) => {

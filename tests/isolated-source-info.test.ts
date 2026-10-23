@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { inspectIsolatedSource, buildIsolatedSite } from '@api-docs/cli';
+import { readTextFile } from '@api-docs/spec';
 const exec = promisify(execFile);
 const roots: string[] = [];
 async function temporary() {
@@ -196,7 +197,7 @@ it('a changed approved snapshot fails before any Docker command and retains an e
       code: 1,
       stderr: expect.stringContaining('image verification'),
     });
-    expect(JSON.parse(await readFile(marker, 'utf8'))).toEqual([
+    expect(JSON.parse(await readTextFile(marker))).toEqual([
       '--host=unix://' + socket,
       'image',
       'inspect',
