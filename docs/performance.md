@@ -2,7 +2,7 @@
 
 Performance numbers describe measured fixtures, not a universal service guarantee. Run `node --max-old-space-size=1536 scripts/benchmark.mjs 10000` after `npm run build`. The script builds real static pages, verifies output, checks 100 local search queries, records peak process RSS, and fails when its declared budgets are exceeded. Generated fixtures and reports stay under ignored `.api-docs` paths.
 
-The latest hosted reader budgets pass. The current hosted 10k compiler run exceeded its 120-second ceiling at 130.45 seconds; the indexed-route fix below is awaiting its full-scale rerun. Older passing baselines do not establish resolution of this regression.
+The latest hosted reader and 10k compiler budgets pass. Indexed endpoint lookup brought the full compiler run back under its unchanged 120-second ceiling; the observed results and earlier failed run are recorded below.
 
 ## Recorded baseline
 
@@ -103,7 +103,13 @@ Clean source `6f1e5ce` passed the same ten-cold-context mobile profile locally a
 
 The existing browser budgets pass, including the 150 KiB initial-guide JavaScript ceiling. The increased catalog and reader controls have grown calculated initial gzip JavaScript to 127,643 bytes; the lab/field and uncompressed-transfer limitations above remain applicable. Hosted reports/screenshots are retained for 28 days; local evidence is `.api-docs/browser-benchmark/1792771701003/report.json`.
 
-The same hosted run's **compiler budget failed**: 10,000 operations/50,000 schema nodes took **130.45 seconds**, above 120 seconds. Peak RSS (951.3 MiB), warm search p95 (10.51 ms) and incremental guide p95 (237.03 ms) passed their existing ceilings. This result supersedes any assumption that the older compiler timings establish current hosted performance. The budget is unchanged. Profiling identified repeated full endpoint scans during route projection; the compiler now builds an endpoint lookup once for its immutable render graph. `createPageDataFactory(site)` supplies this indexed projection; create a new factory after graph changes. The ordinary `createPageData` API retains its direct endpoint lookup. A 1,000-endpoint local comparison improved 8.72 to 8.02 seconds with the same artifact digest; a fresh hosted 10k result is still required before calling the regression resolved.
+The same hosted run's **compiler budget failed**: 10,000 operations/50,000 schema nodes took **130.45 seconds**, above 120 seconds. Peak RSS (951.3 MiB), warm search p95 (10.51 ms) and incremental guide p95 (237.03 ms) passed their existing ceilings. This result supersedes any assumption that the older compiler timings establish current hosted performance. The budget is unchanged. Profiling identified repeated full endpoint scans during route projection; the compiler now builds an endpoint lookup once for its immutable render graph. `createPageDataFactory(site)` supplies this indexed projection; create a new factory after graph changes. The ordinary `createPageData` API retains its direct endpoint lookup. A 1,000-endpoint local comparison improved 8.72 to 8.02 seconds with the same artifact digest; the hosted follow-up below verifies the full-scale gate.
+
+### Indexed-route full-scale acceptance
+
+[Hosted performance run 39986990272](https://github.com/DavidNiessen/api-docs/actions/runs/39986990272) passes both compiler and reader jobs at clean source `97f08a4`. The same 10,000-operation/50,000-schema-node fixture completed its full verified build in **54.37 seconds**, with **929.0 MiB** peak RSS, **5.78 ms** warm search p95 and **158.92 ms** incremental guide p95. Node remained 24.19.0 and four CPUs were available. Endpoint HTML was 101.4 KiB; the full-build artifact digest was `d0908280f74df6ea45294549dbf0daa53a1eb3a75966a0867e921633ef0d7fa5`.
+
+All unchanged compiler budgets pass: 120 seconds full build, 2048 MiB peak RSS, 100 ms warm search and 2000 ms incremental guide updates. This resolves the recorded hosted compiler gate failure. These are observed runs on shared cloud hardware, without controlled attribution of every timing difference. The index removes repeated full-list route selection; complete page-data/HTML parity, browser acceptance and installed-package checks separately cover behavior. Raw artifact identity also includes generated client source maps, which change when their source changes.
 
 ## Artifact verification regression check
 

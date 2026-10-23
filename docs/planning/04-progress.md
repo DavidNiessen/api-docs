@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated: 2026-10-23. **Approximately 96% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-23. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
 ## Current milestone status
 
@@ -16,6 +16,14 @@ Updated: 2026-10-23. **Approximately 96% complete; pre-release.** This is an eng
 | M7 — Launch              | Local automated validation and documented performance experiments                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Independent pilots, security/accessibility review, complete license/distribution audit, protected release approval and registry installation verification |
 
 ## Latest completed increment
+
+**The candidate release rehearsal now requires prepared-version Docker acceptance.** Its new required job applies the same reviewed version plan, builds a fresh isolated compiler image from that prepared tree and runs both real Docker failure/isolation and PostgreSQL/API worker-recovery harnesses. A receipt gate requires nonempty execution, the prepared host/container tool version, the exact built image ID and no automatic publication. The final rehearsal result fails if this job fails or is skipped. All jobs retain read-only repository permissions and candidate artifacts remain unpublished.
+
+Prettier and actionlint pass. The inline receipt gate accepts retained real hosted receipts and rejects stale container versions, a different worker image and empty execution. The expanded hosted rehearsal is the remaining acceptance step for this workflow increment.
+
+The preceding compiler fix is fully accepted by [performance run 39986990272](https://github.com/DavidNiessen/api-docs/actions/runs/39986990272): the 10k build took 54.37 seconds, peak RSS 929.0 MiB, warm search p95 5.78 ms and incremental guide p95 158.92 ms. Both compiler and reader jobs pass their unchanged budgets. The estimate is now approximately 97%, pre-release. Public mock-demo deployment and the preceding source/server/Java release rehearsal are verified below. Remaining standards/product acceptance, independent reviews, protected signed publication and installation from owned registries remain open; `api-docs` stays a placeholder for the later rename.
+
+## Previous indexed-rendering increment
 
 **Static builds now index endpoint routes once for their immutable render graph.** Profiling followed the hosted 10k compiler budget failure: page generation repeatedly rebuilt URLs and scanned every endpoint to select each page. `createPageDataFactory(site)` creates a local first-match index for the build while retaining the ordinary projection API. No global graph cache is introduced. Callers create a new factory after graph transforms. Active endpoint/schema selection, bounded navigation, locale fallback, unknown routes and duplicate-route precedence retain their prior behavior.
 
