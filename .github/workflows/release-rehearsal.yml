@@ -273,6 +273,12 @@ jobs:
         run: docker build --target server --iidfile /tmp/api-docs-server.id .
       - name: Verify fresh Compose installation, private content and outage recovery
         run: SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent > .api-docs/server-container-evidence.json
+      - name: Install the checksum-pinned inventory scanner
+        run: node scripts/install-inventory-tool.mjs
+      - name: Inventory the tested server image and verify its receipt
+        run: |
+          node scripts/container-inventory.mjs "$(cat /tmp/api-docs-server.id)" > .api-docs/container-inventory-evidence.json
+          node scripts/check-container-inventory.mjs "$(cat /tmp/api-docs-server.id)"
       - name: Require receipts from the prepared tool and image
         run: |
           node --input-type=module <<'NODE'
@@ -301,6 +307,11 @@ jobs:
           assert.equal(server.resolvedImage, serverImage);
           assert.equal(server.cleanupVerified, true);
           assert(server.checks.length >= 9 && server.privateFiles >= 8);
+          const inventory = JSON.parse(await readFile('.api-docs/container-inventory-evidence.json', 'utf8'));
+          assert.equal(inventory.toolVersion, toolVersion);
+          assert.equal(inventory.resolvedImage, serverImage);
+          assert.equal(inventory.signed, false);
+          assert.equal(inventory.publicationApproved, false);
           NODE
       - name: Retain prepared control and artifact receipts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -310,6 +321,9 @@ jobs:
             .api-docs/isolated-build-evidence.json
             .api-docs/build-worker-evidence.json
             .api-docs/server-container-evidence.json
+            .api-docs/container-inventory-evidence.json
+            .api-docs/container-candidates/**/server.cdx.json
+            .api-docs/container-candidates/**/report.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14

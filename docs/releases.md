@@ -79,6 +79,24 @@ Browser builds collect license texts for packages identified in bundle source ma
 
 The regular and prepared-version Java jobs retain these unpublished candidates and SBOMs. Maven namespace ownership, signatures, provenance and registry installation remain separate gates. The local candidates do not create tags, public packages or release entries.
 
+## Container candidate inventories
+
+Regular Quality and the prepared release rehearsal inventory the exact server image that passed Compose acceptance. The scanner is Syft 1.55.0 for Linux x64; both the upstream archive and extracted executable have pinned SHA-256 checksums. The installer verifies cached binaries before reuse, checks downloaded bytes before extraction and installs only the verified executable. It uses HTTPS and the host's existing proxy/CA configuration.
+
+After building packages and the server target, run from the repository root:
+
+```sh
+node scripts/install-inventory-tool.mjs
+node scripts/container-inventory.mjs "$(cat /tmp/api-docs-server.id)" > .api-docs/container-inventory-evidence.json
+node scripts/check-container-inventory.mjs "$(cat /tmp/api-docs-server.id)"
+```
+
+The inventory command accepts an immutable server image ID or repository digest, resolves it against the local Docker daemon and rejects the worker target. It preserves Docker registry/proxy configuration while explicitly selecting the local socket. Scanner update checks and Java network lookups are disabled. Its inputs are the actual image filesystem and package databases, including Debian packages and the Node runtime. A source lockfile inventory cannot substitute for that result.
+
+Each unique `.api-docs/container-candidates/` directory contains `server.cdx.json` (CycloneDX 1.7) and `report.json`, with the image ID, tool/source versions, scanner checksums, inventory checksum and component counts. `.incomplete` marks an unfinished result. The receipt checker confines the inventory path to the candidate directory, validates its bytes and subject, requires the pinned scanner and checks every workspace package against the current tool version. It also requires OS packages, the supported Node runtime and server/database dependencies. Both workflows retain the inventory and receipt; prepared acceptance requires the same version and image as the running server.
+
+A local scan of the development server image found 506 npm packages, 88 Debian packages, the Node runtime and file records. This is inventory evidence, not a vulnerability verdict, license approval or signed release. Bundled browser attribution remains documented separately. The image ID recorded here is Docker's immutable configuration ID; registry manifest digests and signed publication provenance remain separate promotion evidence. Source fields identify the checkout running the inventory; they do not prove how the image was built. Candidate reports explicitly remain unsigned and unapproved for publication.
+
 ## Still required before publication
 
-Confirm owned npm/Maven/container namespaces and the final project name. Complete the advertised support matrix, independent security/accessibility review and pilots; verify branch/tag/environment protection; then test the exact candidate from a clean checkout. Registry release workflows, reviewed final version/changelog changes, container SBOMs, signatures, provenance, upgrade/install rehearsals and release-owner approval remain launch gates. A local tarball install and a cache-only npm reinstall do not establish installation from public registries or a fully air-gapped server deployment.
+Confirm owned npm/Maven/container namespaces and the final project name. Complete the advertised support matrix, independent security/accessibility review and pilots; verify branch/tag/environment protection; then test the exact candidate from a clean checkout. Registry release workflows, reviewed final version/changelog changes, final container inventory review, signatures, provenance, upgrade/install rehearsals and release-owner approval remain launch gates. A local tarball install and a cache-only npm reinstall do not establish installation from public registries or a fully air-gapped server deployment.
