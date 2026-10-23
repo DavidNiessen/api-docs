@@ -28,6 +28,8 @@ export async function verifyServerRecovery(source) {
     'api-docs-restore-' + randomUUID().replaceAll('-', '').slice(0, 16);
   const secrets = join(root, 'secrets');
   const backup = join(root, 'backup');
+  const imageOverride = join(root, 'compose.images.json');
+  let databaseImage;
   const environment = {
     ...source.environment,
     COMPOSE_PROJECT_NAME: project,
@@ -70,10 +72,13 @@ export async function verifyServerRecovery(source) {
       project,
       '-f',
       resolve('deploy/compose.yaml'),
+      '-f',
+      imageOverride,
       ...args,
     ]);
   async function recovery(action, env, expectedError) {
     const args = ['scripts/recovery.mjs', action, backup, '--writers-paused'];
+    if (action === 'restore') args.push('--compose-override', imageOverride);
     // The operator CLI honors Docker's endpoint environment; make this fixture local explicitly.
     const local = { ...env, DOCKER_HOST: 'unix:///var/run/docker.sock' };
     if (expectedError) {
@@ -83,6 +88,28 @@ export async function verifyServerRecovery(source) {
     } else await command(process.execPath, args, local);
   }
   try {
+    const originalConfiguration = JSON.parse(
+      await source.compose('config', '--format', 'json'),
+    );
+    databaseImage = await docker([
+      'image',
+      'inspect',
+      originalConfiguration.services.db.image,
+      '--format',
+      '{{.Id}}',
+    ]);
+    assert.match(databaseImage, /^sha256:[a-f0-9]{64}$/);
+    const service = (image) => ({ image, pull_policy: 'never' });
+    await writeFile(
+      imageOverride,
+      JSON.stringify({
+        services: {
+          db: service(databaseImage),
+          migrate: service(source.image),
+          docs: service(source.image),
+        },
+      }),
+    );
     source.step('recovery source identities');
     const active = await source.json(
       `/api/projects/${source.projectId}/tokens`,
@@ -177,7 +204,7 @@ export async function verifyServerRecovery(source) {
     const configuration = JSON.parse(
       await compose('config', '--format', 'json'),
     );
-    assertOwnedCompose(configuration, project, source.image);
+    assertOwnedCompose(configuration, project, source.image, { databaseImage });
     for (const args of [
       ['ps', '--all', '--quiet'],
       ['volume', 'ls', '--quiet'],
@@ -236,6 +263,11 @@ export async function verifyServerRecovery(source) {
     assert.equal(
       await docker(['inspect', '--format', '{{.Image}}', id]),
       source.image,
+    );
+    const database = await compose('ps', '--quiet', 'db');
+    assert.equal(
+      await docker(['inspect', '--format', '{{.Image}}', database]),
+      databaseImage,
     );
     const address = await compose('port', 'docs', '8080');
     assert.match(address, /^127\.0\.0\.1:[1-9]\d*$/);
@@ -323,6 +355,8 @@ export async function verifyServerRecovery(source) {
       sourceProject: source.project,
       targetProject: project,
       resolvedImage: source.image,
+      databaseImage,
+      composeOverride: true,
       artifactId: source.artifactId,
       checks: [
         'backup-checksums-and-private-directory',

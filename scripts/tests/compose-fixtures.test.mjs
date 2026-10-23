@@ -59,8 +59,35 @@ test('refuses external resources, another project, exposed listeners and differe
   }
 });
 test('refuses project names without the fixture nonce format before cleanup can select a deployment', () => {
-  for (const name of ['api-docs', 'api-docs-runtime', 'api-docs-restore-test'])
+  for (const name of [
+    'api-docs',
+    'api-docs-runtime',
+    'api-docs-restore-test',
+    'api-docs-offline-test',
+  ])
     assert.throws(() =>
       assertOwnedCompose({ ...configuration, name }, name, image),
+    );
+});
+
+test('offline fixtures accept only their selected immutable imported database image', () => {
+  const offlineProject = 'api-docs-offline-' + 'd'.repeat(16);
+  const databaseImage = 'sha256:' + 'e'.repeat(64);
+  const offline = JSON.parse(
+    JSON.stringify(configuration).replaceAll(project, offlineProject),
+  );
+  offline.services.db.image = databaseImage;
+  assertOwnedCompose(offline, offlineProject, image, { databaseImage });
+  assert.throws(() => assertOwnedCompose(offline, offlineProject, image));
+  for (const invalid of [
+    '',
+    null,
+    'postgres:17-alpine',
+    'sha256:' + 'f'.repeat(64),
+  ])
+    assert.throws(() =>
+      assertOwnedCompose(offline, offlineProject, image, {
+        databaseImage: invalid,
+      }),
     );
 });

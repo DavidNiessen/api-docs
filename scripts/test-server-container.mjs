@@ -19,6 +19,7 @@ import { toolVersion } from '@api-docs/contracts';
 import { assertOwnedCompose } from './lib/compose-fixtures.mjs';
 import { verifyServerRecovery } from './lib/server-recovery-fixture.mjs';
 import { verifyServerProxy } from './lib/server-proxy-fixture.mjs';
+import { verifyOfflineInstall } from './lib/server-offline-fixture.mjs';
 
 assert.equal(process.platform, 'linux', 'Use a local Linux Docker daemon.');
 const requestedImage = process.env.SERVER_TEST_IMAGE;
@@ -61,12 +62,16 @@ function step(value) {
   phase = value;
   console.error(`Server container acceptance: ${value}`);
 }
-function docker(args, input, { includeStderr = false } = {}) {
+function docker(
+  args,
+  input,
+  { includeStderr = false, environment: commandEnvironment = environment } = {},
+) {
   return new Promise((resolve, reject) => {
     const child = execFile(
       'docker',
       ['--host=unix:///var/run/docker.sock', ...args],
-      { env: environment, timeout: 120000, maxBuffer: 4 * 1024 * 1024 },
+      { env: commandEnvironment, timeout: 120000, maxBuffer: 4 * 1024 * 1024 },
       (error, stdout, stderr) => {
         if (error)
           reject(
@@ -572,7 +577,26 @@ try {
     publicationPayload: payload,
     publicationId: publication.id,
   });
+  const offline = await verifyOfflineInstall({
+    toolVersion,
+    project,
+    image,
+    databaseReference: configuration.services.db.image,
+    environment,
+    docker,
+    step,
+    sanitize,
+    secretValues,
+    store,
+    slug,
+    expected,
+    privateRoot,
+    privateMarker,
+    paths,
+    artifactId,
+  });
   report = {
+    offline,
     proxy,
     recovery,
     toolVersion,

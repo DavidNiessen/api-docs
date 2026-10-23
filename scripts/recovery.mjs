@@ -6,10 +6,15 @@ import { createHash } from 'node:crypto';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const [action, target, acknowledgement] = process.argv.slice(2);
-if (!['backup', 'restore'].includes(action) || !target)
+const [action, target, acknowledgement, ...extra] = process.argv.slice(2);
+if (
+  !['backup', 'restore'].includes(action) ||
+  !target ||
+  (extra.length &&
+    (extra.length !== 2 || extra[0] !== '--compose-override' || !extra[1]))
+)
   throw new Error(
-    'Usage: node scripts/recovery.mjs backup|restore DIRECTORY --writers-paused',
+    'Usage: node scripts/recovery.mjs backup|restore DIRECTORY --writers-paused [--compose-override FILE]',
   );
 if (acknowledgement !== '--writers-paused')
   throw new Error(
@@ -26,6 +31,14 @@ const compose = fileURLToPath(
 const override = fileURLToPath(
   new URL('../deploy/compose.restore.yaml', import.meta.url),
 );
+const configuredOverride = extra.length ? resolve(extra[1]) : undefined;
+if (configuredOverride) {
+  const info = await lstat(configuredOverride);
+  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024)
+    throw new Error(
+      'Recovery Compose override must be a regular file no larger than 1 MiB.',
+    );
+}
 const directory = resolve(target);
 const files = ['database.dump', 'artifacts.tar'];
 
@@ -41,6 +54,7 @@ async function command(
       project,
       '-f',
       compose,
+      ...(configuredOverride ? ['-f', configuredOverride] : []),
       ...(writable ? ['-f', override] : []),
       ...args,
     ],

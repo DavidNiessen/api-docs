@@ -1,13 +1,19 @@
 import assert from 'node:assert/strict';
 
 /** Fixtures must create only their own resources and publish only to loopback. */
-export function assertOwnedCompose(configuration, project, image) {
+export function assertOwnedCompose(
+  configuration,
+  project,
+  image,
+  { databaseImage } = {},
+) {
   assert.match(
     project,
-    /^api-docs-(?:runtime|restore)-[a-f0-9]{16}$/,
+    /^api-docs-(?:runtime|restore|offline)-[a-f0-9]{16}$/,
     'Use a unique owned fixture project',
   );
   assert.equal(configuration.name, project);
+  assert.match(image, /^sha256:[a-f0-9]{64}$/);
   assert.deepEqual(Object.keys(configuration.services).sort(), [
     'db',
     'docs',
@@ -23,10 +29,14 @@ export function assertOwnedCompose(configuration, project, image) {
     );
   assert.equal(configuration.networks.backend.internal, true);
   assert.equal(configuration.services.db.ports?.length ?? 0, 0);
-  assert.match(
-    configuration.services.db.image,
-    /^postgres:17-alpine@sha256:[a-f0-9]{64}$/,
-  );
+  if (databaseImage !== undefined) {
+    assert.match(databaseImage, /^sha256:[a-f0-9]{64}$/);
+    assert.equal(configuration.services.db.image, databaseImage);
+  } else
+    assert.match(
+      configuration.services.db.image,
+      /^postgres:17-alpine@sha256:[a-f0-9]{64}$/,
+    );
   assert.equal(configuration.services.docs.image, image);
   assert.equal(configuration.services.migrate.image, image);
   assert(configuration.services.docs.ports.length > 0);

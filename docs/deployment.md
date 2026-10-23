@@ -45,6 +45,8 @@ If Caddy inherits an outbound HTTP proxy, append the local Compose hostname `doc
 
 The cloud proxy's optional build CA is supported through `deploy/compose.cloud.yaml` and a BuildKit secret; it is not copied into the runtime image. Ordinary deployments should use the primary Compose file. Never disable certificate verification to build an image.
 
+For a destination without registry/npm access, follow [offline application installation](offline-installation.md). It mirrors reviewed image IDs and the small operator file set, verifies transfer checksums and starts Compose with `--no-build --pull never`. Host tools and production TLS trust are supplied through the operator's approved mirror.
+
 ## Stop or restart
 
 Compose gives the server 45 seconds after SIGTERM before forcing termination. Its executable defaults to a 30-second shutdown budget (`SHUTDOWN_TIMEOUT_MS`), drains active responses and then closes database pools. Stop/restart only the intended service, for example `docker compose -f deploy/compose.yaml stop docs`; this does not stop PostgreSQL or remove volumes. A controlled restart uses `docker compose -f deploy/compose.yaml restart docs` and must be followed by readiness and reader checks.
@@ -64,6 +66,8 @@ node scripts/recovery.mjs backup /secure-backups/api-docs-2026-10-22 --writers-p
 The destination must not exist. A successful set contains `database.dump`, `artifacts.tar` and `recovery.json` with SHA-256 checksums. An `.incomplete` marker means the backup failed. Move completed sets to encrypted off-host storage, retain the matching application image and deployment configuration, and test recovery regularly. Checksums detect corruption; they do not authenticate a backup from an untrusted source. Treat recovery sets as privileged deployable content.
 
 ## Restore rehearsal and disaster recovery
+
+When the deployment selects images through an additional Compose file, pass `--compose-override FILE` after `--writers-paused` to both recovery commands. The CLI inserts that file before its writable recovery override, preserving the normal read-only application mount. The selected file must be regular, unlinked and at most 1 MiB. Keep it with the compatible images and backup; review it as privileged operator configuration. See the [offline recovery example](offline-installation.md#install-on-a-fresh-destination).
 
 Restore into a **new Compose project with fresh volumes**, never over the live deployment. Use the same compatible application image and PostgreSQL major version. Generate a separate secret directory for the new database roles; retain the old root token only if your incident policy permits it. A new root token invalidates old operator sessions. Scoped tokens retain their existing hashes and revocations.
 
