@@ -30,6 +30,7 @@ import {
   guideHref,
   operationHref,
   createPageData,
+  createPageDataFactory,
   lifecycleRoutes,
   localePaths,
   localeRoute,
@@ -151,10 +152,11 @@ export async function buildSite(
       join(stage, 'oauth/callback/index.html'),
       `<!doctype html><html lang="${site.config.defaultLocale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"><title>Complete authorization</title><link rel="stylesheet" href="${site.config.basePath}/assets/reader.css"></head><body><main id="main-content" class="oauth-callback"><h1>Complete authorization</h1><p id="oauth-result" role="status">Completing authorization…</p></main><script type="module" src="${site.config.basePath}/assets/oauth-callback.js"></script></body></html>`,
     );
+    const pageData = createPageDataFactory(site);
     for (const [path, title] of pages) {
       const destination = join(stage, path, 'index.html');
       await mkdir(dirname(destination), { recursive: true });
-      const page = createPageData(site, path);
+      const page = pageData(path);
       await writeFile(
         destination,
         renderDocument(page, path, {

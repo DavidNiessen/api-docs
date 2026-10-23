@@ -2,9 +2,9 @@
 
 An open source, self-hosted API documentation platform: polished documentation, interactive API references, and framework integrations without a required hosted service.
 
-**Status: implementation in progress.** The OpenAPI compiler, React reader, worker-based local search, API explorer, CLI, publication server, Studio, and Java/Spring Boot/Node integrations are runnable. Container deployment and recovery are available. The roadmap still includes substantial customization, extensibility, security and release work; this is not yet a production release.
+**Status: implementation in progress.** The OpenAPI compiler, React reader, worker-based local search, API explorer, CLI, publication server, Studio, and Java/Spring Boot/Node integrations are runnable. Container deployment and recovery are available. Production acceptance, independent reviews and signed distribution gates remain open. `api-docs` is a temporary name pending the product rename.
 
-Try the [GitHub Pages demo](https://davidniessen.github.io/api-docs/) once deployment is enabled: bundled mock responses run entirely in your browser, with no API server or credentials. See [demo deployment and local preview](docs/pages-demo.md).
+Try the [GitHub Pages demo](https://davidniessen.github.io/api-docs/): bundled mock responses run entirely in your browser, with no API server or credentials. See [demo deployment and local preview](docs/pages-demo.md).
 
 ## Product direction
 

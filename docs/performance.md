@@ -2,6 +2,8 @@
 
 Performance numbers describe measured fixtures, not a universal service guarantee. Run `node --max-old-space-size=1536 scripts/benchmark.mjs 10000` after `npm run build`. The script builds real static pages, verifies output, checks 100 local search queries, records peak process RSS, and fails when its declared budgets are exceeded. Generated fixtures and reports stay under ignored `.api-docs` paths.
 
+The latest hosted reader budgets pass. The current hosted 10k compiler run exceeded its 120-second ceiling at 130.45 seconds; the indexed-route fix below is awaiting its full-scale rerun. Older passing baselines do not establish resolution of this regression.
+
 ## Recorded baseline
 
 A cloud Linux run on 22 October 2026 used Node 24.19.0 with four reported available CPUs, a 1536 MiB V8 old-space limit, and an OpenAPI 3.1 fixture with 10,000 operations and 50,000 schema nodes.
@@ -87,6 +89,21 @@ A clean checkout at `6e2857f` repeated the same ten-cold-context mobile profile 
 All existing LCP, CLS, interaction and guide-JavaScript budgets passed. The calculated initial JavaScript size was 107,122 gzip bytes from 349,979 downloaded bytes. Hydration samples were approximately 2.47–2.59 seconds under this uncompressed/throttled profile; the reported interaction starts after hydration. The lab measurement and small-fixture limitations above still apply, including the distinction from field INP.
 
 The source was clean, and the verified artifact digest was `457b80d1188a4bc57340d81d0578652f450cff88afea76c820093e9e991830b3`. Retained evidence: `.api-docs/browser-benchmark/1792718640703/report.json`. This is local pre-release evidence, without hosted-CI or release certification.
+
+### Hosted reader follow-up: 23 October 2026
+
+Clean source `6f1e5ce` passed the same ten-cold-context mobile profile locally and in [hosted performance run 39984265218](https://github.com/DavidNiessen/api-docs/actions/runs/39984265218). Both builds produced artifact `da516e289852c400b47a6b6085f10265af96ffb75a017b40eeac5187e89858cf`. The local browser remained Chromium 154.0.8037.57; the hosted runner used pinned Chromium 156.0.8078.4. Each reported four available CPUs. These are separate lab runs, not a controlled comparison of browser versions or hardware.
+
+| Run / fixture   | LCP median / p95 | Maximum CLS | Search-open p95 | Initial JS gzip |
+| --------------- | ---------------- | ----------- | --------------- | --------------- |
+| Local guide     | 972 / 1000 ms    | 0           | 98.6 ms         | 124.7 KiB       |
+| Local endpoint  | 964 / 1068 ms    | 0           | 125.0 ms        | 124.7 KiB       |
+| Hosted guide    | 808 / 832 ms     | 0           | 38.7 ms         | 124.7 KiB       |
+| Hosted endpoint | 792 / 816 ms     | 0           | 39.8 ms         | 124.7 KiB       |
+
+The existing browser budgets pass, including the 150 KiB initial-guide JavaScript ceiling. The increased catalog and reader controls have grown calculated initial gzip JavaScript to 127,643 bytes; the lab/field and uncompressed-transfer limitations above remain applicable. Hosted reports/screenshots are retained for 28 days; local evidence is `.api-docs/browser-benchmark/1792771701003/report.json`.
+
+The same hosted run's **compiler budget failed**: 10,000 operations/50,000 schema nodes took **130.45 seconds**, above 120 seconds. Peak RSS (951.3 MiB), warm search p95 (10.51 ms) and incremental guide p95 (237.03 ms) passed their existing ceilings. This result supersedes any assumption that the older compiler timings establish current hosted performance. The budget is unchanged. Profiling identified repeated full endpoint scans during route projection; the compiler now builds an endpoint lookup once for its immutable render graph. `createPageDataFactory(site)` supplies this indexed projection; create a new factory after graph changes. The ordinary `createPageData` API retains its direct endpoint lookup. A 1,000-endpoint local comparison improved 8.72 to 8.02 seconds with the same artifact digest; a fresh hosted 10k result is still required before calling the regression resolved.
 
 ## Artifact verification regression check
 

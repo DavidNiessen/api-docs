@@ -67,6 +67,26 @@ function navigationOperation(operation: Operation): Operation {
 }
 /** Only route-relevant content is serialized. Bounded navigation stays useful on very large APIs. */
 export function createPageData(site: SiteData, inputPath: string): SiteData {
+  return pageData(site, inputPath);
+}
+type OperationTarget = { api: ApiDocument; operation: Operation };
+/** Reuse route lookup while rendering one immutable graph; create a new factory after graph changes. */
+export function createPageDataFactory(
+  site: SiteData,
+): (path: string) => SiteData {
+  const operations = new Map<string, OperationTarget>();
+  for (const api of site.apis)
+    for (const operation of api.operations) {
+      const path = operationHref(api, operation);
+      if (!operations.has(path)) operations.set(path, { api, operation });
+    }
+  return (path) => pageData(site, path, operations);
+}
+function pageData(
+  site: SiteData,
+  inputPath: string,
+  operations?: ReadonlyMap<string, OperationTarget>,
+): SiteData {
   const path = normalizePagePath(inputPath);
   if (site.pagePath === path) return site;
   const { locale, contentPath } = localeRoute(site.config, path);
@@ -74,16 +94,21 @@ export function createPageData(site: SiteData, inputPath: string): SiteData {
   const activeGuide =
     guides.find((guide) => guideHref(guide) === contentPath) ??
     (contentPath === '/' ? guides[0] : undefined);
+  const target = operations?.get(contentPath);
   const activeApi =
-    site.apis.find((api) =>
-      api.operations.some(
-        (operation) => operationHref(api, operation) === contentPath,
-      ),
-    ) ?? site.apis[0];
+    (operations
+      ? target?.api
+      : site.apis.find((api) =>
+          api.operations.some(
+            (operation) => operationHref(api, operation) === contentPath,
+          ),
+        )) ?? site.apis[0];
   const activeOperation =
-    activeApi?.operations.find(
-      (operation) => operationHref(activeApi, operation) === contentPath,
-    ) ??
+    (operations
+      ? target?.operation
+      : activeApi?.operations.find(
+          (operation) => operationHref(activeApi, operation) === contentPath,
+        )) ??
     (contentPath === '/' && !site.guides.length
       ? activeApi?.operations[0]
       : undefined);

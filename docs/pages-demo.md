@@ -2,6 +2,10 @@
 
 The public demo is intended for [davidniessen.github.io/api-docs](https://davidniessen.github.io/api-docs/). Deployment availability depends on repository Pages settings and successful GitHub Actions runs. The source is [examples/pages-demo](../examples/pages-demo), separate from the localhost API example.
 
+## Verified public deployment
+
+[Quality run 39983896039](https://github.com/DavidNiessen/api-docs/actions/runs/39983896039) passed all required jobs at `6f1e5ce`. [Deployment run 39984904851](https://github.com/DavidNiessen/api-docs/actions/runs/39984904851) deployed that exact tested demo artifact and passed all five browser journeys against the public Pages URL on 23 October 2026. This is development-demo evidence, with bundled fixture data and no live API service.
+
 ## What visitors can try
 
 The static site contains fictional Orbit projects and webhooks, authored guides, local search, API schemas, request examples, prepared themes, modern/classic layouts, resizable panels and the modal playground. **Send mock** generates a documented success response entirely in the browser. Mock controls also preview error statuses, named examples and seeded schema data. Highlighting, folding, fullscreen and complete-response copying work normally.

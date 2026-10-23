@@ -41,7 +41,7 @@ The **Release rehearsal** workflow can be dispatched from `master` with a target
 
 The workflow uses SHA-pinned actions, read-only repository permissions, full Git history, and quoted environment inputs. Its shared preparation action validates boolean/baseline choices and retains the JSON plan, preview and applied receipt. Source artifacts and current Java results are retained for review. The prepared working tree is deliberately dirty and labeled as an unpublished rehearsal: no tags, commits, registry packages, release entries or deployments are created. A rehearsal does not replace checks against a final reviewed clean commit or signed release artifacts.
 
-Hosted Actions can now run after maintainer account setup. The prepared-version release rehearsal still requires its own successful hosted run; the local evidence below does not establish that gate.
+Hosted [rehearsal 39984331124](https://github.com/DavidNiessen/api-docs/actions/runs/39984331124) passed at clean source `6f1e5ce`, preparing an unpublished `0.2.0` candidate with the selected `dev.niessen` group. Source/tooling/browser/snippet/package checks, server/Studio acceptance and all six Java/Spring combinations passed. The prepared working tree and candidate flags are intentional rehearsal evidence; signed publication, registry installation and approval of final artifact digests remain separate gates.
 
 ## Local prepared-version rehearsal
 

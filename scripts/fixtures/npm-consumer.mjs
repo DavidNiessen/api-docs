@@ -35,6 +35,8 @@ import {
   feedbackHref,
   isRelayEndpoint,
   createUiTranslation,
+  createPageData,
+  createPageDataFactory,
   localizePath,
   localeRoute,
   readBuildPolicy,
@@ -397,6 +399,10 @@ for (const name of Object.keys(metadata.dependencies).filter((name) =>
 }
 typeImports.push(`import {defineReaderExtension as defineTypedReaderExtension} from '@api-docs/plugin-sdk/browser';
 const typedReaderExtension=defineTypedReaderExtension({id:'typed-reader',version:'1.0.0',pluginApi:'1',capabilities:['page','footer'],activate(context){context.setFooter(page=>{const element=document.createElement('p');element.textContent=page.title;return {element};});}});void typedReaderExtension;`);
+typeImports.push(`import {createPageDataFactory as createTypedPageDataFactory} from '@api-docs/contracts';
+import type {SiteData as ProjectionSiteData} from '@api-docs/contracts';
+function projectPages(site:ProjectionSiteData):(path:string)=>ProjectionSiteData{return createTypedPageDataFactory(site);}
+void projectPages;`);
 typeImports.push(`import {PostgresRepository as TypedPostgresRepository} from '@api-docs/storage';
 import type {PostgresRepositoryOptions} from '@api-docs/storage';
 import type {BuildJobRepository, BuildLease, BuildQueueLimits} from '@api-docs/domain';
@@ -643,6 +649,10 @@ const installedSite = JSON.parse(
   await readFile(join(directory, 'site.json'), 'utf8'),
 );
 assert.deepEqual(validateSiteData(installedSite), installedSite);
+assert.deepEqual(
+  createPageDataFactory(installedSite)('/'),
+  createPageData(installedSite, '/'),
+);
 for (const api of installedSite.apis) {
   assert.match(api.operationIndex, /^api-index\/\d+\/catalog\.json$/);
   assert(Object.hasOwn(manifest.files, api.operationIndex));

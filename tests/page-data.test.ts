@@ -1,6 +1,12 @@
 import { renderDocument } from '@api-docs/reader/render';
 import { expect, it } from 'vitest';
-import { createPageData, normalizePagePath } from '@api-docs/contracts';
+import {
+  createPageData,
+  createPageDataFactory,
+  normalizePagePath,
+  operationHref,
+  localizePath,
+} from '@api-docs/contracts';
 import type { SiteData } from '@api-docs/contracts';
 import { compileProject } from '@api-docs/compiler';
 import { resolve } from 'node:path';
@@ -53,4 +59,74 @@ it('HTML-safe bootstrap data round-trips markup without changing its content', a
   const parsed = JSON.parse(json!) as SiteData;
   expect(parsed.config.description).toBe(site.config.description);
   expect(parsed.guides[0]!.html).toBe(site.guides[0]!.html);
+});
+
+it('indexed rendering preserves localized route data and HTML beyond the navigation window and API limit', async () => {
+  const site = await compileProject(resolve('examples/localized'));
+  const api = site.apis[0]!;
+  site.apis = Array.from({ length: 18 }, (_, index) => ({
+    ...api,
+    version: `v${index + 1}`,
+    operations: Array.from({ length: 240 }, (_, position) => ({
+      ...api.operations[0]!,
+      id: `operation-${position}`,
+      slug: `operation-${position}`,
+    })),
+  }));
+  const last = site.apis.at(-1)!;
+  const path = operationHref(last, last.operations.at(-1)!);
+  const snapshot = JSON.stringify(site);
+  const indexed = createPageDataFactory(site);
+  for (const route of [
+    '/',
+    '/guides/introduction/',
+    '/not-found/',
+    '/deprecations/',
+    path,
+    path + 'index.html',
+    localizePath(site.config, path, 'en'),
+  ]) {
+    const expected = createPageData(site, route);
+    expect(indexed(route)).toEqual(expected);
+    expect(renderDocument(indexed(route), route)).toBe(
+      renderDocument(expected, route),
+    );
+  }
+  expect(JSON.stringify(site)).toBe(snapshot);
+  const page = indexed(path);
+  expect(page.apis).toHaveLength(17);
+  expect(page.apis.at(-1)!.operations.at(-1)!.id).toBe('operation-239');
+  expect(indexed(page.pagePath!)).toEqual(page);
+  const apiOnly = { ...site, guides: [] };
+  expect(createPageDataFactory(apiOnly)('/')).toEqual(
+    createPageData(apiOnly, '/'),
+  );
+});
+
+it('route indexes belong to their graph and preserve first-match behavior without changing direct projections', async () => {
+  const site = await compileProject(resolve('examples/demo'));
+  const first = site.apis[0]!.operations[0]!;
+  const path = operationHref(site.apis[0]!, first);
+  const duplicate = { ...first, description: 'Duplicate must not win' };
+  site.apis[0]!.operations.push(duplicate);
+  const indexed = createPageDataFactory(site);
+  expect(indexed(path)).toEqual(createPageData(site, path));
+  expect(indexed(path).apis[0]!.operations[0]!.description).toBe(
+    first.description,
+  );
+  const next = {
+    ...site,
+    apis: [{ ...site.apis[0]!, operations: [duplicate] }],
+  };
+  expect(createPageDataFactory(next)(path)).toEqual(createPageData(next, path));
+  expect(
+    createPageDataFactory(next)(path).apis[0]!.operations[0]!.description,
+  ).toBe(duplicate.description);
+  expect(indexed(path).apis[0]!.operations[0]!.description).toBe(
+    first.description,
+  );
+  next.apis[0]!.operations = [first];
+  expect(createPageData(next, path).apis[0]!.operations[0]!.description).toBe(
+    first.description,
+  );
 });

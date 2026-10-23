@@ -267,7 +267,11 @@ export { resolveSchema, exampleFor } from './schema.js';
 export { objectFieldSchema } from './object-fields.js';
 export { resolveHeaderObject } from './headers.js';
 
-export { createPageData, normalizePagePath } from './page.js';
+export {
+  createPageData,
+  createPageDataFactory,
+  normalizePagePath,
+} from './page.js';
 export { toolVersion } from './version.js';
 export { lifecycleContext, lifecycleRoutes } from './lifecycle-pages.js';
 export type {
