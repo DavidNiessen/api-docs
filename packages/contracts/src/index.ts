@@ -138,7 +138,13 @@ export interface Theme {
   codeTheme: 'dark' | 'light';
   density: 'comfortable' | 'compact';
 }
+export interface ReaderExtensionAsset {
+  id: string;
+  entry: string;
+  digest: string;
+}
 export interface ProjectConfig {
+  readerExtensions?: { id: string; entry: string; files?: string[] }[];
   i18n?: import('./i18n.js').UiConfiguration;
   feedback?: { url: string; label?: string; includePage?: boolean };
   explorer?: {
@@ -173,6 +179,7 @@ export interface ProjectConfig {
   plugins: string[];
 }
 export interface SiteData {
+  readerExtensions?: ReaderExtensionAsset[];
   /** Full compiler graph only; omitted from route-scoped payloads. */
   guideTranslations?: Record<string, Guide[]>;
   /** Language of the active authored content in route-scoped payloads. */

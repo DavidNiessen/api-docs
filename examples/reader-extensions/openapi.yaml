@@ -1,0 +1,14 @@
+openapi: 3.1.0
+info:
+  title: Extension example
+  version: v1
+servers:
+  - url: http://127.0.0.1:4010/v1
+paths:
+  /projects:
+    get:
+      operationId: listProjects
+      summary: List projects
+      responses:
+        '200':
+          description: Projects

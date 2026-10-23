@@ -1,6 +1,6 @@
 # Trusted build plugins
 
-The current experimental SDK supports typed `loadSpec`, `theme`, `transform` and build-time `generateSnippets` hooks. Framework serving adapters are separate native integrations; see [integration instructions](integrations.md). Custom browser components and dynamic browser snippet/search hooks remain roadmap work.
+The current experimental SDK supports typed `loadSpec`, `theme`, `transform` and build-time `generateSnippets` hooks. Framework serving adapters are separate native integrations; see [integration instructions](integrations.md). Reviewed browser modules can now use [runtime page hooks and footer widgets](reader-extensions.md) through a separate browser-only API. Additional browser slots and dynamic snippet/search hooks remain roadmap work.
 
 Start from [the runnable release-label example](../examples/plugins/release-label.mjs):
 

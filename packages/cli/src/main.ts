@@ -37,7 +37,10 @@ const buildOptions = (command: Command): Command =>
       'output directory inside the project .api-docs folder',
       '.api-docs/site',
     )
-    .option('--trust-plugins', 'allow reviewed local build plugins to execute')
+    .option(
+      '--trust-plugins',
+      'allow reviewed build plugins and browser extensions',
+    )
     .option(
       '--trust-content',
       'allow reviewed MDX content to execute in bounded workers',
@@ -215,7 +218,10 @@ for (const mode of ['validate', 'doctor'] as const)
     .option('-c, --config <file>', 'project config file', 'docs.config.yaml')
     .option('--strict', 'fail on warnings')
     .option('--json', 'machine-readable output')
-    .option('--trust-plugins', 'allow reviewed local plugins')
+    .option(
+      '--trust-plugins',
+      'allow reviewed build plugins and browser extensions',
+    )
     .option(
       '--trust-content',
       'allow reviewed MDX content to execute in bounded workers',
@@ -284,7 +290,10 @@ program
     'require a migration URL or resolved replacement for every entry',
   )
   .option('--json', 'machine-readable inventory')
-  .option('--trust-plugins', 'allow reviewed local plugins')
+  .option(
+    '--trust-plugins',
+    'allow reviewed build plugins and browser extensions',
+  )
   .option('--trust-content', 'allow reviewed MDX content')
   .action(
     async (

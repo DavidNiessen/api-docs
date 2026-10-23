@@ -22,6 +22,7 @@ import {
   compileGuideUpdate,
   artifactIdentity,
   loadPublicAssets,
+  loadReaderExtensions,
   digest,
   createArtifactPathFilter,
 } from '@api-docs/compiler';
@@ -89,6 +90,21 @@ export async function buildSite(
       ),
     );
     await cp(assets, join(stage, 'assets'), { recursive: true });
+    const browser = await loadReaderExtensions(
+      project,
+      site.config,
+      options.trustPlugins ?? false,
+    );
+    if (
+      JSON.stringify(browser.extensions) !==
+      JSON.stringify(site.readerExtensions ?? [])
+    )
+      throw new Error('Reader extension sources changed during build; retry');
+    for (const [path, value] of browser.files) {
+      const output = join(stage, path);
+      await mkdir(dirname(output), { recursive: true });
+      await writeFile(output, value);
+    }
     for (const [path, value] of await loadPublicAssets(project, site.config)) {
       if (
         site.assetMetadata?.find((asset) => asset.path === path)?.hash !==

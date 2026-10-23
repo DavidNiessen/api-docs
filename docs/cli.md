@@ -50,7 +50,7 @@ Markdown front matter supports `title`, `description`, `group`, and numeric `ord
 
 ## Trust and credentials
 
-Plugins execute trusted local code and require `--trust-plugins`. File-based build plugins run in fresh workers with external time and output limits; they retain the build user's filesystem, network and environment access. This is not a security sandbox. See the [SDK and conformance reference](plugins.md). Do not enable plugins from untrusted repositories. Reader credentials remain in memory; copied request examples use placeholders. OAuth public clients can use [authorization code with PKCE](explorer-auth.md). The explorer sends browser requests directly, so the target API must permit the reader origin through CORS.
+Reviewed build plugins and [browser reader extensions](reader-extensions.md) require `--trust-plugins`. Build plugins execute local code; reader extensions are copied into the artifact and execute with full page-origin privileges in visitors’ browsers. File-based build plugins run in fresh workers with external time and output limits; they retain the build user's filesystem, network and environment access. This is not a security sandbox. See the [SDK and conformance reference](plugins.md). Do not enable plugins from untrusted repositories. Reader credentials remain in memory; copied request examples use placeholders. OAuth public clients can use [authorization code with PKCE](explorer-auth.md). The explorer sends browser requests directly, so the target API must permit the reader origin through CORS.
 
 ## Verification and diagnostics
 

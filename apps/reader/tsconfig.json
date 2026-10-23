@@ -15,6 +15,9 @@
     },
     {
       "path": "../../packages/explorer"
+    },
+    {
+      "path": "../../packages/plugin-sdk"
     }
   ]
 }

@@ -156,6 +156,20 @@ const schema = z
   .object({
     schemaVersion: z.literal(1),
     config: object,
+    readerExtensions: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
+            digest: z.string().regex(/^[a-f0-9]{64}$/),
+            entry: z
+              .string()
+              .regex(/^reader-extensions\/[A-Za-z0-9/._-]+\.m?js$/),
+          })
+          .strict(),
+      )
+      .max(8)
+      .optional(),
     assetMetadata: z
       .array(
         z

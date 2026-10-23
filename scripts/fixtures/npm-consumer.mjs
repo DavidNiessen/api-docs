@@ -15,6 +15,10 @@ import {
   parseConfig,
   requestAllowedOrigin,
 } from '@api-docs/spec';
+import {
+  defineReaderExtension,
+  createReaderExtensionSession,
+} from '@api-docs/plugin-sdk/browser';
 import { createExpressDocs } from '@api-docs/node/express';
 import { apiDocsPlugin } from '@api-docs/node/fastify';
 import {
@@ -40,6 +44,25 @@ import {
 } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
+const browserPages = [];
+const browserExtension = defineReaderExtension({
+  id: 'installed-browser',
+  version: '1.0.0',
+  pluginApi: '1',
+  capabilities: ['page'],
+  activate(context) {
+    return context.onPageChange((page) => browserPages.push(page.path));
+  },
+});
+const browserSession = createReaderExtensionSession(
+  browserExtension,
+  { path: '/', title: 'Installed', locale: 'en', kind: 'guide' },
+  { basePath: '/reference', mount: () => {} },
+);
+assert.equal(await browserSession.ready, true);
+browserSession.dispose();
+assert.deepEqual(browserPages, ['/']);
+
 const feedbackConfig = parseConfig({
   name: 'Installed feedback',
   specs: [{ id: 'fixture', path: 'openapi.yaml' }],
@@ -236,6 +259,8 @@ for (const name of Object.keys(metadata.dependencies).filter((name) =>
     `import * as Component${typeImports.length} from ${JSON.stringify(entry)};\nvoid Component${typeImports.length};`,
   );
 }
+typeImports.push(`import {defineReaderExtension as defineTypedReaderExtension} from '@api-docs/plugin-sdk/browser';
+const typedReaderExtension=defineTypedReaderExtension({id:'typed-reader',version:'1.0.0',pluginApi:'1',capabilities:['page','footer'],activate(context){context.setFooter(page=>{const element=document.createElement('p');element.textContent=page.title;return {element};});}});void typedReaderExtension;`);
 await writeFile(
   'types.mts',
   typeImports.join('\n') +
@@ -336,11 +361,15 @@ const config = join(root, 'docs/docs.config.yaml');
 await writeFile(
   config,
   (await readFile(config, 'utf8')) +
-    '\nbasePath: /reference\nplugins:\n  - plugin.mjs\nlocales: [en, de]\ni18n:\n  guides:\n    de: translations/de\n',
+    '\nbasePath: /reference\nplugins:\n  - plugin.mjs\nlocales: [en, de]\ni18n:\n  guides:\n    de: translations/de\nreaderExtensions:\n  - id: installed-footer\n    entry: installed-footer.mjs\n',
 );
 await writeFile(
   'docs/plugin.mjs',
   `import { definePlugin } from '@api-docs/plugin-sdk';\nexport default definePlugin({ name: 'installed-consumer', version: '1.0.0', pluginApi: '1', capabilities: ['source', 'theme', 'transform', 'snippets'], loadSpec: (source) => source.content.replace('title: My API', 'title: Installed source API'), theme: () => ({ radius: 12, colors: { light: { surface: '#f4f8f6' } } }), transform: (site) => { if (site.config.theme.radius !== 12 || site.apis[0].title !== 'Installed source API') throw new Error('Source/theme hooks did not precede transform'); return { ...site, config: { ...site.config, name: 'Packaged consumer' }, apis: site.apis.map((api, i) => i ? api : { ...api, operations: api.operations.map((op, j) => j ? op : { ...op, lifecycle: { sunsetOn: '2028-01-01', message: 'Packaged lifecycle metadata' } }) }) }; }, generateSnippets({operation}) { return [{id:'sdk', label:'Installed SDK', language:'javascript', code:'console.log('+JSON.stringify(operation.id)+');'}]; } });\n`,
+);
+await writeFile(
+  'docs/installed-footer.mjs',
+  `export default {id:'installed-footer',version:'1.0.0',pluginApi:'1',capabilities:['footer'],activate(context){context.setFooter(page=>{const element=globalThis.document.createElement('p');element.textContent=page.title;return {element};});}};`,
 );
 await mkdir('docs/translations/de', { recursive: true });
 await writeFile(
@@ -395,6 +424,8 @@ assert(
     'search/de/0.json',
   ),
 );
+assert.equal(installedSite.readerExtensions[0].id, 'installed-footer');
+assert(Object.hasOwn(manifest.files, installedSite.readerExtensions[0].entry));
 assert.equal(installedSite.config.theme.radius, 12);
 assert.equal(installedSite.config.theme.colors.light.surface, '#f4f8f6');
 assert.equal(installedSite.apis[0].title, 'Installed source API');
@@ -477,6 +508,14 @@ try {
   const response = await staticServer.inject('/reference/');
   assert.equal(response.statusCode, 200);
   assert(response.body.includes('Packaged consumer'));
+  assert.equal(
+    (
+      await staticServer.inject(
+        '/reference/' + installedSite.readerExtensions[0].entry,
+      )
+    ).statusCode,
+    200,
+  );
   const localized = await staticServer.inject(
     '/reference/de/guides/installed/',
   );

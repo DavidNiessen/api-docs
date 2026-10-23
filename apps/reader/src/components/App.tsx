@@ -44,6 +44,7 @@ import { MediaExamples } from './MediaExamples.js';
 import { PageFooter } from './PageFooter.js';
 import { DeprecationCenter, OperationLifecycle } from './Lifecycle.js';
 
+const ReaderExtensions = lazy(() => import('./ReaderExtensions.js'));
 const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
 function scrollFragment(hash: string) {
   if (!hash) return;
@@ -127,6 +128,10 @@ export function App({
   }, [site.config.explorer?.credentialReuse, credentialSession]);
   const [path, setPath] = useState(initialPath);
   const [loading, setLoading] = useState(false);
+  const [extensionsReady, setExtensionsReady] = useState(false);
+  useEffect(() => {
+    if (site.readerExtensions?.length) setExtensionsReady(true);
+  }, [site.readerExtensions?.length]);
   const [searchIndex, setSearchIndex] = useState(() =>
     createSearchIndex(initialSite),
   );
@@ -1014,6 +1019,26 @@ export function App({
                 <Icon name="arrow" />
               </a>
             </article>
+          )}
+          {extensionsReady && !!site.readerExtensions?.length && (
+            <Suspense fallback={null}>
+              <ReaderExtensions
+                assets={site.readerExtensions}
+                basePath={config.basePath}
+                page={{
+                  path,
+                  title: pageMetadata(site, path).title,
+                  locale,
+                  kind: lifecyclePage
+                    ? 'lifecycle'
+                    : activeOperation
+                      ? 'operation'
+                      : activeGuide
+                        ? 'guide'
+                        : 'not-found',
+                }}
+              />
+            </Suspense>
           )}
         </main>
       </div>

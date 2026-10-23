@@ -1,0 +1,12 @@
+schemaVersion: 1
+name: Reader extensions
+basePath: /extensions
+specs:
+  - id: api
+    path: openapi.yaml
+readerExtensions:
+  - id: related-guides
+    entry: related-guides.mjs
+    files: [footer-tools.mjs]
+  - id: unavailable-example
+    entry: unavailable.mjs

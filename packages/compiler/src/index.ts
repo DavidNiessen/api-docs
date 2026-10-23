@@ -23,6 +23,8 @@ import {
 import { loadGuides, renderMarkdown } from '@api-docs/content';
 import { runPluginFiles, runSourcePluginFiles } from '@api-docs/plugin-sdk';
 import type { SpecSource, SourcePluginExecution } from '@api-docs/plugin-sdk';
+import { loadReaderExtensions } from './reader-extensions.js';
+export { loadReaderExtensions } from './reader-extensions.js';
 import { loadPublicAssets } from './assets.js';
 export { loadPublicAssets } from './assets.js';
 export { auditDocumentation } from './doctor.js';
@@ -152,6 +154,15 @@ export async function compileProject(
     }
     site.pluginVersions = execution.plugins;
   }
+  if (!options.skipPlugins) {
+    const browser = await loadReaderExtensions(
+      root,
+      site.config,
+      options.trustPlugins ?? false,
+    );
+    if (browser.extensions.length) site.readerExtensions = browser.extensions;
+    else delete site.readerExtensions;
+  } else delete site.readerExtensions;
   return site;
 }
 

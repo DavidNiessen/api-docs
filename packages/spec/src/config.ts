@@ -17,6 +17,12 @@ const safePath = z
     (value) => !value.split('/').includes('..'),
     'Parent traversal is not allowed',
   );
+const readerModulePath = safePath.refine(
+  (value) =>
+    /\.m?js$/.test(value) &&
+    value.split('/').every((part) => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(part)),
+  'Use a canonical .js or .mjs project path',
+);
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const palette = z
   .object({
@@ -193,6 +199,23 @@ export const configSchema = z
       )
       .default(['en']),
     defaultLocale: z.string().default('en'),
+    readerExtensions: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
+            entry: readerModulePath,
+            files: z.array(readerModulePath).max(16).optional(),
+          })
+          .strict(),
+      )
+      .max(8)
+      .refine(
+        (values) =>
+          new Set(values.map((value) => value.id)).size === values.length,
+        'Duplicate reader extension ids',
+      )
+      .optional(),
     plugins: z.array(safePath).default([]),
     explorer: z
       .object({

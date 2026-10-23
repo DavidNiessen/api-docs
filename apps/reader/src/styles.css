@@ -2819,3 +2819,30 @@ h3 {
   flex-shrink: 0;
   margin-top: 2px;
 }
+
+.reader-extension-host {
+  grid-column: 1/-1;
+  margin: 24px;
+  min-width: 0;
+}
+.reader-extension-host:empty,
+.reader-extension-host > div:empty {
+  display: none;
+}
+.reader-extension-host > div {
+  margin-bottom: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.reader-extension-host h2 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+.reader-extension-host p {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 8px 0;
+}
