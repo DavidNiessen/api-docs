@@ -17,6 +17,12 @@ Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**Container promotion now preserves the tested image ID and has an anonymous public verification path.** The transport loads the accepted archive without rebuilding, rejects conflicting immutable tags and binds the registry manifest digest/config to producer evidence. A separate promotion predicate supports keyless signing without claiming the publisher built the image. Public acceptance uses anonymous registry credentials, an empty Docker configuration, a digest pull, constrained attestation verification and an owned read-only runtime probe with failure cleanup. Protected workflow integration and actual public publishing remain pending.
+
+All **152 tooling tests** pass. Read-only anonymous GHCR manifest/config verification passes against a public runner image. The new managed-daemon helper and restricted runtime/cleanup probe pass against the retained local `0.1.0` image; this is not a new-image or public-project publication claim. Completion remains approximately **97%, pre-release**.
+
+## Previous Maven-publication increment
+
 **The Maven transport signs and promotes accepted Java files with explicit Central validation and separate public consumer acceptance.** All nine POM/binary/source/Javadoc files retain their tested hashes; local signing verifies every detached signature and produces Central's required layout/checksums. Uploads use manual validation before publication, retain safe deployment receipts and refuse conflicting/partially visible public coordinates. Fresh public acceptance verifies signatures with the reviewed public key, then runs MVC/WebFlux and offline compilation from an empty Maven repository without installing project JARs. Workflow integration and actual registry publication remain pending.
 
 All **146 tooling tests** pass. Real ephemeral-key signing and tamper rejection pass for the nine-file bundle; mocked Central states enforce validation-before-publication and retain failed deployment IDs. The extracted fixture-only compiler builds all three Java publication fixtures with matching manifest digests. No production key, registry write or public installation is claimed. Completion remains approximately **97%, pre-release**.

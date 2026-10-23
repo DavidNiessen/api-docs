@@ -4,6 +4,7 @@ const origins = new Set([
   'https://registry.npmjs.org',
   'https://central.sonatype.com',
   'https://repo.maven.apache.org',
+  'https://ghcr.io',
 ]);
 
 /** Release credentials and bytes must never follow registry-controlled redirects. */
@@ -57,5 +58,9 @@ export async function releaseRequest(
       reader.releaseLock();
     }
   }
-  return { status: response.status, bytes: Buffer.concat(chunks, bytes) };
+  return {
+    status: response.status,
+    bytes: Buffer.concat(chunks, bytes),
+    contentDigest: response.headers.get('docker-content-digest'),
+  };
 }
