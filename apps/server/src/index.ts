@@ -9,18 +9,28 @@ import { resolve, join, extname } from 'node:path';
 import { verifyArtifact } from '@api-docs/compiler';
 import { confinedPath } from '@api-docs/spec';
 import { can, ConflictError } from '@api-docs/domain';
-import type { Principal, Project, Repository, Role } from '@api-docs/domain';
+import type {
+  Principal,
+  Project,
+  Repository,
+  Role,
+  RelayAuditWriter,
+} from '@api-docs/domain';
 import type { SiteData } from '@api-docs/contracts';
 import { equalSecret, registerOidc, tokenHash } from './oidc.js';
 import type { OidcOptions } from './oidc.js';
 import { PublicationManifestCache } from './artifacts.js';
+import { parseRelayPolicy } from './relay-policy.js';
+import type { RelayConfiguration } from './relay-policy.js';
+import { registerRelay, RELAY_PATH } from './relay.js';
 declare module 'fastify' {
   interface FastifyRequest {
     principal: Principal | undefined;
   }
 }
 export interface ServerOptions {
-  repository: Repository;
+  relay?: RelayConfiguration;
+  repository: Repository & Partial<RelayAuditWriter>;
   artifactRoot: string;
   rootToken: string;
   publicUrl: string;
@@ -64,6 +74,12 @@ export async function createServer(options: ServerOptions) {
       'PUBLIC_URL must be an HTTPS origin; explicit insecure development only permits loopback HTTP',
     );
   const repository = options.repository;
+  const relay =
+    options.relay === undefined ? undefined : parseRelayPolicy(options.relay);
+  if (relay && typeof repository.recordRelay !== 'function')
+    throw new Error(
+      'Configured relays require an append-only RelayAuditWriter',
+    );
   const manifests = new PublicationManifestCache(options.artifactRoot);
   await repository.initialize();
   await mkdir(options.artifactRoot, { recursive: true });
@@ -92,7 +108,22 @@ export async function createServer(options: ServerOptions) {
       !request.headers.authorization &&
       !request.headers.cookie,
   });
-  app.addHook('onRequest', async (request) => {
+  const relayRateGate = relay
+    ? app.createRateLimit({
+        max: relay.perMinute,
+        timeWindow: 60000,
+        keyGenerator: (request) => request.ip + ':relay',
+        allowList: () => false,
+      })
+    : undefined;
+  app.addHook('onRequest', async (request, reply) => {
+    if (relayRateGate && request.routeOptions.url === RELAY_PATH) {
+      const rate = await relayRateGate(request);
+      if (!rate.isAllowed && rate.isExceeded) {
+        reply.header('Retry-After', rate.ttlInSeconds);
+        fail(429, 'Relay rate limit exceeded');
+      }
+    }
     const authorization = request.headers.authorization;
     if (authorization) {
       if (!authorization.startsWith('Bearer ') || authorization.length > 1024)
@@ -174,6 +205,7 @@ export async function createServer(options: ServerOptions) {
     request: FastifyRequest,
     projectId: string,
     role: Role,
+    allowPublic = true,
   ): Promise<Project> => {
     const project = await repository.project(projectId);
     if (!project) fail(404, 'Project not found');
@@ -183,7 +215,14 @@ export async function createServer(options: ServerOptions) {
       !request.principal.tokenProjectId
         ? await repository.role(project.id, request.principal.subject)
         : undefined;
-    if (!can(request.principal, project, assigned, role))
+    if (
+      !can(
+        request.principal,
+        allowPublic ? project : { ...project, visibility: 'private' },
+        assigned,
+        role,
+      )
+    )
       fail(request.principal ? 403 : 401, 'Project access denied');
     return project;
   };
@@ -191,6 +230,16 @@ export async function createServer(options: ServerOptions) {
     if (!request.principal?.root)
       fail(403, 'Operator authentication is required');
   };
+  if (relay)
+    await registerRelay(
+      app,
+      {
+        recordRelay: (project, subject, event) =>
+          repository.recordRelay!(project, subject, event),
+      },
+      relay,
+      (request, project, role) => needProject(request, project, role, false),
+    );
   app.get('/health/live', async () => ({ status: 'ok' }));
   app.get('/health/ready', async (_request, reply) => {
     const healthy = await repository.healthy();

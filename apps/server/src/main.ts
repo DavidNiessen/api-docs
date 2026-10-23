@@ -1,7 +1,9 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { PostgresRepository } from '@api-docs/storage';
 import { createServer } from './index.js';
+import { readTextFile } from '@api-docs/spec';
+import { parseRelayPolicy } from './relay-policy.js';
 const required = (name: string): string => {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
@@ -16,8 +18,19 @@ async function secret(name: string): Promise<string> {
   );
 }
 async function start() {
+  const relay = process.env.RELAY_CONFIG_FILE
+    ? parseRelayPolicy(
+        JSON.parse(
+          await readTextFile(
+            await realpath(process.env.RELAY_CONFIG_FILE),
+            64 * 1024,
+          ),
+        ),
+      )
+    : undefined;
   const repository = new PostgresRepository(await secret('DATABASE_URL'));
   const app = await createServer({
+    ...(relay ? { relay } : {}),
     repository,
     artifactRoot: process.env.ARTIFACT_ROOT ?? '/data/artifacts',
     rootToken: await secret('ROOT_TOKEN'),
@@ -57,7 +70,7 @@ async function start() {
 }
 void start().catch(() => {
   console.error(
-    'Server startup failed. Check database connectivity, OIDC configuration, required variables and storage permissions.',
+    'Server startup failed. Check database connectivity, OIDC/relay configuration, required variables and storage permissions.',
   );
   process.exitCode = 1;
 });

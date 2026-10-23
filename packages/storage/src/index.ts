@@ -6,14 +6,17 @@ import type {
   Publication,
   Repository,
   Role,
+  RelayAudit,
+  RelayAuditWriter,
 } from '@api-docs/domain';
 import { ConflictError } from '@api-docs/domain';
 const projectColumns =
   'id, slug, name, visibility, active_publication_id AS "activePublicationId"';
 const publicationColumns =
   'id, project_id AS "projectId", artifact_id AS "artifactId", subject, created_at::text AS "createdAt", idempotency_key AS "idempotencyKey"';
-export class PostgresRepository implements Repository {
+export class PostgresRepository implements Repository, RelayAuditWriter {
   private readonly pool: pg.Pool;
+  private readonly relayAuditPool: pg.Pool;
   constructor(
     connectionString: string,
     private readonly options: { migrate?: boolean } = {},
@@ -23,6 +26,17 @@ export class PostgresRepository implements Repository {
       max: 10,
       connectionTimeoutMillis: 5000,
       idleTimeoutMillis: 30_000,
+    });
+    this.relayAuditPool = new pg.Pool({
+      connectionString,
+      max: 4,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 30_000,
+      statement_timeout: 4000,
+      query_timeout: 5000,
+    });
+    this.relayAuditPool.on('error', () => {
+      /* Relay outcomes report availability without logging credentials. */
     });
     this.pool.on('error', () => {
       /* Health checks expose availability without logging connection credentials. */
@@ -76,7 +90,7 @@ export class PostgresRepository implements Repository {
     );
   }
   async close() {
-    await this.pool.end();
+    await Promise.all([this.pool.end(), this.relayAuditPool.end()]);
   }
   async healthy() {
     try {
@@ -306,6 +320,41 @@ export class PostgresRepository implements Repository {
         [projectId],
       )
     ).rows as Record<string, unknown>[];
+  }
+  async recordRelay(
+    projectId: string,
+    subject: string,
+    event: RelayAudit,
+  ): Promise<void> {
+    const {
+      requestId,
+      phase,
+      method,
+      origin,
+      status,
+      outcome,
+      requestBytes,
+      responseBytes,
+      durationMs,
+    } = event;
+    await this.relayAuditPool.query(
+      'INSERT INTO docs_audit(project_id,actor,action,metadata) VALUES($1,$2,$3,$4)',
+      [
+        projectId,
+        subject,
+        'relay.' + phase,
+        JSON.stringify({
+          requestId,
+          method,
+          origin,
+          status,
+          outcome,
+          requestBytes,
+          responseBytes,
+          durationMs,
+        }),
+      ],
+    );
   }
   async createToken(
     projectId: string,

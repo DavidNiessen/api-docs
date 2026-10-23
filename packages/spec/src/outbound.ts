@@ -58,6 +58,8 @@ export function abortableOutbound<T>(
 }
 const owned =
   /^(host|content-length|accept-encoding|connection|keep-alive|cookie|cookie2|transfer-encoding|te|trailer|upgrade|expect|via|forwarded|x-forwarded-.*|x-real-ip|proxy-.*|sec-.*)$/i;
+export const isAllowedOutboundHeader = (name: string): boolean =>
+  /^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/.test(name) && !owned.test(name);
 
 /** One bounded HTTP exchange with exact-origin policy, checked/pinned DNS, verified TLS and no redirects. */
 export async function requestAllowedOrigin(
@@ -118,8 +120,7 @@ export async function requestAllowedOrigin(
   for (const [name, value] of supplied) {
     const key = name.toLowerCase();
     if (
-      !/^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/.test(name) ||
-      owned.test(name) ||
+      !isAllowedOutboundHeader(name) ||
       Object.hasOwn(headers, key) ||
       typeof value !== 'string' ||
       Array.from(value).some((char) => {

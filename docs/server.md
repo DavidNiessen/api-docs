@@ -2,6 +2,8 @@
 
 The optional Fastify server uses PostgreSQL for projects, permissions, opaque sessions, hashed access tokens, publication pointers, and audit history. Static exports continue to work without it.
 
+An operator can explicitly enable the [authenticated API relay](api-relay.md) with `RELAY_CONFIG_FILE`. It requires assigned project membership, destination/header policy and bounded audited requests. It is disabled by default; public documentation does not grant anonymous relay access.
+
 ## Required configuration
 
 | Variable                        | Purpose                                                                               |

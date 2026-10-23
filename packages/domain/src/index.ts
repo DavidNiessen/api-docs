@@ -88,6 +88,24 @@ export interface Repository {
   consumeOidc(hash: string): Promise<OidcTransaction | undefined>;
 }
 export class ConflictError extends Error {}
+export interface RelayAuditWriter {
+  recordRelay(
+    projectId: string,
+    subject: string,
+    event: RelayAudit,
+  ): Promise<void>;
+}
+export interface RelayAudit {
+  requestId: string;
+  phase: 'started' | 'completed' | 'failed' | 'denied';
+  method?: string;
+  origin?: string;
+  status?: number;
+  outcome?: string;
+  requestBytes?: number;
+  responseBytes?: number;
+  durationMs?: number;
+}
 export function can(
   principal: Principal | undefined,
   project: Project,
