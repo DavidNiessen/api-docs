@@ -547,6 +547,24 @@ assert.equal(manifest.compilerVersion, version);
 const installedSite = JSON.parse(
   await readFile(join(directory, 'site.json'), 'utf8'),
 );
+for (const api of installedSite.apis) {
+  assert.match(api.operationIndex, /^api-index\/\d+\/catalog\.json$/);
+  assert(Object.hasOwn(manifest.files, api.operationIndex));
+  const catalog = JSON.parse(
+    await readFile(join(directory, api.operationIndex), 'utf8'),
+  );
+  assert.equal(catalog.apiId, api.id);
+  assert.equal(catalog.version, api.version);
+  assert.equal(catalog.total, api.operations.length);
+  let entries = 0;
+  for (let page = 0; page < catalog.pages; page++) {
+    const file = api.operationIndex.replace('catalog.json', `${page}.json`);
+    assert(Object.hasOwn(manifest.files, file));
+    entries += JSON.parse(await readFile(join(directory, file), 'utf8'))
+      .operations.length;
+  }
+  assert.equal(entries, api.operations.length);
+}
 const translatedPage = JSON.parse(
   await readFile(join(directory, 'de/guides/installed/page-data.json'), 'utf8'),
 );

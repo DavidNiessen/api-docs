@@ -57,10 +57,12 @@ test('personal palettes, saved themes and classic layout persist without changin
   await expect(
     page.getByRole('separator', { name: 'Resize navigation', exact: true }),
   ).not.toBeVisible();
-  await expect(page.locator('.endpoint-address')).toHaveCSS(
-    'border-radius',
-    '4px',
-  );
+  await expect(
+    page.getByRole('region', { name: 'API endpoint reference' }),
+  ).toBeVisible();
+  await expect(page.locator('.endpoint-disclosure').first()).toBeVisible();
+  await expect(page.locator('.endpoint-disclosure[open]')).toHaveCount(0);
+  await expect(page.locator('.sidebar')).not.toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({ path: '.api-docs/classic-layout-dark.png' });
   await page.reload();

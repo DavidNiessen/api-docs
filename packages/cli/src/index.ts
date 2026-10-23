@@ -39,6 +39,7 @@ import {
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
 import { searchAssets } from './search-assets.js';
+import { operationIndexAssets } from './operation-index.js';
 import { confinedPath, readTextFile } from '@api-docs/spec';
 import { activateDirectory } from './activate.js';
 export { vendorRemoteSpec } from './vendor-spec.js';
@@ -118,6 +119,10 @@ export async function buildSite(
       const output = join(stage, 'media', path);
       await mkdir(dirname(output), { recursive: true });
       await writeFile(output, value);
+    }
+    for (const [file, value] of operationIndexAssets(site)) {
+      await mkdir(dirname(join(stage, file)), { recursive: true });
+      await writeFile(join(stage, file), value);
     }
     const pages = new Map<string, string>([
       ['/', site.guides[0]?.title ?? site.config.name],

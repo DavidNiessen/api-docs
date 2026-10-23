@@ -1,0 +1,182 @@
+.classic-api-overview .docs-layout {
+  display: block;
+}
+.classic-api-overview .sidebar,
+.classic-api-overview .navigation-resize-controls {
+  display: none;
+}
+.classic-reference-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.classic-reference-header > div {
+  flex: 1;
+  min-width: min(100%, 240px);
+}
+.classic-reference-header label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  width: min(100%, 320px);
+}
+.classic-reference-header select {
+  width: 100%;
+}
+.classic-reference-help {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.classic-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 22px 0;
+}
+.classic-pagination > span {
+  margin-right: auto;
+}
+.classic-pagination button,
+.classic-reference-error button,
+.classic-endpoint-content [role='alert'] button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 34px;
+  padding: 7px 12px;
+  color: var(--text);
+}
+.classic-pagination button:disabled {
+  cursor: not-allowed;
+}
+.classic-reference h1 {
+  overflow-wrap: anywhere;
+}
+.classic-endpoint-group > h2 {
+  overflow-wrap: anywhere;
+  font-size: 21px;
+  margin: 30px 0 16px;
+  color: var(--heading);
+}
+.endpoint-disclosure {
+  scroll-margin-top: 128px;
+  --endpoint-color: #347fc4;
+  border: 1px solid var(--endpoint-color);
+  border-radius: 5px;
+  margin: 10px 0;
+  background: color-mix(in srgb, var(--endpoint-color) 7%, var(--bg));
+  overflow: clip;
+}
+.endpoint-disclosure.method-post {
+  --endpoint-color: #16875e;
+}
+.endpoint-disclosure.method-put,
+.endpoint-disclosure.method-patch {
+  --endpoint-color: #ba7b20;
+}
+.endpoint-disclosure.method-delete {
+  --endpoint-color: #c34b5b;
+}
+.endpoint-disclosure > summary {
+  list-style: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  color: var(--heading);
+}
+.endpoint-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.endpoint-disclosure > summary > code {
+  flex: 0 1 36%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 600;
+}
+.endpoint-summary {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.endpoint-disclosure > summary > svg {
+  margin-left: auto;
+}
+.endpoint-disclosure[open] > summary > svg {
+  transform: rotate(90deg);
+}
+.classic-deprecated {
+  font-size: 11px;
+  color: var(--muted);
+}
+.classic-endpoint-content {
+  border-top: 1px solid var(--endpoint-color);
+  padding: clamp(16px, 3vw, 30px);
+  background: var(--bg);
+  overflow-wrap: anywhere;
+}
+.classic-endpoint-content h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-top: 28px;
+  border-bottom: 1px solid var(--border);
+  font-size: 17px;
+  color: var(--heading);
+}
+.classic-endpoint-content > p {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.classic-endpoint-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.classic-endpoint-actions > a {
+  font-size: 12px;
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+.classic-endpoint-actions > button {
+  padding: 9px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.classic-reference-error {
+  border: 1px solid var(--border);
+  padding: 16px;
+  border-radius: 8px;
+}
+@media (max-width: 600px) {
+  .endpoint-disclosure > summary {
+    flex-wrap: wrap;
+    padding-right: 44px;
+    gap: 10px;
+  }
+  .endpoint-disclosure > summary > code {
+    flex: 1;
+  }
+  .endpoint-summary {
+    flex-basis: 100%;
+  }
+  .endpoint-disclosure > summary > svg {
+    position: absolute;
+    right: 14px;
+    top: 16px;
+  }
+}

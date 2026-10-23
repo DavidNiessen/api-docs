@@ -79,9 +79,8 @@ export function ReaderSettingsControls({
         </label>
       </div>
       <p className="settings-description">
-        Modern islands have resizable navigation and inspectors. Classic uses a
-        continuous page, a compact navigation rail, and method-colored endpoint
-        headings.
+        Modern islands have resizable navigation and inspectors. Classic groups
+        collapsed, method-colored endpoints in the main reference page.
       </p>
       {value.editorTheme === 'custom' && (
         <fieldset className="editor-palette-settings">

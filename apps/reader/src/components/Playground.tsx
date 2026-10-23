@@ -11,14 +11,23 @@ type Props = Pick<
   | 'oauthClients'
   | 'credentialSession'
   | 'relayEndpoint'
-> & { ref?: Ref<PlaygroundHandle> };
+> & {
+  ref?: Ref<PlaygroundHandle>;
+  hidePreview?: boolean;
+  onClosed?: () => void;
+};
 
 export interface PlaygroundHandle {
   open: (trigger: HTMLElement) => void;
 }
 
 /** A native modal keeps the underlying documentation inert and traps focus. */
-export function Playground({ ref, ...props }: Props) {
+export function Playground({
+  ref,
+  hidePreview = false,
+  onClosed,
+  ...props
+}: Props) {
   const t = useUi();
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLDivElement>(null);
@@ -66,21 +75,24 @@ export function Playground({ ref, ...props }: Props) {
       url.pathname + url.search + url.hash,
     );
     setOpen(next);
+    if (!next) onClosed?.();
   }
   return (
     <>
-      <div ref={trigger} className="playground-preview">
-        <Explorer
-          {...props}
-          previewOnly
-          onOpen={() => {
-            returnFocus.current =
-              document.activeElement instanceof HTMLElement
-                ? document.activeElement
-                : null;
-            update(true);
-          }}
-        />
+      <div ref={trigger} className="playground-preview" hidden={hidePreview}>
+        {!hidePreview && (
+          <Explorer
+            {...props}
+            previewOnly
+            onOpen={() => {
+              returnFocus.current =
+                document.activeElement instanceof HTMLElement
+                  ? document.activeElement
+                  : null;
+              update(true);
+            }}
+          />
+        )}
       </div>
       <dialog
         ref={dialog}

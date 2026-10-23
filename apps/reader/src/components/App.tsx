@@ -52,6 +52,7 @@ import { DeprecationCenter, OperationLifecycle } from './Lifecycle.js';
 
 const ReaderExtensions = lazy(() => import('./ReaderExtensions.js'));
 const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
+const ClassicApiReference = lazy(() => import('./ClassicApiReference.js'));
 const ReaderSettingsControls = lazy(() =>
   import('./ReaderSettingsControls.js').then((module) => ({
     default: module.ReaderSettingsControls,
@@ -477,7 +478,7 @@ export function App({
   const view = (
     <div
       ref={layout}
-      className={`docs-shell layout-${preferences.layout} density-${config.theme.density} font-${config.theme.font} code-${config.theme.codeTheme}`}
+      className={`docs-shell layout-${preferences.layout}${preferences.layout === 'classic' && activeOperation ? ' classic-api-overview' : ''} density-${config.theme.density} font-${config.theme.font} code-${config.theme.codeTheme}`}
       data-layout={preferences.layout}
       style={
         {
@@ -634,15 +635,17 @@ export function App({
             >
               <Icon name={theme === 'light' ? 'moon' : 'sun'} />
             </button>
-            <button
-              type="button"
-              className="icon-button mobile-menu"
-              aria-label={t('navigation.toggle')}
-              aria-expanded={mobileNav}
-              onClick={() => setMobileNav(!mobileNav)}
-            >
-              <Icon name={mobileNav ? 'close' : 'menu'} />
-            </button>
+            {!(preferences.layout === 'classic' && activeOperation) && (
+              <button
+                type="button"
+                className="icon-button mobile-menu"
+                aria-label={t('navigation.toggle')}
+                aria-expanded={mobileNav}
+                onClick={() => setMobileNav(!mobileNav)}
+              >
+                <Icon name={mobileNav ? 'close' : 'menu'} />
+              </button>
+            )}
           </div>
         </div>
         <nav className="header-tabs" aria-label={t('navigation.sections')}>
@@ -745,7 +748,9 @@ export function App({
           className={`sidebar ${mobileNav ? 'is-open' : ''}`}
           aria-label={t('navigation.sidebar')}
         >
-          {navigationMode !== 'docs' && site.apis.length > 1 ? (
+          {preferences.layout !== 'classic' &&
+          navigationMode !== 'docs' &&
+          site.apis.length > 1 ? (
             <label className="version-select">
               {t('navigation.version')}
               <select
@@ -816,7 +821,8 @@ export function App({
                   ))}
               </nav>
             ))}
-          {navigationMode !== 'docs' &&
+          {preferences.layout !== 'classic' &&
+            navigationMode !== 'docs' &&
             activeApi &&
             tags.map((tag) => (
               <nav
@@ -897,9 +903,11 @@ export function App({
           className={
             lifecyclePage
               ? 'main-area lifecycle-layout'
-              : activeOperation
-                ? 'main-area api-layout'
-                : 'main-area guide-layout'
+              : preferences.layout === 'classic' && activeOperation
+                ? 'main-area classic-reference-layout'
+                : activeOperation
+                  ? 'main-area api-layout'
+                  : 'main-area guide-layout'
           }
           tabIndex={-1}
         >
@@ -920,6 +928,50 @@ export function App({
               page={lifecyclePage}
               basePath={config.basePath + prefix}
             />
+          ) : preferences.layout === 'classic' &&
+            activeOperation &&
+            activeApi ? (
+            <Suspense fallback={<p role="status">Loading API reference…</p>}>
+              <ClassicApiReference
+                key={`${activeApi.id}:${activeApi.version}`}
+                api={activeApi}
+                activeOperation={activeOperation}
+                apis={site.apis}
+                basePath={config.basePath}
+                operationBase={docHref(
+                  operationHref(activeApi, activeOperation),
+                ).slice(0, -activeOperation.slug.length - 1)}
+                onChooseApi={(api) => {
+                  setSelectedApi(`${api.id}:${api.version}`);
+                  if (api.operations[0])
+                    void loadPage(
+                      new URL(
+                        docHref(operationHref(api, api.operations[0])),
+                        location.origin,
+                      ),
+                      true,
+                    );
+                }}
+                renderDetails={(api, operation, prefix) => (
+                  <OperationDetails
+                    key={operation.slug}
+                    api={api}
+                    operation={operation}
+                    idPrefix={prefix}
+                    headingLevel={3}
+                  />
+                )}
+                relayEndpoint={site.config.explorer?.relay}
+                credentialSession={
+                  site.config.explorer?.credentialReuse === false
+                    ? undefined
+                    : credentialSession
+                }
+                oauthClients={
+                  site.config.explorer?.oauthClients?.[activeApi.id]
+                }
+              />
+            </Suspense>
           ) : activeOperation && activeApi ? (
             <>
               <article lang={contentLocale} className="article api-article">
@@ -1344,10 +1396,15 @@ export function App({
 function OperationDetails({
   api,
   operation,
+  idPrefix = '',
+  headingLevel = 2,
 }: {
   api: ApiDocument;
   operation: Operation;
+  idPrefix?: string;
+  headingLevel?: 2 | 3;
 }) {
+  const Heading = headingLevel === 3 ? 'h3' : 'h2';
   const [responseStatus, setResponseStatus] = useState(
     operation.responses[0]?.status ?? '200',
   );
@@ -1365,11 +1422,11 @@ function OperationDetails({
   return (
     <>
       {operation.security.length > 0 && (
-        <section id="authentication">
-          <h2>
+        <section id={idPrefix + 'authentication'}>
+          <Heading>
             <Icon name="lock" size={19} />
             Authorization
-          </h2>
+          </Heading>
           <div className="callout">
             <Icon name="shield" />
             <span>
@@ -1397,11 +1454,11 @@ function OperationDetails({
           (parameter) => parameter.in === location,
         );
         return parameters.length ? (
-          <section key={location} id={`${location}-parameters`}>
-            <h2>
+          <section key={location} id={`${idPrefix}${location}-parameters`}>
+            <Heading>
               {location[0]?.toUpperCase()}
               {location.slice(1)} parameters
-            </h2>
+            </Heading>
             {parameters.map((parameter) => (
               <div className="parameter-row" key={parameter.name}>
                 <div className="field-heading">
@@ -1430,13 +1487,13 @@ function OperationDetails({
         ) : null;
       })}
       {operation.requestBody && (
-        <section id="request-body">
-          <h2>
+        <section id={idPrefix + 'request-body'}>
+          <Heading>
             Request body
             {operation.requestBody.required && (
               <span className="required">required</span>
             )}
-          </h2>
+          </Heading>
           {operation.requestBody.description && (
             <p>{operation.requestBody.description}</p>
           )}
@@ -1456,8 +1513,8 @@ function OperationDetails({
           )}
         </section>
       )}
-      <section id="responses">
-        <h2>Response</h2>
+      <section id={idPrefix + 'responses'}>
+        <Heading>Response</Heading>
         {!operation.responses.length && (
           <p>No responses are documented in this specification.</p>
         )}

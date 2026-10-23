@@ -91,6 +91,7 @@ export interface SecurityScheme {
   openIdConnectUrl?: string;
 }
 export interface ApiDocument {
+  operationIndex?: string;
   openapiVersion?: string;
   id: string;
   version: string;
@@ -248,7 +249,10 @@ export function slugify(value: string): string {
       .replace(/^-|-$/g, '') || 'page'
   );
 }
-export function operationHref(api: ApiDocument, operation: Operation): string {
+export function operationHref(
+  api: ApiDocument,
+  operation: Pick<Operation, 'slug'>,
+): string {
   return `/api/${encodeURIComponent(api.id)}/${encodeURIComponent(api.version)}/${operation.slug}/`;
 }
 export function guideHref(guide: Guide): string {
