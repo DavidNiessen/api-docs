@@ -9,10 +9,10 @@ import {
 } from 'react';
 import { createCredentialSession } from '../credential-session.js';
 import {
-  EditorPreferencesContext,
+  EditorThemeContext,
   useReaderPreferences,
 } from '../use-reader-preferences.js';
-import { personalTheme } from '../reader-preferences.js';
+import { readerTheme } from '../reader-preferences.js';
 import type {
   CSSProperties,
   MouseEvent,
@@ -37,7 +37,6 @@ import type {
   Operation,
   SiteData,
   SearchResult,
-  Theme,
 } from '@api-docs/contracts';
 import { PanelResizeHandle } from './PanelResizeHandle.js';
 import { LocaleMenu } from './LocaleMenu.js';
@@ -51,13 +50,8 @@ import { PageFooter } from './PageFooter.js';
 import { DeprecationCenter, OperationLifecycle } from './Lifecycle.js';
 
 const ReaderExtensions = lazy(() => import('./ReaderExtensions.js'));
-const ThemeEditor = lazy(() => import('./ThemeEditor.js'));
+const ReaderSettings = lazy(() => import('./ReaderSettings.js'));
 const ClassicApiReference = lazy(() => import('./ClassicApiReference.js'));
-const ReaderSettingsControls = lazy(() =>
-  import('./ReaderSettingsControls.js').then((module) => ({
-    default: module.ReaderSettingsControls,
-  })),
-);
 function scrollFragment(hash: string) {
   if (!hash) return;
   try {
@@ -166,9 +160,6 @@ export function App({
   const navigationId = useRef(0);
   const [mobileNav, setMobileNav] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [themeDraft, setThemeDraft] = useState<Theme | null>(null);
-  const [themeEditorEnabled, setThemeEditorEnabled] = useState(false);
-  const [themeEditorOpen, setThemeEditorOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [navigationMode, setNavigationMode] = useState<'all' | 'docs' | 'api'>(
     'all',
@@ -179,10 +170,10 @@ export function App({
   useEffect(() => {
     performance.mark('api-docs:hydrated');
   }, []);
-  const selectedTheme = themeDraft ?? preferences.theme;
-  const config = selectedTheme
-    ? { ...site.config, theme: selectedTheme }
-    : site.config;
+  const config = {
+    ...site.config,
+    theme: readerTheme(site.config.theme, preferences.theme),
+  };
   const { locale, prefix, contentPath } = localeRoute(config, path);
   const contentLocale = site.contentLocale ?? config.defaultLocale;
   const ui = useMemo(
@@ -227,9 +218,6 @@ export function App({
     );
   }, [contentPath, !!activeOperation]);
   useEffect(() => {
-    setThemeEditorEnabled(
-      new URL(window.location.href).searchParams.get('theme-editor') === '1',
-    );
     const pop = () => {
       void loadPage(new URL(window.location.href), false);
     };
@@ -598,17 +586,6 @@ export function App({
                 <Icon name="external" size={13} />
               </a>
             ))}
-            {themeEditorEnabled && (
-              <button
-                type="button"
-                className="theme-editor-trigger"
-                aria-label={t('theme.customize')}
-                onClick={() => setThemeEditorOpen(true)}
-              >
-                <Icon name="settings" size={16} />
-                <span>{t('theme.customizeShort')}</span>
-              </button>
-            )}
             <button
               type="button"
               className="icon-button reader-settings-trigger"
@@ -1234,50 +1211,11 @@ export function App({
       </div>
       {settingsOpen && (
         <Suspense fallback={<div role="status">Loading reader settings…</div>}>
-          <ThemeEditor
-            personal
-            value={config.theme}
-            mode={theme}
-            onChange={(value) => {
-              setThemeDraft(null);
-              setPreferences((previous) => ({
-                ...previous,
-                theme: personalTheme(value),
-              }));
-            }}
-            onModeChange={(mode) => {
-              setTheme(mode);
-              setPreferences((previous) => ({ ...previous, mode }));
-            }}
+          <ReaderSettings
+            value={preferences}
+            onChange={setPreferences}
+            stored={stored}
             onClose={() => setSettingsOpen(false)}
-            onReset={() => {
-              setThemeDraft(null);
-              setPreferences((previous) => ({ ...previous, theme: undefined }));
-            }}
-          >
-            <ReaderSettingsControls
-              value={preferences}
-              onChange={(value) => {
-                setThemeDraft(null);
-                setPreferences(value);
-              }}
-              theme={config.theme}
-              stored={stored}
-            />
-          </ThemeEditor>
-        </Suspense>
-      )}
-      {themeEditorOpen && (
-        <Suspense
-          fallback={<div role="status">Loading appearance controls…</div>}
-        >
-          <ThemeEditor
-            value={config.theme}
-            mode={theme}
-            onChange={setThemeDraft}
-            onModeChange={setTheme}
-            onClose={() => setThemeEditorOpen(false)}
-            onReset={() => setThemeDraft(null)}
           />
         </Suspense>
       )}
@@ -1387,9 +1325,11 @@ export function App({
   );
   return (
     <UiContext.Provider value={ui}>
-      <EditorPreferencesContext.Provider value={{ preferences, mode: theme }}>
+      <EditorThemeContext.Provider
+        value={{ palette, accent: config.theme.accent, mode: theme }}
+      >
         {view}
-      </EditorPreferencesContext.Provider>
+      </EditorThemeContext.Provider>
     </UiContext.Provider>
   );
 }

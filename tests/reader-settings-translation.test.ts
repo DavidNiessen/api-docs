@@ -5,98 +5,74 @@ import { createUiTranslation } from '@api-docs/contracts';
 import { parseConfig } from '@api-docs/spec';
 import { UiContext } from '../apps/reader/src/ui-translation.js';
 import { ReaderSettingsControls } from '../apps/reader/src/components/ReaderSettingsControls.js';
-import ThemeEditor from '../apps/reader/src/components/ThemeEditor.js';
+import ReaderSettings from '../apps/reader/src/components/ReaderSettings.js';
 import { defaultReaderPreferences } from '../apps/reader/src/reader-preferences.js';
-
 const config = parseConfig({
-  name: 'Reader translation fixture',
+  name: 'Settings fixture',
   specs: [{ id: 'api', path: 'openapi.yaml' }],
   locales: ['en', 'de-DE'],
   i18n: {
     messages: {
       de: {
         'settings.region': 'Persönliche Einstellungen',
-        'settings.apply': '{name} anwenden',
-        'settings.editorColor': 'Farbe: {color}',
-        'settings.editorContrast': 'Kontrast prüfen: {colors}.',
-        'color.foreground': 'Vordergrund',
         'appearance.title': 'Leseeinstellungen',
-        'appearance.color': 'Farbe {color} im Modus {mode}',
-        'appearance.contrastIssue': '{foreground} auf {background}: {mode}',
-        'appearance.radius': '{value}px Radius',
+        'appearance.preset': 'Voreinstellung <img src=x>',
+        'appearance.restore': 'Veröffentlichtes Design',
       },
-      'de-DE': {
-        'settings.unavailable': 'Speicher <nicht verfügbar>',
-      },
+      'de-DE': { 'settings.unavailable': 'Speicher <nicht verfügbar>' },
     },
   },
 });
 const noop = () => {};
-it('server-renders localized preferences, safe named themes and independent palette warnings with per-message fallback', () => {
-  const value = defaultReaderPreferences();
-  value.editorTheme = 'custom';
-  value.editorColors.foreground = value.editorColors.background;
-  value.savedThemes = [
-    { name: '<img src=x onerror=alert(1)>', theme: config.theme },
-  ];
+it('server-renders localized preset controls with escaped labels and independent regional/base fallback', () => {
   const controls = createElement(ReaderSettingsControls, {
-    value,
+    value: defaultReaderPreferences(),
     onChange: noop,
-    theme: config.theme,
     stored: false,
   });
   const html = renderToStaticMarkup(
     createElement(
       UiContext.Provider,
-      {
-        value: createUiTranslation('de-DE', config.i18n),
-      },
+      { value: createUiTranslation('de-DE', config.i18n) },
       controls,
     ),
   );
   expect(html).toContain('aria-label="Persönliche Einstellungen"');
   expect(html).toContain('Speicher &lt;nicht verfügbar&gt;');
-  expect(html).toContain('&lt;img src=x onerror=alert(1)&gt; anwenden');
+  expect(html).toContain('Voreinstellung &lt;img src=x&gt;');
   expect(html).not.toContain('<img');
-  expect(html).toContain('aria-label="Farbe: Vordergrund"');
-  expect(html).toContain('Kontrast prüfen: Vordergrund.');
   expect(html).toContain('Documentation layout');
+  expect(html).toContain('Veröffentlichtes Design');
+  expect(html).not.toMatch(/type="color"|type="range"|value="custom"/);
   const english = renderToStaticMarkup(
     createElement(
       UiContext.Provider,
-      {
-        value: createUiTranslation('en', config.i18n),
-      },
+      { value: createUiTranslation('en', config.i18n) },
       controls,
     ),
   );
   expect(english).toContain('aria-label="Personal preferences"');
-  expect(english).toContain('Editor contrast below 4.5:1: foreground.');
   expect(english).not.toContain('Persönliche Einstellungen');
 });
-it('server-renders translated theme dimensions and contrast context while preserving public configuration values', () => {
+it('server-renders a translated settings dialog with only prepared theme choices and stable public tokens', () => {
   const html = renderToStaticMarkup(
     createElement(
       UiContext.Provider,
-      {
-        value: createUiTranslation('de-DE', config.i18n),
-      },
-      createElement(ThemeEditor, {
-        value: { ...config.theme, colors: { light: { text: '#ffffff' } } },
-        mode: 'light',
-        personal: true,
+      { value: createUiTranslation('de-DE', config.i18n) },
+      createElement(ReaderSettings, {
+        value: { ...defaultReaderPreferences(), theme: 'ocean' },
         onChange: noop,
-        onModeChange: noop,
         onClose: noop,
-        onReset: noop,
+        stored: true,
       }),
     ),
   );
   expect(html).toContain('Leseeinstellungen');
-  expect(html).toContain('10px Radius');
-  expect(html).toContain('aria-label="Farbe text im Modus light"');
-  expect(html).toContain('text auf background: light');
-  expect(html).toContain('value="comfortable"');
+  expect(html).toContain('value="ocean" selected=""');
   expect(html).toContain('value="system"');
-  expect(html).toContain('Improve contrast before exporting');
+  expect(html).not.toContain('Response editor theme');
+  expect(html.match(/<select/g)).toHaveLength(3);
+  expect(html).not.toMatch(
+    /Copy theme|Save current|type="color"|value="custom"/,
+  );
 });

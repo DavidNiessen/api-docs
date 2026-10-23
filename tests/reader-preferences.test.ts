@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { themePresets } from '@api-docs/contracts';
+import type { Theme } from '@api-docs/contracts';
 import {
   defaultReaderPreferences,
   parseReaderPreferences,
-  personalTheme,
   readerPreferencesKey,
-  editorContrastIssues,
+  legacyReaderPreferencesKey,
+  readerTheme,
 } from '../apps/reader/src/reader-preferences.js';
-
-const theme = {
-  accent: '#7c3aed',
+const published: Theme = {
+  accent: '#aabbcc',
   radius: 12,
   font: 'serif',
   codeTheme: 'light',
@@ -17,128 +18,119 @@ const theme = {
   sidebarWidth: 300,
   contentWidth: 800,
 };
-describe('personal reader preferences', () => {
+describe('prepared reader preferences', () => {
   it.each([
     null,
     '',
     '{',
     'null',
     '[]',
-    JSON.stringify({ version: 2, mode: 'dark' }),
+    JSON.stringify({ version: 99, mode: 'dark' }),
     ' '.repeat(65537),
   ])('ignores corrupt, unsupported or excessive storage %s', (source) => {
     expect(parseReaderPreferences(source)).toEqual(defaultReaderPreferences());
   });
-  it('restores bounded themes, editor tokens and layout without mutating defaults', () => {
-    const source = {
-      ...defaultReaderPreferences(),
-      mode: 'dark',
-      layout: 'classic',
-      editorTheme: 'custom',
-      theme,
-      savedThemes: [{ name: '  My palette  ', theme }],
-    };
-    const value = parseReaderPreferences(JSON.stringify(source));
-    expect(value).toMatchObject({
-      mode: 'dark',
-      layout: 'classic',
-      editorTheme: 'custom',
-      theme,
-      savedThemes: [{ name: 'My palette', theme }],
-    });
-    value.editorColors.background = '#ffffff';
-    expect(defaultReaderPreferences().editorColors.background).toBe('#101820');
-    expect(
-      parseReaderPreferences(JSON.stringify(source)).editorColors.background,
-    ).toBe('#101820');
-  });
-  it('drops arbitrary stylesheet paths, CSS, invalid dimensions and unknown palette tokens', () => {
-    expect(
-      personalTheme({
-        ...theme,
-        stylesheet: 'https://invalid.example/theme.css',
-        font: 'url(secret)',
-        radius: Infinity,
-      }),
-    ).toBeUndefined();
-    const result = personalTheme({
-      ...theme,
-      stylesheet: 'theme.css',
-      font: 'url(secret)',
-      sidebarWidth: 1e9,
-      colors: {
-        dark: {
-          background: 'url(secret)',
-          text: '#ffffff',
-          other: 'arbitrary',
-        },
-      },
-    });
-    expect(result).toMatchObject({
-      font: 'system',
-      colors: { dark: { text: '#ffffff' } },
-    });
-    expect(result).not.toHaveProperty('stylesheet');
-    expect(result).not.toHaveProperty('sidebarWidth');
-    expect(result!.colors!.dark).not.toHaveProperty('other');
-    expect(result!.colors!.dark).not.toHaveProperty('background');
-  });
-  it('falls back per invalid field and retains independent valid choices', () => {
-    const result = parseReaderPreferences(
-      JSON.stringify({
-        version: 1,
-        mode: 'injected',
-        layout: 'classic',
-        editorTheme: 'injected',
-        editorColors: { foreground: 'red', background: '#abcdef' },
-        theme: { accent: 'red', radius: 10 },
-      }),
-    );
-    expect(result).toMatchObject({
-      mode: 'system',
-      layout: 'classic',
-      editorTheme: 'auto',
-      editorColors: { foreground: '#e4edf5', background: '#abcdef' },
-    });
-    expect(result.theme).toBeUndefined();
-  });
-  it('bounds and deduplicates saved themes', () => {
-    const result = parseReaderPreferences(
-      JSON.stringify({
-        version: 1,
-        savedThemes: [
-          { name: 'a', theme },
-          { name: 'a', theme },
-          { name: ' ', theme },
-          { name: 'invalid', theme: {} },
-          ...Array.from({ length: 20 }, (_, index) => ({
-            name: 'name' + index,
+  it.each(['mint', 'ocean', 'violet', 'neutral'] as const)(
+    'restores only the prepared %s theme and independent layout choices',
+    (theme) => {
+      expect(
+        parseReaderPreferences(
+          JSON.stringify({
+            version: 2,
+            mode: 'dark',
+            layout: 'classic',
             theme,
-          })),
-        ],
+          }),
+        ),
+      ).toEqual({
+        version: 2,
+        mode: 'dark',
+        layout: 'classic',
+        theme,
+      });
+    },
+  );
+  it('falls back per invalid token and never restores custom colors, names or arbitrary CSS', () => {
+    const result = parseReaderPreferences(
+      JSON.stringify({
+        version: 2,
+        mode: 'invalid',
+        layout: 'classic',
+        editorTheme: 'custom',
+        theme: { ...published },
+        savedThemes: [{ name: 'custom', theme: published }],
+        editorColors: { background: '#abcdef' },
+        stylesheet: 'https://invalid.example/style.css',
       }),
     );
-    expect(result.savedThemes).toHaveLength(5);
-    expect(result.savedThemes.map((item) => item.name)).toEqual([
-      'a',
-      'name0',
-      'name1',
-      'name2',
-      'name3',
+    expect(result).toEqual({
+      ...defaultReaderPreferences(),
+      layout: 'classic',
+    });
+    expect(Object.keys(result).sort()).toEqual([
+      'layout',
+      'mode',
+      'theme',
+      'version',
     ]);
   });
-  it('warns about unreadable custom editor tokens and scopes storage by project mount', () => {
-    const defaults = defaultReaderPreferences();
-    expect(editorContrastIssues(defaults.editorColors)).toEqual([]);
+  it('migrates legacy mode/layout/preset tokens while discarding all custom theme data', () => {
+    const legacy = {
+      version: 1,
+      mode: 'dark',
+      layout: 'classic',
+      editorTheme: 'custom',
+      editorColors: { background: '#abcdef' },
+      theme: { ...published, preset: 'ocean' },
+      savedThemes: [{ name: 'Private name', theme: published }],
+    };
+    const result = parseReaderPreferences(JSON.stringify(legacy));
+    expect(result).toEqual({
+      version: 2,
+      mode: 'dark',
+      layout: 'classic',
+      theme: 'ocean',
+    });
+    expect(JSON.stringify(result)).not.toMatch(
+      /Private name|abcdef|colors|radius/,
+    );
     expect(
-      editorContrastIssues({
-        ...defaults.editorColors,
-        foreground: defaults.editorColors.background,
-      }),
-    ).toEqual(['foreground']);
+      parseReaderPreferences(JSON.stringify({ ...legacy, theme: published }))
+        .theme,
+    ).toBe('published');
+  });
+  it('applies a prepared palette without mutating published configuration or carrying custom reading colors', () => {
+    const before = JSON.stringify(published);
+    expect(readerTheme(published, 'published')).toBe(published);
+    for (const preset of ['mint', 'ocean', 'violet', 'neutral'] as const) {
+      const resolved = readerTheme(published, preset);
+      expect(resolved).toMatchObject({
+        preset,
+        accent: themePresets[preset],
+        font: published.font,
+        contentWidth: published.contentWidth,
+      });
+      expect(resolved).not.toHaveProperty('colors');
+    }
+    expect(JSON.stringify(published)).toBe(before);
+  });
+  it.each(['auto', 'light', 'dark', 'contrast', 'custom'])(
+    'discards the former independent editor choice %s',
+    (editorTheme) => {
+      expect(
+        parseReaderPreferences(
+          JSON.stringify({ version: 2, theme: 'custom', editorTheme }),
+        ),
+      ).toEqual(defaultReaderPreferences());
+    },
+  );
+  it('scopes current and legacy storage by mount without sharing custom-theme data', () => {
     expect(readerPreferencesKey('')).toBe(readerPreferencesKey('/'));
     expect(readerPreferencesKey('/first')).not.toBe(
       readerPreferencesKey('/second'),
+    );
+    expect(readerPreferencesKey('/first')).not.toBe(
+      legacyReaderPreferencesKey('/first'),
     );
   });
 });

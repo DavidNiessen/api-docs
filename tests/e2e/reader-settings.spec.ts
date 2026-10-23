@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 const route =
   'http://127.0.0.1:4174/gallery/api/gallery/v1/serializeparameters/';
-const settingsKey = 'api-docs:reader-settings:v1:/gallery';
+const settingsKey = 'api-docs:reader-settings:v2:/gallery';
 async function settings(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'Open reader settings' }).click();
   const dialog = page.getByRole('dialog', {
@@ -14,7 +14,7 @@ async function settings(page: import('@playwright/test').Page) {
   return dialog;
 }
 
-test('personal palettes, saved themes and classic layout persist without changing project defaults', async ({
+test('prepared themes and classic layout persist without changing project defaults', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -35,15 +35,8 @@ test('personal palettes, saved themes and classic layout persist without changin
   await dialog
     .getByRole('combobox', { name: 'Preset', exact: true })
     .selectOption('ocean');
-  await dialog.getByLabel('Theme name', { exact: true }).fill('Night ocean');
-  await dialog.getByRole('button', { name: 'Save current theme' }).click();
-  await expect(
-    dialog.getByRole('button', { name: 'Apply Night ocean' }),
-  ).toBeVisible();
-  await dialog
-    .getByRole('combobox', { name: 'Preset', exact: true })
-    .selectOption('mint');
-  await dialog.getByRole('button', { name: 'Apply Night ocean' }).click();
+  await expect(dialog.locator('input')).toHaveCount(0);
+  await expect(dialog.locator('option[value=custom]')).toHaveCount(0);
   await expect(page.locator('.docs-shell')).toHaveCSS('--accent', '#2563eb');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.locator('.docs-shell')).toHaveAttribute(
@@ -72,15 +65,13 @@ test('personal palettes, saved themes and classic layout persist without changin
   );
   await expect(page.locator('.docs-shell')).toHaveCSS('--accent', '#2563eb');
   const again = await settings(page);
-  await again.getByRole('button', { name: 'Use published theme' }).click();
+  await again
+    .getByRole('combobox', { name: 'Preset', exact: true })
+    .selectOption('published');
   await expect(page.locator('.docs-shell')).toHaveCSS(
     '--accent',
     originalAccent,
   );
-  await again.getByRole('button', { name: 'Delete theme Night ocean' }).click();
-  await expect(
-    again.getByRole('button', { name: 'Apply Night ocean' }),
-  ).toHaveCount(0);
   await again
     .getByRole('combobox', { name: 'Documentation layout', exact: true })
     .selectOption('modern');
@@ -91,7 +82,7 @@ test('personal palettes, saved themes and classic layout persist without changin
   expect(errors).toEqual([]);
 });
 
-test('independent editor themes update across tabs without losing folded response state or exact copying', async ({
+test('response editor follows reader appearance and presets across tabs without losing folding or exact copying', async ({
   page,
   context,
 }) => {
@@ -136,21 +127,51 @@ test('independent editor themes update across tabs without losing folded respons
   const other = await context.newPage();
   await other.goto(route);
   const dialog = await settings(other);
+  const editorBackground = () =>
+    editor.evaluate((element) => getComputedStyle(element).backgroundColor);
+  const shellBackground = () =>
+    page
+      .locator('.docs-shell')
+      .evaluate((element) =>
+        getComputedStyle(element).getPropertyValue('--bg').trim(),
+      );
+  const keyColor = () =>
+    editor
+      .locator('.view-lines span')
+      .filter({ hasText: '"profile"' })
+      .last()
+      .evaluate((element) => getComputedStyle(element).color);
   await dialog
     .getByRole('combobox', { name: 'Appearance mode', exact: true })
-    .selectOption('dark');
-  await dialog
-    .getByRole('combobox', { name: 'Response editor theme', exact: true })
     .selectOption('light');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(editor).toHaveClass(/\bvs\b/);
+  expect(await editorBackground()).toBe('rgb(255, 255, 255)');
   await expect(
     editor.locator('.codicon-folding-collapsed').first(),
   ).toBeVisible();
+  await playground
+    .getByRole('button', { name: 'Expand all', exact: true })
+    .click();
+  const lightKey = await keyColor();
   await dialog
-    .getByRole('combobox', { name: 'Response editor theme', exact: true })
-    .selectOption('custom');
-  await expect(editor).toHaveCSS('background-color', 'rgb(16, 24, 32)');
+    .getByRole('combobox', { name: 'Preset', exact: true })
+    .selectOption('ocean');
+  await expect(page.locator('.docs-shell')).toHaveCSS('--accent', '#2563eb');
+  await expect.poll(keyColor).not.toBe(lightKey);
+  await playground
+    .getByRole('button', { name: 'Collapse all', exact: true })
+    .click();
+  await dialog
+    .getByRole('combobox', { name: 'Appearance mode', exact: true })
+    .selectOption('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(editor).toHaveClass(/vs-dark/);
+  expect(await shellBackground()).toBe('#101316');
+  await expect(editor).toHaveCSS('background-color', 'rgb(16, 19, 22)');
+  await expect(
+    editor.locator('.codicon-folding-collapsed').first(),
+  ).toBeVisible();
   await expect(editor.locator('textarea').first()).toHaveJSProperty(
     'readOnly',
     true,
@@ -162,10 +183,7 @@ test('independent editor themes update across tabs without losing folded respons
     name: 'Response body',
     exact: true,
   });
-  await expect(fullscreen.locator('.monaco-editor')).toHaveCSS(
-    'background-color',
-    'rgb(16, 24, 32)',
-  );
+  await expect(fullscreen.locator('.monaco-editor')).toHaveClass(/vs-dark/);
   await expect(
     fullscreen.locator('.codicon-folding-collapsed').first(),
   ).toBeVisible();
@@ -176,9 +194,20 @@ test('independent editor themes update across tabs without losing folded respons
     await page.evaluate(() => sessionStorage.getItem('settings-response-copy')),
   ).toBe(raw);
   await dialog
-    .getByRole('combobox', { name: 'Response editor theme', exact: true })
-    .selectOption('contrast');
-  await expect(fullscreen.locator('.monaco-editor')).toHaveClass(/hc-black/);
+    .getByRole('combobox', { name: 'Appearance mode', exact: true })
+    .selectOption('system');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(fullscreen.locator('.monaco-editor')).toHaveClass(/\bvs\b/);
+  await expect(fullscreen.locator('.monaco-editor')).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  );
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(fullscreen.locator('.monaco-editor')).toHaveClass(/vs-dark/);
+  await expect(fullscreen.locator('.monaco-editor')).toHaveCSS(
+    'background-color',
+    'rgb(16, 19, 22)',
+  );
   await page.keyboard.press('Escape');
   await expect(playground).toBeVisible();
   await other.close();

@@ -62,7 +62,7 @@ The documentation must work without an account with the project maintainers. Dep
 
 The visual direction takes inspiration from Mintlify's layout and interaction quality while using original implementation, branding, assets, and copy.
 
-Readers can choose modern islands or a classic API layout, save personal/custom themes, customize response-editor colors, and filter the sidebar with All, Documentation and API Reference. See [reader settings and layouts](docs/reader-layout.md#personal-reader-settings).
+Readers can choose modern islands or a classic API layout, select prepared theme presets with matching response-editor colors, and filter the sidebar with All, Documentation and API Reference. See [reader settings and layouts](docs/reader-layout.md#personal-reader-settings).
 
 ## Self hosting and project policy
 

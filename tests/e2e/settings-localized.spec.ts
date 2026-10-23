@@ -3,20 +3,11 @@ import AxeBuilder from '@axe-core/playwright';
 const root = 'http://127.0.0.1:4177/localized';
 const operation = '/api/api/v1/listprojects/';
 
-test('localized personal and editor settings preserve portable values and literal theme names across languages', async ({
+test('localized prepared themes retain portable choices across languages and fit mobile settings', async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.addInitScript(() =>
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: async (text: string) =>
-          sessionStorage.setItem('localized-theme-copy', text),
-      },
-    }),
-  );
   await page.goto(root + operation);
   const open = page.getByRole('button', {
     name: 'Leseeinstellungen öffnen',
@@ -36,74 +27,14 @@ test('localized personal and editor settings preserve portable values and litera
   await dialog
     .getByRole('combobox', { name: 'Voreinstellung', exact: true })
     .selectOption('ocean');
-  const name = '<img src=x onerror=alert(1)>';
-  await dialog.getByLabel('Designname', { exact: true }).fill(name);
-  await dialog
-    .getByRole('button', { name: 'Aktuelles Design speichern' })
-    .click();
-  await expect(
-    dialog.getByRole('button', { name: `${name} anwenden`, exact: true }),
-  ).toBeVisible();
-  await expect(dialog.locator('img')).toHaveCount(0);
-  await dialog
-    .getByRole('combobox', { name: 'Design des Antworteditors', exact: true })
-    .selectOption('custom');
-  await expect(
-    dialog.getByLabel('Editorfarbe: Hintergrund', { exact: true }),
-  ).toBeVisible();
-  const foreground = dialog.getByLabel('Editorfarbe: Vordergrund', {
-    exact: true,
-  });
-  await foreground.evaluate((input) => {
-    Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      'value',
-    )!.set!.call(input, '#101820');
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  await expect(dialog.getByRole('status')).toContainText([
-    'Editor-Kontrast unter 4,5:1: Vordergrund.',
-  ]);
-  await foreground.evaluate((input) => {
-    Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      'value',
-    )!.set!.call(input, '#ffffff');
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  await dialog
-    .getByRole('button', { name: 'Designkonfiguration kopieren', exact: true })
-    .click();
-  await expect(dialog.getByRole('status')).toContainText(['Design kopiert.']);
-  const copied = JSON.parse(
-    (await page.evaluate(() =>
-      sessionStorage.getItem('localized-theme-copy'),
-    ))!,
-  );
-  expect(copied.theme).toMatchObject({
-    preset: 'ocean',
-    font: 'system',
-    density: 'comfortable',
-  });
-  expect(copied.theme).not.toHaveProperty('savedThemes');
+  await expect(dialog.locator('input')).toHaveCount(0);
+  await expect(dialog.locator('option[value=custom]')).toHaveCount(0);
   await page.setViewportSize({ width: 320, height: 844 });
   expect(
     await dialog.evaluate(
       (element) => element.scrollWidth <= element.clientWidth,
     ),
   ).toBe(true);
-  const preview = dialog.getByRole('region', {
-    name: 'Vorschau der Editor-Farbpalette',
-    exact: true,
-  });
-  await preview.focus();
-  await expect(preview).toBeFocused();
-  await page.keyboard.press('ArrowRight');
-  await expect
-    .poll(() => preview.evaluate((element) => element.scrollLeft))
-    .toBeGreaterThan(0);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.keyboard.press('Escape');
   await expect(open).toBeFocused();
@@ -119,21 +50,14 @@ test('localized personal and editor settings preserve portable values and litera
     name: 'Reader settings',
     exact: true,
   });
+  await expect(english.getByRole('combobox')).toHaveCount(3);
   await expect(
-    english.getByRole('combobox', {
-      name: 'Response editor theme',
-      exact: true,
-    }),
-  ).toHaveValue('custom');
+    english.getByRole('combobox', { name: 'Preset', exact: true }),
+  ).toHaveValue('ocean');
   await expect(
-    english.getByRole('button', { name: `Apply ${name}`, exact: true }),
-  ).toBeVisible();
-  await english
-    .getByRole('button', { name: `Delete theme ${name}`, exact: true })
-    .click();
-  await expect(
-    english.getByRole('button', { name: `Apply ${name}`, exact: true }),
-  ).toHaveCount(0);
+    english.getByRole('combobox', { name: 'Appearance mode', exact: true }),
+  ).toHaveValue('dark');
+  await expect(english.locator('input')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

@@ -58,7 +58,7 @@ The UI should feel very close to Mintlify in information density, spacing, typog
 
 ### Theme system
 
-Offer production-ready presets and validated design tokens for brand colors, typography, spacing, density, radii, surfaces, logo variants, sidebar styles, code themes, and endpoint layout. A live theme preview must expose contrast issues before publication.
+Offer production-ready presets and validated design tokens for brand colors, typography, spacing, density, radii, surfaces, logo variants, sidebar styles, code themes, and endpoint layout. Readers select a prepared theme or the published branding; response-editor colors follow that selection and light/dark appearance automatically. Custom palette editors, saved personal themes and independent editor-theme controls are excluded. Project branding remains available through validated YAML/JSON configuration, with contrast checks during build and doctor validation.
 
 Allow configuration overrides, scoped CSS, component slots, and fully custom React themes at progressively higher trust levels. Document token precedence, supported extension points, schema migration, and compatibility guarantees. Default themes must remain attractive without tuning.
 

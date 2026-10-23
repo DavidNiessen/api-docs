@@ -78,10 +78,10 @@ When indexing is enabled and `siteUrl` is configured, the builder emits an absol
 
 Robots directives are hints, not access control. Protect every private artifact with the server or an authentication gateway. When serving docs below a path on a shared host, configure the origin's root `/robots.txt` to reference the appropriate sitemap or exclusions; crawlers do not automatically discover a nested robots file.
 
-## Live appearance editor
+## Reader appearance presets
 
-Open a documentation page with `?theme-editor=1`, then choose **Customize**. The editor previews presets, typography, density, radius, layout widths, code-block treatment and both palettes. Text contrast problems disable configuration export. The editor's own controls retain a readable palette while you experiment with the page.
+Visitors can open **Reader settings** to choose the published theme or a prepared Mint, Ocean, Violet or Neutral preset, alongside system/light/dark appearance and modern/classic layout. Preferences stay in their browser and synchronize across tabs for the same documentation base path. Response editor colors follow the selected theme automatically.
 
-**Copy theme configuration** copies only the `theme` section; merge it into the project's YAML or JSON configuration and rebuild. The editor makes no server mutation and does not persist drafts or request credentials. Close it to inspect the preview; reload to return to the published configuration. Reset restores the source theme immediately. The editor loads on demand and is hidden from the normal reading flow. CSS overrides remain your responsibility and can supersede token-based contrast checks.
+Custom appearance controls, named themes and the temporary `?theme-editor=1` preview are removed. To change published branding, edit the validated `theme` section in the project's YAML or JSON configuration and rebuild. Existing custom visitor settings are discarded while recognized mode, layout and preset choices migrate.
 
 See [workspace layout and fullscreen responses](reader-layout.md) for responsive islands, visitor width preferences, keyboard resizing and response viewing.

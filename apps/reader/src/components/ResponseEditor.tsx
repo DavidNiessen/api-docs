@@ -1,12 +1,12 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { contrastRatio } from '@api-docs/contracts';
-import { EditorPreferencesContext } from '../use-reader-preferences.js';
+import { EditorThemeContext } from '../use-reader-preferences.js';
 import * as monaco from 'monaco-editor/editor/editor.api.js';
 import 'monaco-editor/codicon.css';
 import 'monaco-editor/editor/contrib/folding/browser/folding.js';
 import 'monaco-editor/languages/definitions/xml/register.js';
 import 'monaco-editor/languages/definitions/html/register.js';
 import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
+import { responseEditorTheme } from '../response-editor-theme.js';
 import { responseDisplay, responseLanguage } from '../response-view.js';
 import { useUi } from '../ui-translation.js';
 import { Icon } from './Icon.js';
@@ -48,51 +48,16 @@ export default function ResponseEditor({
   contentType: string;
 }) {
   const t = useUi();
-  const { preferences, mode } = useContext(EditorPreferencesContext);
-  const editorTheme =
-    preferences.editorTheme === 'auto'
-      ? mode === 'dark'
-        ? 'vs-dark'
-        : 'vs'
-      : (
-          {
-            light: 'vs',
-            dark: 'vs-dark',
-            contrast: 'hc-black',
-            custom: 'api-docs-personal',
-          } as const
-        )[preferences.editorTheme];
-  const selectedTheme = useRef(editorTheme);
-  selectedTheme.current = editorTheme;
+  const { palette, accent, mode } = useContext(EditorThemeContext);
+  const selectedTheme = useRef({ palette, accent, mode });
+  selectedTheme.current = { palette, accent, mode };
   useEffect(() => {
-    const colors = preferences.editorColors;
-    monaco.editor.defineTheme('api-docs-personal', {
-      base:
-        contrastRatio(colors.background, '#ffffff') >
-        contrastRatio(colors.background, '#000000')
-          ? 'vs-dark'
-          : 'vs',
-      inherit: true,
-      rules: [
-        { token: 'string.key', foreground: colors.key.slice(1) },
-        { token: 'string', foreground: colors.string.slice(1) },
-        { token: 'string.value', foreground: colors.string.slice(1) },
-        { token: 'number', foreground: colors.number.slice(1) },
-        { token: 'keyword', foreground: colors.keyword.slice(1) },
-      ],
-      colors: {
-        'editor.background': colors.background,
-        'editor.foreground': colors.foreground,
-        'editorLineNumber.foreground': colors.foreground + '99',
-        'editorLineNumber.activeForeground': colors.foreground,
-        'editorGutter.background': colors.background,
-        'scrollbarSlider.background': colors.foreground + '33',
-        'scrollbarSlider.hoverBackground': colors.foreground + '66',
-        'scrollbarSlider.activeBackground': colors.foreground + '88',
-      },
-    });
-    monaco.editor.setTheme(editorTheme);
-  }, [editorTheme, preferences.editorColors]);
+    monaco.editor.defineTheme(
+      'api-docs-response',
+      responseEditorTheme(palette, accent, mode),
+    );
+    monaco.editor.setTheme('api-docs-response');
+  }, [palette, accent, mode]);
   const [fullscreen, setFullscreen] = useState(false);
   const fullscreenDialog = useRef<HTMLDialogElement>(null);
   const fullscreenButton = useRef<HTMLButtonElement>(null);
@@ -125,9 +90,14 @@ export default function ResponseEditor({
         responseDisplay(body, language),
         language,
       );
+      const selected = selectedTheme.current;
+      monaco.editor.defineTheme(
+        'api-docs-response',
+        responseEditorTheme(selected.palette, selected.accent, selected.mode),
+      );
       editor = monaco.editor.create(host.current, {
         model,
-        theme: selectedTheme.current,
+        theme: 'api-docs-response',
         readOnly: true,
         domReadOnly: true,
         ariaLabel: t('response.body'),
@@ -214,7 +184,7 @@ export default function ResponseEditor({
       <div
         ref={host}
         className="response-monaco"
-        data-editor-theme={preferences.editorTheme}
+        data-editor-theme={mode}
         hidden={!!error}
       />
       {error && (
