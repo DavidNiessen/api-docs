@@ -10,7 +10,11 @@ import express from 'express';
 import Fastify from 'fastify';
 import { createStaticServer } from '@api-docs/cli';
 import { verifyArtifact } from '@api-docs/compiler';
-import { downloadSpec, parseConfig } from '@api-docs/spec';
+import {
+  downloadSpec,
+  parseConfig,
+  requestAllowedOrigin,
+} from '@api-docs/spec';
 import { createExpressDocs } from '@api-docs/node/express';
 import { apiDocsPlugin } from '@api-docs/node/fastify';
 import {
@@ -234,9 +238,15 @@ const importedSource = Buffer.from(
 const importedDigest = createHash('sha256')
   .update(importedSource)
   .digest('hex');
-const sourceServer = createServer((_request, response) =>
-  response.end(importedSource),
-);
+const sourceServer = createServer(async (request, response) => {
+  if (request.method === 'POST') {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    response
+      .writeHead(201, { 'Content-Type': 'application/octet-stream' })
+      .end(Buffer.concat(chunks));
+  } else response.end(importedSource);
+});
 await new Promise((resolve, reject) => {
   sourceServer.once('error', reject);
   sourceServer.listen(0, '127.0.0.1', resolve);
@@ -245,6 +255,15 @@ try {
   const address = sourceServer.address();
   assert(address && typeof address !== 'string');
   const origin = `http://127.0.0.1:${address.port}`;
+  const exchange = await requestAllowedOrigin(origin + '/echo', {
+    allowedOrigins: [origin],
+    allowHttp: true,
+    allowPrivateNetwork: true,
+    method: 'POST',
+    body: Uint8Array.of(0, 255, 128),
+  });
+  assert.equal(exchange.status, 201);
+  assert.deepEqual(exchange.body, Buffer.from([0, 255, 128]));
   const snapshot = await downloadSpec(origin + '/openapi', {
     allowedOrigins: [origin],
     allowHttp: true,

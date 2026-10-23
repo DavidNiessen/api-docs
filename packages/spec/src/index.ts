@@ -25,6 +25,8 @@ export type { ContractChange } from './diff.js';
 export { checkExamples } from './examples.js';
 export { downloadSpec } from './remote.js';
 export type { RemoteSpecOptions, RemoteSpecSnapshot } from './remote.js';
+export { requestAllowedOrigin, OutboundRequestError } from './outbound.js';
+export type { OutboundRequestOptions, OutboundResponse } from './outbound.js';
 
 export async function loadSpec(
   root: string,

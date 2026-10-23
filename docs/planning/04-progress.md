@@ -17,6 +17,19 @@ Updated: 2026-10-23. **Approximately 88% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**The relay's shared outbound transport is implemented; the relay itself is not enabled yet.** Remote-spec imports now use a public bounded Node HTTP exchange with exact-origin policy, all-answer DNS checks, pinned connections/proxy CONNECT, original-host TLS verification and no automatic redirects. The reusable layer adds byte-preserving request bodies, explicit methods/headers, request/response/header budgets, safe cancellation and protocol-upgrade refusal. Cookie, framing, proxy/security and trusted forwarding headers cannot be supplied by callers. Unsupported proxy protocols fail without a direct fallback, and errors omit sensitive values. This is infrastructure for the pending authorized relay, so the estimate stays approximately 88%.
+
+Validation for this preparation:
+
+- Formatting/lint, type checking, all 73 tooling tests and all 616 compiler/component tests pass. Twenty-two new real-loopback cases cover exact binary requests/responses, original host/framing, explicit target authorization, forbidden/duplicate/injected/excessive headers, method/body constraints, declared/streamed limits, compression, HEAD/304 metadata, upgrades, proxy failures and cancellation.
+- All 38 existing remote-import cases still pass, including DNS rebinding/mixed answers, TLS/proxy pinning, redirects, source validation, hashes and atomic snapshot failure behavior.
+- All 12 installed npm components pass; the physical consumer now exercises a binary POST through the public transport alongside the installed importer/CLI, declarations, offline reinstall, dependency audit and candidate SBOM.
+- Reader code is unchanged by this Node-only extraction; its last complete 43-journey browser run remains the preceding mock-response increment.
+
+See [bounded outbound HTTP](../outbound-http.md). This helper does not authorize application users or grant paths/methods to them. Operator destination rules, project membership checks, relay request controls/audit and explicit reader transport selection remain necessary before the relay can be enabled. Hosted CI, independent review and protected release acceptance remain open.
+
+## Previous local-mock increment
+
 **The response panel can preview local mock responses from examples or seeded schema data.** The public explorer SDK prefers inline/named examples, never downloads external examples and uses a bounded deterministic generator for supported schemas. The UI exposes documented statuses, media types, example selection and a seed. Results are visibly marked as mocks, use the existing read-only Monaco/folding/full-copy viewer and omit network latency. Mock generation does not accept request inputs or credentials, contact the API or start a persistent service. The Scalar-style bar's real Send action retains its confirmation/transport behavior and replaces earlier mocks with actual results. This consumer workflow raises the estimate to approximately 88%; internationalization, remaining product scope and launch gates are still open.
 
 The generator supports ordinary objects/arrays/primitives, references, compatible object composition, basic bounds, common string formats and schema annotations. It excludes response write-only fields. Unsupported/unsatisfiable constraints, unsafe integer precision, excessive recursion/nodes and output above 2 MiB fail explicitly instead of fabricating a successful response. HEAD, informational, 204, 304 and content-free responses stay empty; range/default definitions use a clearly identified representative status.
