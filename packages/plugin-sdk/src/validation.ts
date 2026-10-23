@@ -185,6 +185,10 @@ const schema = z
       .array(
         z
           .object({
+            operationIndex: z
+              .string()
+              .regex(/^api-index\/(?:0|[1-9]\d{0,2})\/catalog\.json$/)
+              .optional(),
             openapiVersion: z.string().optional(),
             id: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
             version: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
@@ -243,7 +247,12 @@ export function validatePluginSite(value: unknown): SiteData {
   const site = result.data as unknown as SiteData;
   const identities = new Set<string>();
   let sampleBytes = 0;
-  for (const api of site.apis) {
+  for (const [index, api] of site.apis.entries()) {
+    if (
+      api.operationIndex !== undefined &&
+      api.operationIndex !== `api-index/${index}/catalog.json`
+    )
+      throw new Error('Invalid plugin output: mismatched endpoint catalog');
     const key = `${api.id}:${api.version}`;
     if (identities.has(key))
       throw new Error('Invalid plugin output: duplicate API identity');

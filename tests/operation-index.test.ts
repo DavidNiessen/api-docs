@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildSite } from '@api-docs/cli';
+import { validateSiteData } from '@api-docs/plugin-sdk';
 import {
   readOperationCatalog,
   readOperationRows,
@@ -44,6 +45,25 @@ it('exports complete hashed endpoint pages beyond bounded sidebar navigation', a
       'api-index/0/catalog.json',
     );
     const output = join(root, '.api-docs/site');
+    const exported = JSON.parse(
+      await readFile(join(output, 'site.json'), 'utf8'),
+    );
+    expect(validateSiteData(exported).apis[0]!.operationIndex).toBe(
+      'api-index/0/catalog.json',
+    );
+    for (const operationIndex of [
+      'api-index/1/catalog.json',
+      'api-index/00/catalog.json',
+      'api-index/128/catalog.json',
+      '../catalog.json',
+      'https://catalog.example.test/catalog.json',
+      0,
+      null,
+    ]) {
+      const invalid = structuredClone(exported);
+      invalid.apis[0].operationIndex = operationIndex;
+      expect(() => validateSiteData(invalid)).toThrow('Invalid plugin output');
+    }
     const catalog = readOperationCatalog(
       JSON.parse(
         await readFile(join(output, 'api-index/0/catalog.json'), 'utf8'),
