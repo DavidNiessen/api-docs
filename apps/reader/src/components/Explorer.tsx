@@ -26,6 +26,7 @@ import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
 import { CopyButton } from './CopyButton.js';
 import { RequestUrlBar } from './RequestUrlBar.js';
+import { MockResponseControls } from './MockResponseControls.js';
 
 import { AuthField } from './AuthField.js';
 import { BodyEditor } from './BodyEditor.js';
@@ -187,6 +188,7 @@ export function Explorer({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [response, setResponse] = useState<{
+    mock?: { source: string; documentedStatus: string };
     status: number;
     duration: number;
     body: string;
@@ -839,6 +841,30 @@ export function Explorer({
         </section>
         <section className="playground-output" aria-label="API response">
           <div className="response-panel-heading">Response</div>
+          <MockResponseControls
+            api={api}
+            operation={operation}
+            busy={busy}
+            onGenerate={(result) => {
+              controller.current?.abort();
+              controller.current = null;
+              setBusy(false);
+              setError('');
+              setResponse({
+                status: result.status,
+                duration: 0,
+                body: result.body,
+                contentType: result.contentType,
+                headers: Object.entries(result.headers)
+                  .map(([name, value]) => `${name}: ${value}`)
+                  .join('\n'),
+                mock: {
+                  source: result.source,
+                  documentedStatus: result.documentedStatus,
+                },
+              });
+            }}
+          />
           <div className="response-content">
             {response ? (
               <>
@@ -852,7 +878,14 @@ export function Explorer({
                   >
                     {response.status}
                   </span>
-                  <span>{response.duration} ms</span>
+                  {response.mock ? (
+                    <span className="mock-response-badge" role="status">
+                      Mock response · {response.mock.source} · documented{' '}
+                      {response.mock.documentedStatus}
+                    </span>
+                  ) : (
+                    <span>{response.duration} ms</span>
+                  )}
                 </div>
                 <Suspense
                   fallback={<p role="status">Loading response editor…</p>}

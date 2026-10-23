@@ -2596,6 +2596,52 @@ h3 {
   color: var(--muted);
   font-size: 11px;
 }
+.mock-response-controls {
+  margin: 12px 24px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.mock-response-controls summary {
+  cursor: pointer;
+  color: var(--heading);
+  font-weight: 600;
+}
+.mock-response-controls p {
+  margin: 10px 0;
+  line-height: 1.6;
+}
+.mock-response-fields {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+.mock-response-fields label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.mock-response-fields input,
+.mock-response-fields select {
+  width: 100%;
+  min-width: 0;
+  font-size: 11px;
+}
+.mock-response-controls > button {
+  display: block;
+  padding: 8px 10px;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--heading);
+}
+.mock-response-badge {
+  color: var(--heading);
+  font-weight: 600;
+}
 @media (max-width: 760px) {
   .playground-heading .request-url-bar {
     order: 0;

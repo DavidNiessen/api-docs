@@ -346,3 +346,5 @@ export type {
   MultipartFiles,
   MultipartPart,
 } from './multipart.js';
+export { generateMockResponse } from './mock.js';
+export type { MockResponse, MockResponseOptions } from './mock.js';

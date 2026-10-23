@@ -28,6 +28,7 @@ import {
   toFetchRequest,
   generateSnippet,
   redactRequest,
+  generateMockResponse,
 } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
@@ -318,6 +319,35 @@ const installedSite = JSON.parse(
 assert.equal(installedSite.config.theme.radius, 12);
 assert.equal(installedSite.config.theme.colors.light.surface, '#f4f8f6');
 assert.equal(installedSite.apis[0].title, 'Installed source API');
+const mockOperation = {
+  ...installedSite.apis[0].operations[0],
+  responses: [
+    {
+      status: '200',
+      description: 'Installed mock',
+      headers: {},
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { id: { type: 'string', format: 'uuid' } },
+          },
+        },
+      },
+    },
+  ],
+};
+const mock = generateMockResponse(mockOperation, { seed: 'installed' });
+assert.equal(mock.kind, 'mock');
+assert.match(JSON.parse(mock.body).id, /^[a-f0-9-]{36}$/);
+assert.deepEqual(
+  generateMockResponse(mockOperation, { seed: 'installed' }),
+  mock,
+);
+assert.notEqual(
+  generateMockResponse(mockOperation, { seed: 'different' }).body,
+  mock.body,
+);
 assert.equal(
   installedSite.apis[0].operations[0].codeSamples[0].plugin,
   'installed-consumer',

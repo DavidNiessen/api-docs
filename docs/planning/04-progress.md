@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated: 2026-10-23. **Approximately 87% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-23. **Approximately 88% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
 ## Current milestone status
 
@@ -16,6 +16,20 @@ Updated: 2026-10-23. **Approximately 87% complete; pre-release.** This is an eng
 | M7 — Launch              | Local automated validation and documented performance experiments                                                                                                                                                                                                                                                                                          | Independent pilots, security/accessibility review, complete license/distribution audit, protected release approval and registry installation verification |
 
 ## Latest completed increment
+
+**The response panel can preview local mock responses from examples or seeded schema data.** The public explorer SDK prefers inline/named examples, never downloads external examples and uses a bounded deterministic generator for supported schemas. The UI exposes documented statuses, media types, example selection and a seed. Results are visibly marked as mocks, use the existing read-only Monaco/folding/full-copy viewer and omit network latency. Mock generation does not accept request inputs or credentials, contact the API or start a persistent service. The Scalar-style bar's real Send action retains its confirmation/transport behavior and replaces earlier mocks with actual results. This consumer workflow raises the estimate to approximately 88%; internationalization, remaining product scope and launch gates are still open.
+
+The generator supports ordinary objects/arrays/primitives, references, compatible object composition, basic bounds, common string formats and schema annotations. It excludes response write-only fields. Unsupported/unsatisfiable constraints, unsafe integer precision, excessive recursion/nodes and output above 2 MiB fail explicitly instead of fabricating a successful response. HEAD, informational, 204, 304 and content-free responses stay empty; range/default definitions use a clearly identified representative status.
+
+Validation for this increment:
+
+- Formatting/lint, type checking, all 73 tooling tests and all 594 compiler/component tests pass. Twenty-three new cases cover repeatability/different seeds, inline/named/generated selection, inert external URLs, common formats, statuses/media, empty bodies, composition, precision, constraints and source/output budgets.
+- All 43 reader browser journeys pass. Three new journeys verify absent API traffic and mutation dialogs during mock generation, exclusion of entered credentials, inert HTML, copy fidelity, stable seeds, empty/error examples, teardown, both themes, mobile containment, accessibility and a real confirmed Send replacing a mock. The Scalar-style bar and response-only Monaco journeys remain covered.
+- All 12 installed npm components pass, including deterministic public mock generation outside the workspace, declarations/source maps, offline reinstall, dependency audit and candidate SBOM.
+
+See [local mock responses](../mock-responses.md) for supported generation rules and limits. Mocks are illustrative and do not perform full schema-instance validation or prove live API behavior. Hosted CI, independent review and protected release acceptance remain open.
+
+## Previous page-feedback increment
 
 **Guide and API pages can expose an optional issue-tracker feedback link.** Operators configure a validated HTTPS destination and optional label. The link works in prerendered HTML, opens with no opener/referrer and makes no background report request. Canonical page context is a separate opt-in requiring an explicit public `siteUrl`; it follows SPA navigation while excluding browser queries/fragments, credentials, playground bodies and source filenames. Invalid/excessive context falls back to the configured destination. Sites without feedback configuration retain the existing footer. This completed static feedback workflow raises the estimate to approximately 87%; internationalization, remaining product scope and launch gates are still open.
 

@@ -362,6 +362,43 @@ paths:
             application/json:
               schema: { type: object }
         '400': { description: Invalid upload }
+  /mock-preview:
+    post:
+      operationId: previewMockResponses
+      summary: Preview mock responses
+      description: Explore local examples and seeded schema data without an API request.
+      tags: [Examples]
+      servers:
+        - url: https://api.example.test
+      security:
+        - bearer: []
+      responses:
+        '200':
+          description: Example or generated document
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { type: string, enum: [ready, waiting] }
+                  count: { type: integer, minimum: 1, maximum: 9 }
+                  privateInput: { type: string, writeOnly: true }
+              example: { id: published-example, status: ready }
+            text/html:
+              schema: { type: string }
+              example: '<p>Mock HTML</p><script>window.mockExecuted=true</script>'
+        '400':
+          description: Published error example
+          content:
+            application/json:
+              schema: { type: object }
+              examples:
+                invalid:
+                  summary: Invalid input
+                  value: { error: invalid_input }
+        '204':
+          description: Empty response
 components:
   headers:
     UploadToken:

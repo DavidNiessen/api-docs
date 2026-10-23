@@ -2,6 +2,8 @@
 
 Choose **Try now** on an endpoint to open the playground. Its right panel shows **Your response will appear here** until a request receives a response, then displays the status, duration and a read-only Monaco editor. Request snippets are available in the collapsible **Request example** section on the left.
 
+The response panel also offers optional [local mock previews](mock-responses.md) from examples or seeded schema data. These are labeled as mocks and use the same editor/copy controls; the URL bar's Send action remains a live request.
+
 ## Read, fold and copy responses
 
 JSON, XML and HTML responses use syntax highlighting selected from the response Content-Type. Other media types use plain text. Fold indented sections with the gutter controls or **Collapse all**; **Expand all** restores them. Editing is disabled. The editor follows the reader's light/dark mode, resizes with the modal, and releases its model when the response changes or the modal closes.
