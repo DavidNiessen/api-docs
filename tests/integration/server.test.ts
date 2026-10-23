@@ -3,6 +3,9 @@ import { mkdtemp, cp, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID, randomBytes } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import type { ExecFileException } from 'node:child_process';
+import { promisify } from 'node:util';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
@@ -436,6 +439,52 @@ describe('self-hosted publication and authorization', () => {
       (await server.inject({ url: `/docs/${slug}/`, headers: auth })).body,
     ).not.toContain('New publication marker.');
   });
+  it.each(['schema initialization', 'port binding'] as const)(
+    'the real executable closes PostgreSQL pools after failed %s',
+    async (failure) => {
+      const unavailable = new URL(database!);
+      // A nonexistent search_path forces an initialization error after connecting,
+      // without changing the shared database or its installed migration history.
+      if (failure === 'schema initialization')
+        unavailable.searchParams.set(
+          'options',
+          '-csearch_path=absent_' + randomUUID().replaceAll('-', ''),
+        );
+      await promisify(execFile)(
+        process.execPath,
+        ['apps/server/dist/main.js'],
+        {
+          cwd: process.cwd(),
+          timeout: 5000,
+          killSignal: 'SIGKILL',
+          env: {
+            ...process.env,
+            DATABASE_URL: unavailable.href,
+            ROOT_TOKEN: rootToken,
+            PUBLIC_URL: 'https://docs.example.test',
+            ARTIFACT_ROOT: artifactRoot,
+            LOG_LEVEL: 'silent',
+            HOST: '127.0.0.1',
+            PORT: failure === 'port binding' ? new URL(issuer).port : '0',
+            SHUTDOWN_TIMEOUT_MS: '1000',
+          },
+        },
+      ).then(
+        () => {
+          throw new Error('The initialization/binding fault must fail startup');
+        },
+        (error: ExecFileException & { stdout: string; stderr: string }) => {
+          expect(error.code).toBe(1);
+          expect(error.signal).toBe(null);
+          expect(error.killed).toBe(false);
+          expect(error.stderr).toContain('Server startup failed.');
+          expect(error.stderr).not.toContain(unavailable.href);
+          expect(error.stderr).not.toContain(rootToken);
+          expect(error.stderr).not.toContain('docs_schema_migrations');
+        },
+      );
+    },
+  );
   it('fails closed for private cached content when repository reads fail', async () => {
     let unavailable = false;
     const faulted = new Proxy(repository, {

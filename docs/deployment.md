@@ -29,6 +29,12 @@ The reader runs as UID 1000, drops capabilities, uses a read-only root filesyste
 
 The cloud proxy's optional build CA is supported through `deploy/compose.cloud.yaml` and a BuildKit secret; it is not copied into the runtime image. Ordinary deployments should use the primary Compose file. Never disable certificate verification to build an image.
 
+## Stop or restart
+
+Compose gives the server 45 seconds after SIGTERM before forcing termination. Its executable defaults to a 30-second shutdown budget (`SHUTDOWN_TIMEOUT_MS`), drains active responses and then closes database pools. Stop/restart only the intended service, for example `docker compose -f deploy/compose.yaml stop docs`; this does not stop PostgreSQL or remove volumes. A controlled restart uses `docker compose -f deploy/compose.yaml restart docs` and must be followed by readiness and reader checks.
+
+Keep the supervisor grace period above any overridden application deadline. The Kubernetes template likewise sets `terminationGracePeriodSeconds: 45`; actual ingress draining and cluster rollout/recovery still require topology-specific acceptance. A nonzero exit or shutdown-deadline log requires investigation. Verify publication history and reuse the original idempotency key when retrying an interrupted publication. See [process shutdown behavior](server.md#process-shutdown).
+
 ## Backup
 
 Pause publication and artifact staging writers for the operation. Readers can remain online. Do not run artifact cleanup concurrently. The database dump is taken first, followed by the immutable artifact tree. Recovery sets include private documentation, scoped token hashes and audit history; encrypt and restrict them as sensitive data. Browser sessions and pending OIDC exchanges are intentionally excluded.

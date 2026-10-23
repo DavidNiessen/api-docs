@@ -16,6 +16,7 @@ An operator can explicitly enable the [authenticated API relay](api-relay.md) wi
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID` | Optional identity provider discovery issuer and client id                             |
 | `OIDC_CLIENT_SECRET`            | Optional confidential-client credential, supplied through a secret store              |
 | `OIDC_ALLOWED_HOSTS`            | Additional operator-approved hostnames for OIDC endpoints                             |
+| `SHUTDOWN_TIMEOUT_MS`           | Graceful shutdown deadline, default 30000 ms; integer from 1000 to 300000             |
 | `INSECURE_DEVELOPMENT`          | Explicitly allow HTTP on loopback for local testing; never use in production          |
 
 Run `npm run build`, execute `node apps/server/dist/migrate.js` with the schema-owner connection, then run `npm run server` with the runtime connection. `DATABASE_URL_FILE` and `ROOT_TOKEN_FILE` support read-only secret files instead of environment values. Do not put production secrets in committed environment files. See the [container deployment and recovery runbook](deployment.md).
@@ -42,9 +43,19 @@ Back up PostgreSQL and all referenced immutable artifact directories as one reco
 
 The initial migration uses a transaction and advisory lock. The Compose deployment separates migration ownership from the runtime role and enforces an append-only audit log for that role. Never delete referenced artifacts during backup or publication. The recovery command restores only into a fresh deployment and verifies artifact checksums. Multi-replica shared storage and isolated build queues remain release gates.
 
+## Process shutdown
+
+The executable owns a single shutdown path for SIGINT and SIGTERM, including repeated or mixed signals. It stops accepting requests, lets active HTTP responses finish, closes newly idle keep-alive sockets, then ends both PostgreSQL pools. A response whose headers are sent during draining carries `Connection: close`; a stream already in progress can finish before its socket closes. Programmatic `createServer()` callers keep ownership of their repository and process signal handlers; call `app.close()` before `repository.close()`.
+
+A signal during startup marks it cancelled: resource acquisition settles before cleanup, and the executable checks cancellation before listening. Startup failures, including schema initialization and port binding, use the same cleanup path. Error logs contain a generic operational message rather than raw exceptions or connection credentials.
+
+`SHUTDOWN_TIMEOUT_MS` starts when shutdown is requested, defaults to 30000, and accepts integer milliseconds from 1000 to 300000. If startup or cleanup does not settle within that budget, or cleanup fails, the executable exits with status 1. A successful signal shutdown exits normally; startup failure remains nonzero even when cleanup succeeds. A forced exit can interrupt requests. For an uncertain publication result, inspect publication history and retry with the original idempotency key and expected publication pointer.
+
+Configure the supervisor's termination grace period above this deadline. The supplied Compose and Kubernetes templates allow 45 seconds for the default 30-second application budget. Increase both values together in deployment overrides. These process checks do not establish Kubernetes/multi-replica or database outage acceptance.
+
 ## Integration validation
 
-`TEST_DATABASE_URL` must point at a disposable PostgreSQL database. Run `npm run build && npm run test:integration`. Tests use a real database and a local signed OIDC provider, including private artifact access, token revocation, CSRF, state/nonce/PKCE, concurrent publication and audit records. Missing database configuration fails the suite rather than skipping it.
+`TEST_DATABASE_URL` must point at a disposable PostgreSQL database. Run `npm run build && npm run test:integration`. Tests use a real database and a local signed OIDC provider, including private artifact access, token revocation, CSRF, state/nonce/PKCE, concurrent publication and audit records. Spawned production executables connect to that database, then encounter either a nonexistent schema search path or an occupied listener port; both must release their pools with a nonzero exit. A five-second hard test timeout distinguishes cleanup from the pool idle timeout. The regular source suite additionally sends actual OS signals to isolated child servers and verifies live HTTP/stream draining, repeated signals, startup cancellation and forced shutdown deadlines. Missing database configuration fails the suite rather than skipping it.
 
 ## Immutable metadata cache
 

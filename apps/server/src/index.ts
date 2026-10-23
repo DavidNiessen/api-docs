@@ -95,6 +95,15 @@ export async function createServer(options: ServerOptions) {
     bodyLimit: 64 * 1024,
     trustProxy: false,
   });
+  let draining = false;
+  app.addHook('preClose', async () => {
+    draining = true;
+  });
+  app.addHook('onResponse', async () => {
+    // Responses already streaming when shutdown starts have sent their headers.
+    // Reap their now-idle sockets without interrupting other active responses.
+    if (draining) app.server.closeIdleConnections();
+  });
   app.decorateRequest('principal', undefined);
   await app.register(cookie);
   await app.register(rateLimit, {
@@ -172,6 +181,7 @@ export async function createServer(options: ServerOptions) {
       fail(403, 'Mutation origin does not match PUBLIC_URL');
   });
   app.addHook('onSend', async (request, reply) => {
+    if (draining) reply.header('Connection', 'close');
     reply
       .header('X-Content-Type-Options', 'nosniff')
       .header('Referrer-Policy', 'no-referrer')
