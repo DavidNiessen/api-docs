@@ -66,6 +66,15 @@ export const defaultUiMessages = Object.freeze({
   'response.loading': 'Loading response editor…',
   'response.headers': 'Response headers',
   'response.copy': 'Copy entire response',
+  'response.fullscreen': 'View response fullscreen',
+  'response.exitFullscreen': 'Exit response fullscreen',
+  'layout.navigationControls': 'Navigation layout controls',
+  'layout.navigation': 'Resize navigation',
+  'layout.inspector': 'Resize inspector',
+  'layout.playground': 'Resize request and response panels',
+  'layout.preferredWidth': 'Preferred width: {width} pixels',
+  'layout.resizeHint':
+    'Drag or use arrow keys to resize. Shift changes faster. Double-click to reset.',
   'response.collapse': 'Collapse all',
   'response.expand': 'Expand all',
   'response.unavailable':

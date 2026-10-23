@@ -83,6 +83,50 @@ test('response-only Monaco highlights and folds read-only JSON while copying the
     editor.locator('.codicon-folding-collapsed').first(),
   ).toBeVisible();
   await expect(lines).not.toContainText('Ada');
+  await output
+    .getByRole('button', { name: 'View response fullscreen' })
+    .click();
+  const fullscreen = page.getByRole('dialog', {
+    name: 'Response body',
+    exact: true,
+  });
+  await expect(fullscreen).toBeVisible();
+  await expect(fullscreen.locator('.monaco-editor')).toBeVisible();
+  const expandedBounds = await fullscreen.boundingBox();
+  expect(expandedBounds!.width).toBeGreaterThan(
+    page.viewportSize()!.width - 40,
+  );
+  expect(expandedBounds!.height).toBeGreaterThan(
+    page.viewportSize()!.height - 40,
+  );
+  await expect(
+    fullscreen.locator('.codicon-folding-collapsed').first(),
+  ).toBeVisible();
+  await fullscreen
+    .getByRole('button', { name: 'Copy entire response' })
+    .click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as { copied: string }).copied),
+    )
+    .toBe(raw);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await page.screenshot({ path: '.api-docs/response-fullscreen-light.png' });
+  await page.keyboard.press('Escape');
+  await expect(fullscreen).not.toBeVisible();
+  await expect(playground).toBeVisible();
+  await expect(
+    output.getByRole('button', { name: 'View response fullscreen' }),
+  ).toBeFocused();
+  await expect(
+    editor.locator('.codicon-folding-collapsed').first(),
+  ).toBeVisible();
   await output.getByRole('button', { name: 'Copy entire response' }).click();
   await expect
     .poll(() =>
@@ -121,6 +165,19 @@ test('response-only Monaco highlights and folds read-only JSON while copying the
     ).violations,
   ).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });
+  await output
+    .getByRole('button', { name: 'View response fullscreen' })
+    .click();
+  await expect(fullscreen).toBeVisible();
+  await expect(fullscreen.locator('.monaco-editor')).toHaveClass(/vs-dark/);
+  expect(
+    await fullscreen.evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBe(true);
+  await fullscreen
+    .getByRole('button', { name: 'Exit response fullscreen' })
+    .click();
+  await expect(fullscreen).not.toBeVisible();
+  await expect(playground).toBeVisible();
   await editor.scrollIntoViewIfNeeded();
   expect(
     await page

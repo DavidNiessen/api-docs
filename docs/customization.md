@@ -83,3 +83,5 @@ Robots directives are hints, not access control. Protect every private artifact 
 Open a documentation page with `?theme-editor=1`, then choose **Customize**. The editor previews presets, typography, density, radius, layout widths, code-block treatment and both palettes. Text contrast problems disable configuration export. The editor's own controls retain a readable palette while you experiment with the page.
 
 **Copy theme configuration** copies only the `theme` section; merge it into the project's YAML or JSON configuration and rebuild. The editor makes no server mutation and does not persist drafts or request credentials. Close it to inspect the preview; reload to return to the published configuration. Reset restores the source theme immediately. The editor loads on demand and is hidden from the normal reading flow. CSS overrides remain your responsibility and can supersede token-based contrast checks.
+
+See [workspace layout and fullscreen responses](reader-layout.md) for responsive islands, visitor width preferences, keyboard resizing and response viewing.

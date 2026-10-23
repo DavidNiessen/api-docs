@@ -2,7 +2,18 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Project, Publication } from '@api-docs/domain';
 import './styles.css';
+import './island-layout.css';
 function Studio() {
+  const [sidebarWidth, setSidebarWidth] = useState(240);
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('api-docs-studio-navigation-width');
+      if (stored && /^\d{3}$/.test(stored))
+        setSidebarWidth(Math.max(200, Math.min(360, Number(stored))));
+    } catch {
+      /* Layout preferences are optional. */
+    }
+  }, []);
   const [token, setToken] = useState('');
   const [connected, setConnected] = useState(false);
   const [oidc, setOidc] = useState(false);
@@ -184,7 +195,12 @@ function Studio() {
           )}
         </main>
       ) : (
-        <div className="studio-layout">
+        <div
+          className="studio-layout"
+          style={{
+            gridTemplateColumns: `min(${sidebarWidth}px, 30vw) minmax(0, 1fr)`,
+          }}
+        >
           <aside>
             <div className="workspace-label">WORKSPACE</div>
             <label className="project-picker">
@@ -227,6 +243,31 @@ function Studio() {
                 ),
               )}
             </nav>
+            <label className="studio-panel-size">
+              <span>
+                Navigation width <output>{sidebarWidth}px</output>
+              </span>
+              <input
+                type="range"
+                aria-label="Navigation width"
+                min={200}
+                max={360}
+                step={8}
+                value={sidebarWidth}
+                onChange={(event) => {
+                  const width = Number(event.target.value);
+                  setSidebarWidth(width);
+                  try {
+                    localStorage.setItem(
+                      'api-docs-studio-navigation-width',
+                      String(width),
+                    );
+                  } catch {
+                    /* Storage is optional. */
+                  }
+                }}
+              />
+            </label>
             <div className="identity">
               <span className="avatar">
                 {subject.slice(0, 1).toUpperCase()}

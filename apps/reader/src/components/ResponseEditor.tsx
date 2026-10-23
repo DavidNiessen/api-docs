@@ -7,6 +7,7 @@ import 'monaco-editor/languages/definitions/html/register.js';
 import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
 import { responseDisplay, responseLanguage } from '../response-view.js';
 import { useUi } from '../ui-translation.js';
+import { Icon } from './Icon.js';
 import { CopyButton } from './CopyButton.js';
 
 // Only the standalone editor and selected tokenizers are loaded, without language services.
@@ -45,6 +46,25 @@ export default function ResponseEditor({
   contentType: string;
 }) {
   const t = useUi();
+  const [fullscreen, setFullscreen] = useState(false);
+  const fullscreenDialog = useRef<HTMLDialogElement>(null);
+  const fullscreenButton = useRef<HTMLButtonElement>(null);
+  const wasFullscreen = useRef(false);
+  const viewState = useRef<monaco.editor.ICodeEditorViewState | null>(null);
+  const previousBody = useRef(body);
+  useEffect(() => {
+    const element = fullscreenDialog.current;
+    if (fullscreen && element) {
+      element.showModal();
+      fullscreenButton.current?.focus({ preventScroll: true });
+    } else if (wasFullscreen.current) {
+      fullscreenButton.current?.focus({ preventScroll: true });
+    }
+    wasFullscreen.current = fullscreen;
+    return () => {
+      if (element?.open) element.close();
+    };
+  }, [fullscreen]);
   const host = useRef<HTMLDivElement>(null);
   const instance = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [error, setError] = useState('');
@@ -85,6 +105,9 @@ export default function ResponseEditor({
         stickyScroll: { enabled: false },
         tabIndex: 0,
       });
+      if (previousBody.current === body && viewState.current)
+        editor.restoreViewState(viewState.current);
+      previousBody.current = body;
       instance.current = editor;
       observer = new MutationObserver(() => monaco.editor.setTheme(theme()));
       observer.observe(document.documentElement, {
@@ -96,13 +119,14 @@ export default function ResponseEditor({
     }
     return () => {
       observer?.disconnect();
+      viewState.current = editor?.saveViewState() ?? null;
       instance.current = null;
       editor?.dispose();
       model?.dispose();
     };
-  }, [body, language, t]);
-  return (
-    <div className="response-editor">
+  }, [body, language, t, fullscreen]);
+  const content = (
+    <>
       <div className="response-editor-toolbar">
         <span>
           {t('response.body')}{' '}
@@ -126,6 +150,20 @@ export default function ResponseEditor({
         >
           {t('response.expand')}
         </button>
+        <button
+          ref={fullscreenButton}
+          type="button"
+          className="response-fullscreen-toggle"
+          aria-label={t(
+            fullscreen ? 'response.exitFullscreen' : 'response.fullscreen',
+          )}
+          title={t(
+            fullscreen ? 'response.exitFullscreen' : 'response.fullscreen',
+          )}
+          onClick={() => setFullscreen(!fullscreen)}
+        >
+          <Icon name={fullscreen ? 'minimize' : 'maximize'} size={16} />
+        </button>
         <CopyButton text={body} label={t('response.copy')} />
       </div>
       {error && <p role="status">{error}</p>}
@@ -135,6 +173,25 @@ export default function ResponseEditor({
           {body}
         </pre>
       )}
-    </div>
+    </>
+  );
+  return (
+    <>
+      <div className="response-editor" hidden={fullscreen}>
+        {!fullscreen && content}
+      </div>
+      <dialog
+        ref={fullscreenDialog}
+        className="response-fullscreen-dialog"
+        aria-label={t('response.body')}
+        onCancel={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setFullscreen(false);
+        }}
+      >
+        {fullscreen && content}
+      </dialog>
+    </>
   );
 }

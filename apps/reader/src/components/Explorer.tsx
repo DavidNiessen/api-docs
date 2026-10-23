@@ -25,6 +25,7 @@ import type {
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
 import { CopyButton } from './CopyButton.js';
+import { PanelResizeHandle } from './PanelResizeHandle.js';
 import { RequestUrlBar } from './RequestUrlBar.js';
 import { MockResponseControls } from './MockResponseControls.js';
 
@@ -109,6 +110,7 @@ export function Explorer({
     Record<string, { clientId: string; issuer: string }> | undefined;
 }) {
   const t = useUi();
+  const panels = useRef<HTMLDivElement>(null);
   const relay = useRelay(relayEndpoint, !previewOnly);
   const [origin, setOrigin] = useState('');
   useEffect(() => setOrigin(location.origin), []);
@@ -536,8 +538,9 @@ export function Explorer({
           <Icon name="close" size={18} />
         </button>
       </header>
-      <div className="playground-panels">
+      <div className="playground-panels" ref={panels}>
         <section
+          id="playground-request-inputs"
           className="playground-inputs"
           aria-label="Request configuration"
         >
@@ -883,6 +886,17 @@ export function Explorer({
               : 'Requests are sent directly from your browser.'}
           </p>
         </section>
+        <PanelResizeHandle
+          target={panels}
+          property="--request-panel-width"
+          initial={540}
+          min={280}
+          max={850}
+          label={t('layout.playground')}
+          controls="playground-request-inputs"
+          storageKey={basePath}
+          className="playground-resize"
+        />
         <section
           className="playground-output"
           aria-label={t('response.region')}

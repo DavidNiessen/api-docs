@@ -34,6 +34,7 @@ import type {
   SearchResult,
   Theme,
 } from '@api-docs/contracts';
+import { PanelResizeHandle } from './PanelResizeHandle.js';
 import { LocaleMenu } from './LocaleMenu.js';
 import { UiContext } from '../ui-translation.js';
 import { Icon } from './Icon.js';
@@ -107,6 +108,7 @@ export function App({
   site: SiteData;
   initialPath: string;
 }) {
+  const layout = useRef<HTMLDivElement>(null);
   const [site, setSite] = useState(initialSite);
   const [credentialSession] = useState(createCredentialSession);
   useSyncExternalStore(
@@ -455,6 +457,7 @@ export function App({
   const results = searchResults;
   const view = (
     <div
+      ref={layout}
       className={`docs-shell density-${config.theme.density} font-${config.theme.font} code-${config.theme.codeTheme}`}
       style={
         {
@@ -650,6 +653,7 @@ export function App({
       </header>
       <div className="docs-layout">
         <aside
+          id="documentation-navigation"
           className={`sidebar ${mobileNav ? 'is-open' : ''}`}
           aria-label={t('navigation.sidebar')}
         >
@@ -781,6 +785,23 @@ export function App({
             <span className="open-source-label">Open source</span>
           </div>
         </aside>
+        <div
+          className="navigation-resize-controls"
+          role="region"
+          aria-label={t('layout.navigationControls')}
+        >
+          <PanelResizeHandle
+            target={layout}
+            property="--sidebar-width"
+            initial={config.theme.sidebarWidth ?? 274}
+            min={220}
+            max={380}
+            label={t('layout.navigation')}
+            controls="documentation-navigation"
+            storageKey={config.basePath}
+            className="navigation-resize"
+          />
+        </div>
         <main
           id="main-content"
           className={
@@ -895,41 +916,56 @@ export function App({
                   path={path}
                 />
               </article>
-              {!activeOperation.kind || activeOperation.kind === 'endpoint' ? (
-                <Playground
-                  ref={playground}
-                  key={`${activeApi.id}:${activeApi.version}:${activeOperation.slug}`}
-                  api={activeApi}
-                  operation={activeOperation}
-                  basePath={site.config.basePath}
-                  relayEndpoint={site.config.explorer?.relay}
-                  credentialSession={
-                    site.config.explorer?.credentialReuse === false
-                      ? undefined
-                      : credentialSession
-                  }
-                  oauthClients={
-                    site.config.explorer?.oauthClients?.[activeApi.id]
-                  }
-                />
-              ) : (
-                <aside
-                  className="explorer-column"
-                  aria-label="Event payload examples"
-                >
-                  {Object.entries(
-                    activeOperation.requestBody?.content ?? {},
-                  ).map(([type, media]) => (
-                    <MediaExamples
-                      key={type}
-                      title={`Incoming payload · ${type}`}
-                      media={media}
-                      mediaType={type}
-                      schemas={activeApi.schemas}
-                    />
-                  ))}
-                </aside>
-              )}
+              <PanelResizeHandle
+                target={layout}
+                property="--api-panel-width"
+                initial={365}
+                min={260}
+                max={560}
+                reverse
+                label={t('layout.inspector')}
+                controls="documentation-inspector"
+                storageKey={config.basePath}
+                className="inspector-resize"
+              />
+              <div className="inspector-island" id="documentation-inspector">
+                {!activeOperation.kind ||
+                activeOperation.kind === 'endpoint' ? (
+                  <Playground
+                    ref={playground}
+                    key={`${activeApi.id}:${activeApi.version}:${activeOperation.slug}`}
+                    api={activeApi}
+                    operation={activeOperation}
+                    basePath={site.config.basePath}
+                    relayEndpoint={site.config.explorer?.relay}
+                    credentialSession={
+                      site.config.explorer?.credentialReuse === false
+                        ? undefined
+                        : credentialSession
+                    }
+                    oauthClients={
+                      site.config.explorer?.oauthClients?.[activeApi.id]
+                    }
+                  />
+                ) : (
+                  <aside
+                    className="explorer-column"
+                    aria-label="Event payload examples"
+                  >
+                    {Object.entries(
+                      activeOperation.requestBody?.content ?? {},
+                    ).map(([type, media]) => (
+                      <MediaExamples
+                        key={type}
+                        title={`Incoming payload · ${type}`}
+                        media={media}
+                        mediaType={type}
+                        schemas={activeApi.schemas}
+                      />
+                    ))}
+                  </aside>
+                )}
+              </div>
             </>
           ) : activeGuide ? (
             <>
@@ -973,7 +1009,19 @@ export function App({
                   path={path}
                 />
               </article>
-              <aside className="page-toc">
+              <PanelResizeHandle
+                target={layout}
+                property="--guide-panel-width"
+                initial={210}
+                min={160}
+                max={340}
+                reverse
+                label={t('layout.inspector')}
+                controls="documentation-inspector"
+                storageKey={config.basePath}
+                className="inspector-resize"
+              />
+              <aside className="page-toc" id="documentation-inspector">
                 <h2>
                   <Icon name="menu" size={14} />
                   {t('navigation.onPage')}
