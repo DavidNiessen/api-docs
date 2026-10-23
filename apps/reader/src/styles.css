@@ -2735,3 +2735,15 @@ h3 {
 .body-array-add {
   justify-self: start;
 }
+
+.relay-controls {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.relay-notice {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}

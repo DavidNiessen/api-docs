@@ -141,6 +141,7 @@ export interface Theme {
 export interface ProjectConfig {
   feedback?: { url: string; label?: string; includePage?: boolean };
   explorer?: {
+    relay?: string;
     credentialReuse?: boolean;
     oauthClients?: Record<
       string,
@@ -286,3 +287,11 @@ export type {
   LifecycleReport,
   LifecycleStatus,
 } from './lifecycle.js';
+
+/** Explicit same-origin management endpoint; never a spec-selected remote URL. */
+export function isRelayEndpoint(value: string): boolean {
+  return (
+    value.length <= 160 &&
+    /^\/api\/projects\/[a-z0-9][a-z0-9-]{0,62}\/relay$/.test(value)
+  );
+}

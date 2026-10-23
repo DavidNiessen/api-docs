@@ -24,6 +24,7 @@ import {
   toolVersion,
   objectFieldSchema,
   feedbackHref,
+  isRelayEndpoint,
 } from '@api-docs/contracts';
 import {
   redactJsonBody,
@@ -48,6 +49,19 @@ assert.equal(
     feedbackHref(feedbackConfig, '/guide/?token=secret#private'),
   ).searchParams.get('body'),
   'Documentation page: https://docs.example.test/installed/guide/',
+);
+assert.equal(isRelayEndpoint('/api/projects/installed/relay'), true);
+assert.equal(
+  isRelayEndpoint('https://other.example/api/projects/installed/relay'),
+  false,
+);
+assert.equal(
+  parseConfig({
+    name: 'Installed relay',
+    specs: [{ id: 'fixture', path: 'openapi.yaml' }],
+    explorer: { relay: '/api/projects/installed/relay' },
+  }).explorer.relay,
+  '/api/projects/installed/relay',
 );
 const composed = objectFieldSchema(
   {

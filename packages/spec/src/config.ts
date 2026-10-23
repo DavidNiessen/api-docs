@@ -5,6 +5,7 @@ import {
   resolvePalette,
   themePresets,
   safeFeedbackUrl,
+  isRelayEndpoint,
 } from '@api-docs/contracts';
 
 const safePath = z
@@ -157,6 +158,13 @@ export const configSchema = z
     plugins: z.array(safePath).default([]),
     explorer: z
       .object({
+        relay: z
+          .string()
+          .refine(
+            isRelayEndpoint,
+            'Use a same-origin /api/projects/<project>/relay endpoint',
+          )
+          .optional(),
         credentialReuse: z.boolean().optional(),
         oauthClients: z
           .record(

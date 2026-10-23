@@ -1,6 +1,23 @@
 # Authenticated API relay
 
-The optional server relay forwards bounded API requests after documentation-project authorization and operator destination checks. It is disabled by default: no relay routes are registered without a valid server policy. Publishing an API spec does not grant relay access. This backend API is implemented; explicit reader transport selection is the next integration step. The existing playground continues to send directly from the browser.
+The optional server relay forwards bounded API requests after documentation-project authorization and operator destination checks. It is disabled by default: no relay routes are registered without a valid server policy. Publishing an API spec does not grant relay access. The playground sends directly from the browser by default; readers explicitly choose the documentation server when its endpoint is configured.
+
+## Reader configuration
+
+After enabling the matching server policy, add its same-origin management path to `docs.config.yaml` and rebuild:
+
+```yaml
+explorer:
+  relay: /api/projects/orbit/relay
+```
+
+The value must be `/api/projects/<project-slug-or-id>/relay`, without an origin, query, fragment, encoded separators or trailing slash. This publishes a reader option; it grants no server permission. The management path is independent of the reader's `basePath`. Serve or reverse-proxy that exact path on the documentation origin when embedding the reader in a Java/Node host or hosting static assets separately. Without a configured authenticated server endpoint, leave this setting absent.
+
+In the playground, **Send requests from → Documentation server** explicitly checks current relay access using the documentation session. Checking access sends no target credentials, payload or API request. Sign in through the documentation site's normal login flow first; API bearer credentials do not authenticate the outer documentation request. The built-in reader uses same-origin cookies and does not expose an operator-token input. Server API clients may use scoped bearer tokens as documented below.
+
+The reader displays a notice that API credentials and request bodies pass through the documentation server. **Send** retains confirmation for mutations and forwards only the prepared target request inside the bounded JSON envelope. The Scalar-style URL bar and its copy button continue to show the target API URL with credential redaction; copied snippets target the API directly. Response status/headers and the read-only Monaco folding/full-copy controls show the API result. A target API 401 remains an API result; outer documentation authorization failures show a separate relay error.
+
+Switching to **Browser** restores direct requests. There is no automatic CORS fallback, relay retry, transport persistence or background access check. Closing the modal, navigation and endpoint changes discard the choice, cancel pending work and start the next playground in Browser mode. An explicit access-recheck button retries only the capability check after a login or connection failure, never the API operation. Request limits include the actual UTF-8 or generated multipart bytes, with the matching boundary preserved. Response envelopes and decoded bytes are bounded before entering the viewer.
 
 ## Operator policy
 

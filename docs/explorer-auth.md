@@ -6,9 +6,13 @@ The reader accepts API keys, basic credentials, bearer tokens and OAuth authoriz
 
 Choose **Try now** beside the endpoint URL or in its request example card. The playground opens over the current documentation, with request fields and collapsible request snippets on the left and a read-only response editor on the right. On narrow screens the panels stack inside the modal. Add `?playground=open` to an endpoint URL to share the open playground; existing query parameters and fragments are preserved when opening or closing it.
 
-Use the close button, Escape or the backdrop to dismiss the modal. Keyboard focus returns to the control that opened it. Closing discards request drafts, files and responses, cancels pending authorization, and aborts an in-flight browser request. Authentication entries clear too unless credential reuse was explicitly enabled. An API may already have processed a request before cancellation; closing the playground does not undo server changes. Reopening starts a fresh request from the specification examples. The endpoint documentation and request example remain readable without JavaScript; sending requests requires JavaScript.
+Use the close button, Escape or the backdrop to dismiss the modal. Keyboard focus returns to the control that opened it. Closing discards request drafts, files and responses, cancels pending authorization, and aborts an in-flight browser or relay request. Authentication entries clear too unless credential reuse was explicitly enabled. An API may already have processed a request before cancellation; closing the playground does not undo server changes. Reopening starts a fresh request from the specification examples. The endpoint documentation and request example remain readable without JavaScript; sending requests requires JavaScript.
 
 See the [response viewer and request URL bar](explorer-responses.md) for folding, syntax highlighting and full-response/URL copying.
+
+## Choose a request transport
+
+Requests originate directly from the browser by default. Sites with an explicitly configured [authenticated API relay](api-relay.md#reader-configuration) offer **Send requests from → Documentation server**. Choosing it checks documentation-session access without contacting the API. The notice explains that supplied API credentials and payloads pass through the server. Relay access requires an assigned project role even for public docs; target API authentication stays separate. Closing the playground resets the transport choice, and failed browser requests never switch automatically.
 
 ## Reuse credentials while browsing
 

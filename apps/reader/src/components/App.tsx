@@ -828,6 +828,7 @@ export function App({
                   api={activeApi}
                   operation={activeOperation}
                   basePath={site.config.basePath}
+                  relayEndpoint={site.config.explorer?.relay}
                   credentialSession={
                     site.config.explorer?.credentialReuse === false
                       ? undefined

@@ -36,6 +36,9 @@ import { multipartExampleBody } from '../multipart-input.js';
 import { credentialScope } from '../credential-session.js';
 import type { CredentialSession } from '../credential-session.js';
 import { useCredentials } from '../use-credentials.js';
+import { useRelay } from '../use-relay.js';
+import { RelayError, sendViaRelay } from '../relay-transport.js';
+import { RelayControls } from './RelayControls.js';
 const ResponseEditor = lazy(() =>
   import('./ResponseEditor.js').catch(() => ({ default: ResponseFallback })),
 );
@@ -92,10 +95,12 @@ export function Explorer({
   onOpen,
   onClose,
   credentialSession,
+  relayEndpoint,
 }: {
   api: ApiDocument;
   operation: Operation;
   basePath?: string;
+  relayEndpoint?: string | undefined;
   previewOnly?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
@@ -103,6 +108,7 @@ export function Explorer({
   oauthClients?:
     Record<string, { clientId: string; issuer: string }> | undefined;
 }) {
+  const relay = useRelay(relayEndpoint, !previewOnly);
   const [origin, setOrigin] = useState('');
   useEffect(() => setOrigin(location.origin), []);
   const [server, setServer] = useState(
@@ -202,7 +208,7 @@ export function Explorer({
     setBusy(false);
     setResponse(undefined);
     setError('');
-  }, [auth.resetEpoch]);
+  }, [auth.resetEpoch, relayEndpoint]);
   useEffect(
     () => () => {
       controller.current?.abort();
@@ -299,6 +305,10 @@ export function Explorer({
   }, [operation, api, server, parameters, credentials, authNames.join(',')]);
   async function execute() {
     setError('');
+    if (relay.enabled && !relay.policy) {
+      setError('Check documentation server relay access before sending.');
+      return;
+    }
     if (bodyFormError) {
       setError(bodyFormError);
       return;
@@ -336,12 +346,20 @@ export function Explorer({
     setBusy(true);
     const start = performance.now();
     try {
-      const result = await fetch(request.url, {
-        ...toFetchRequest(request),
-        signal: abort.signal,
-        credentials: 'omit',
-        redirect: 'error',
-      });
+      const result =
+        relay.enabled && relayEndpoint && relay.policy
+          ? await sendViaRelay(
+              relayEndpoint,
+              relay.policy,
+              request,
+              abort.signal,
+            )
+          : await fetch(request.url, {
+              ...toFetchRequest(request),
+              signal: abort.signal,
+              credentials: 'omit',
+              redirect: 'error',
+            });
       const reader = result.body?.getReader();
       const decoder = new TextDecoder();
       let text = '';
@@ -383,9 +401,13 @@ export function Explorer({
       )
         return;
       setError(
-        error instanceof Error && error.name === 'AbortError'
-          ? 'Request cancelled or timed out after 30 seconds.'
-          : 'The browser could not complete this request. Check the destination, CORS policy and network connection. Copy the cURL example to run it locally.',
+        error instanceof RelayError
+          ? error.message
+          : error instanceof Error && error.name === 'AbortError'
+            ? 'Request cancelled or timed out after 30 seconds.'
+            : relay.enabled
+              ? 'The documentation server relay could not complete this request. No automatic retry was made.'
+              : 'The browser could not complete this request. Check the destination, CORS policy and network connection. Copy the cURL example to run it locally.',
       );
     } finally {
       clearTimeout(timeout);
@@ -490,6 +512,7 @@ export function Explorer({
           url={requestTarget}
           busy={busy}
           disabled={
+            (relay.enabled && !relay.policy) ||
             !!bodyFormError ||
             (isMultipartMediaType(contentType) && !!preview.error)
           }
@@ -521,6 +544,20 @@ export function Explorer({
             </p>
           </div>
           <div className="request-fields">
+            {relayEndpoint && (
+              <RelayControls
+                relay={relay}
+                busy={busy}
+                onChange={(enabled) => {
+                  controller.current?.abort();
+                  controller.current = null;
+                  setBusy(false);
+                  setError('');
+                  setResponse(undefined);
+                  relay.select(enabled);
+                }}
+              />
+            )}
             <label>
               Server
               <input
@@ -836,7 +873,9 @@ export function Explorer({
             </p>
           )}
           <p className="request-note">
-            Requests are sent directly from your browser.
+            {relay.enabled
+              ? 'Requests are sent through the documentation server. It enforces its configured destination policy and does not retry requests.'
+              : 'Requests are sent directly from your browser.'}
           </p>
         </section>
         <section className="playground-output" aria-label="API response">

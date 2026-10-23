@@ -4,7 +4,12 @@ import { Explorer } from './Explorer.js';
 
 type Props = Pick<
   ComponentProps<typeof Explorer>,
-  'api' | 'operation' | 'basePath' | 'oauthClients' | 'credentialSession'
+  | 'api'
+  | 'operation'
+  | 'basePath'
+  | 'oauthClients'
+  | 'credentialSession'
+  | 'relayEndpoint'
 > & { ref?: Ref<PlaygroundHandle> };
 
 export interface PlaygroundHandle {

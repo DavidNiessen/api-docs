@@ -13,6 +13,7 @@ feedback:
   label: Report documentation issue
   includePage: true
 explorer:
+  relay: /api/projects/gallery/relay
   oauthClients:
     gallery:
       oauth:
