@@ -11,6 +11,7 @@ import {
   prepareMultipartHeaders,
 } from './multipart-headers.js';
 import type { MultipartHeaders } from './multipart-headers.js';
+import { hasBodyStyle, styledBodyParts } from './body-style.js';
 
 export interface MultipartFile {
   data: Blob;
@@ -22,7 +23,7 @@ export type MultipartPart = {
   contentType: string;
   headers?: Record<string, string>;
 } & (
-  | { kind: 'text'; value: string; collection?: boolean }
+  | { kind: 'text'; value: string; collection?: boolean; styled?: true }
   | { kind: 'file'; file: MultipartFile }
 );
 export const MULTIPART_LIMITS = Object.freeze({
@@ -175,14 +176,8 @@ export function createMultipartParts(
     );
   const encoding = (name: string) => {
     const value = object(media.encoding?.[name]);
-    if (
-      ['style', 'explode', 'allowReserved'].some((key) =>
-        Object.hasOwn(value, key),
-      )
-    )
-      throw new Error(
-        'Style-based multipart encoding is not supported; use content-based parts.',
-      );
+    if (!options.openapiVersion?.startsWith('3.0') && hasBodyStyle(value))
+      return value;
     if (
       value.contentType !== undefined &&
       typeof value.contentType !== 'string'
@@ -197,12 +192,18 @@ export function createMultipartParts(
     options,
   );
   const present = new Set<string>();
-  const add = (part: MultipartPart) => {
-    const headers = headersFor(part.name);
+  const owners = new Map<string, string>();
+  const add = (part: MultipartPart, field = part.name) => {
+    if (owners.has(part.name) && owners.get(part.name) !== field)
+      throw new Error(
+        'Styled multipart field names collide with another logical property.',
+      );
+    owners.set(part.name, field);
+    const headers = headersFor(field);
     parts.push(headers ? { ...part, headers } : part);
     if (parts.length > MULTIPART_LIMITS.parts)
       throw new Error('Multipart requests support at most 100 parts.');
-    present.add(part.name);
+    present.add(field);
   };
   for (const [name, value] of values.entries) {
     const definition = property(name);
@@ -213,6 +214,20 @@ export function createMultipartParts(
         'Binary multipart values must be supplied as selected files, separately from text values.',
       );
     const codec = encoding(name);
+    if (!options.openapiVersion?.startsWith('3.0') && hasBodyStyle(codec)) {
+      for (const part of styledBodyParts(name, value, definition, codec))
+        add(
+          {
+            name: part.name,
+            kind: 'text',
+            contentType: 'text/plain; charset=utf-8',
+            value: part.value,
+            styled: true,
+          },
+          name,
+        );
+      continue;
+    }
     for (const node of value.kind === 'array' ? value.items : [value]) {
       const json =
         typeOf(item) === 'object' ||
@@ -253,6 +268,10 @@ export function createMultipartParts(
     if (!array && selected.length > 1)
       throw new Error('A single-file field cannot contain multiple files.');
     const codec = encoding(name);
+    if (!options.openapiVersion?.startsWith('3.0') && hasBodyStyle(codec))
+      throw new Error(
+        'Style-based binary uploads require a custom client; use content-based file parts.',
+      );
     for (const file of selected)
       add({
         name,

@@ -335,6 +335,7 @@ paths:
                       items: { type: string, format: binary }
                       description: Select one or more local files.
             encoding:
+              tags: { style: form, explode: false }
               documents:
                 headers:
                   X-Upload-Token: { $ref: '#/components/headers/UploadToken' }

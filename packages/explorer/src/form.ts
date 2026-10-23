@@ -6,7 +6,8 @@ import {
   objectFieldSchema,
 } from '@api-docs/contracts';
 import type { JsonValueNode, Media, Schema } from '@api-docs/contracts';
-import { encodeValue, queryParts } from './parameters.js';
+import { encodeValue } from './parameters.js';
+import { hasBodyStyle, styledBodyParts } from './body-style.js';
 
 export const isFormMediaType = (type: string): boolean =>
   type.split(';', 1)[0]!.trim().toLowerCase() ===
@@ -24,16 +25,6 @@ const scalar = (value: JsonValueNode): string => {
     'Styled form values must be flat. Use JSON content encoding for nested data.',
   );
 };
-function styled(
-  value: JsonValueNode,
-): string | string[] | Record<string, string> {
-  if (value.kind === 'array') return value.items.map(scalar);
-  if (value.kind === 'object')
-    return Object.fromEntries(
-      value.entries.map(([name, child]) => [name, scalar(child)]),
-    );
-  return scalar(value);
-}
 function contentType(schema: Schema, value: JsonValueNode): string {
   const type = Array.isArray(schema.type)
     ? schema.type.find((type) => type !== 'null')
@@ -111,35 +102,8 @@ export function encodeFormBody(
       ),
     );
     const encoding = object(media.encoding?.[name]);
-    if (
-      ['style', 'explode', 'allowReserved'].some((field) =>
-        Object.hasOwn(encoding, field),
-      )
-    ) {
-      if (
-        (encoding.style !== undefined && typeof encoding.style !== 'string') ||
-        (encoding.explode !== undefined &&
-          typeof encoding.explode !== 'boolean') ||
-        (encoding.allowReserved !== undefined &&
-          typeof encoding.allowReserved !== 'boolean')
-      )
-        throw new Error(`Invalid form encoding for ${name}`);
-      const query = queryParts(styled(value), {
-        name,
-        in: 'query',
-        required: true,
-        description: '',
-        schema: property,
-        ...(typeof encoding.style === 'string'
-          ? { style: encoding.style }
-          : {}),
-        ...(typeof encoding.explode === 'boolean'
-          ? { explode: encoding.explode }
-          : {}),
-        ...(typeof encoding.allowReserved === 'boolean'
-          ? { allowReserved: encoding.allowReserved }
-          : {}),
-      });
+    if (hasBodyStyle(encoding)) {
+      const query = styledBodyParts(name, value, property, encoding);
       parts.push(
         ...query.map(({ name, value }) => `${encodeValue(name)}=${value}`),
       );

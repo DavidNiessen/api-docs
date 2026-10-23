@@ -52,6 +52,8 @@ export function redactMultipartParts(
       >();
       for (const [index, part] of parts.entries()) {
         if (part.kind !== 'text') continue;
+        // Styled flat wire values cannot be reconstructed from the JSON schema alone.
+        if (part.styled) opaque.add(index);
         if (fileNames.has(part.name)) opaque.add(index);
         const properties = object(root.properties);
         const property = resolve(
@@ -205,6 +207,7 @@ export function redactMultipartParts(
               }
             : {}),
           ...(part.collection ? { collection: true } : {}),
+          ...(part.styled ? { styled: true } : {}),
           value: values.get(index) ?? placeholder(part),
         },
   );

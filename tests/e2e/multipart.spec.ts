@@ -90,6 +90,7 @@ test('multipart uploads send real binary files and structured parts while previe
     await expect(code).toContainText('YOUR_FILE_1');
     await expect(code).not.toContainText('private-customer.bin');
     await expect(code).toContainText('YOUR_PART_HEADER');
+    await expect(code).toContainText('YOUR_PART_VALUE');
     await expect(code).not.toContainText('private-part-token');
   }
   expect(uploads).toHaveLength(0);
@@ -118,8 +119,7 @@ test('multipart uploads send real binary files and structured parts while previe
       name: 'metadata',
       value: '{"id":9007199254740993,"privateNote":"changed-private-note"}',
     },
-    { name: 'tags', value: 'one' },
-    { name: 'tags', value: 'two' },
+    { name: 'tags', value: 'one,two' },
     {
       name: 'documents',
       filename: 'private-customer.bin',

@@ -312,13 +312,13 @@ describe('binary-safe multipart requests', () => {
   });
   it('rejects unsupported styles and unresolvable/composed schemas explicitly', () => {
     for (const encoding of [
-      { style: 'form' },
-      { explode: true },
-      { allowReserved: false },
+      { style: 'matrix' },
+      { style: 'simple' },
+      { style: 'label' },
     ])
       expect(() =>
         parts('{"title":"x"}', {}, { ...media, encoding: { title: encoding } }),
-      ).toThrow(/not supported/);
+      ).toThrow(/Unsupported query style/);
     expect(() =>
       parts('{}', {}, { schema: { $ref: '#/components/schemas/Missing' } }),
     ).toThrow(/resolve/);

@@ -103,6 +103,24 @@ const cases = [
     ),
   },
   {
+    name: 'multipart-style',
+    status: 200,
+    type: 'application/json',
+    body: '{"styled":true}',
+    expected: 'styled',
+    multipart: createMultipartParts(
+      '{"tags":["a+b",9007199254740993],"meta":{"name":"café","active":false}}',
+      {},
+      {
+        schema: { type: 'object' },
+        encoding: {
+          tags: { style: 'form', explode: false },
+          meta: { style: 'deepObject', explode: true },
+        },
+      },
+    ),
+  },
+  {
     name: 'multipart-files',
     status: 200,
     type: 'application/json',
@@ -298,6 +316,12 @@ try {
           headers: { 'Content-Type': actual.headers['content-type'] },
         }).formData();
         const values = [...form.entries()];
+        if (fixture.name === 'multipart-style')
+          assert.deepEqual(values, [
+            ['tags', 'a%2Bb,9007199254740993'],
+            ['meta[name]', 'caf%C3%A9'],
+            ['meta[active]', 'false'],
+          ]);
         const boundary =
           actual.headers['content-type'].match(/boundary=([^;]+)/)[1];
         const rawParts = actual.bytes
@@ -380,7 +404,7 @@ try {
       console.log(`PASS ${language}: ${fixture.name}`);
     }
   }
-  assert.equal(passed, 60);
+  assert.equal(passed, 65);
   console.log(
     `${passed} executable snippet checks passed across ${languages.length} languages.`,
   );

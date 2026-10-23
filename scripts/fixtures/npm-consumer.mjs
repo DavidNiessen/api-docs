@@ -58,7 +58,7 @@ const uploadRequest = {
   method: 'POST',
   headers: {},
   multipart: createMultipartParts(
-    '{"id":9007199254740993,"password":"installed-upload-secret"}',
+    '{"id":9007199254740993,"password":"installed-upload-secret","tags":["installed + styled",9007199254740993]}',
     {
       attachment: [
         {
@@ -73,9 +73,11 @@ const uploadRequest = {
         properties: {
           attachment: { type: 'string', format: 'binary' },
           password: { type: 'string', writeOnly: true },
+          tags: { type: 'array', items: {} },
         },
       },
       encoding: {
+        tags: { style: 'form', explode: false },
         attachment: { headers: { 'X-Part': { schema: { type: 'string' } } } },
       },
     },
@@ -93,6 +95,15 @@ const uploadPreview = redactRequest(
 );
 assert(!JSON.stringify(uploadPreview).includes('installed-upload-secret'));
 assert(!JSON.stringify(uploadPreview).includes('installed-part-secret'));
+assert(!JSON.stringify(uploadPreview).includes('installed%20%2B%20styled'));
+assert(
+  uploadPreview.multipart.some(
+    (part) =>
+      part.name === 'tags' &&
+      part.value === 'YOUR_PART_VALUE' &&
+      part.styled === true,
+  ),
+);
 assert(
   uploadPreview.multipart.find((part) => part.kind === 'file').headers[
     'X-Part'
@@ -115,6 +126,7 @@ const uploaded = await new Response(multipart.body, {
   headers: multipart.headers,
 }).formData();
 assert.equal(uploaded.get('id'), '9007199254740993');
+assert.equal(uploaded.get('tags'), 'installed%20%2B%20styled,9007199254740993');
 assert.deepEqual(
   new Uint8Array(await uploaded.get('attachment').arrayBuffer()),
   Uint8Array.from([0, 255, 128]),
