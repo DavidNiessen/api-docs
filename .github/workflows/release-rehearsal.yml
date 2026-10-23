@@ -28,6 +28,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  code-security:
+    name: Source security
+    uses: ./.github/workflows/code-scanning.yml
+    permissions:
+      contents: read
+      security-events: write
+
   plan:
     name: Validate rehearsal plan
     runs-on: ubuntu-24.04
@@ -449,7 +456,17 @@ jobs:
   result:
     name: Rehearsal result
     if: always()
-    needs: [plan, source, server, browsers, java, isolated-builds, performance]
+    needs:
+      [
+        plan,
+        source,
+        server,
+        browsers,
+        java,
+        isolated-builds,
+        performance,
+        code-security,
+      ]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -462,6 +479,7 @@ jobs:
           JAVA_RESULT: ${{ needs.java.result }}
           ISOLATED_RESULT: ${{ needs.isolated-builds.result }}
           PERFORMANCE_RESULT: ${{ needs.performance.result }}
+          CODE_SECURITY_RESULT: ${{ needs.code-security.result }}
         run: |
           test "$PLAN_RESULT" = success
           test "$SOURCE_RESULT" = success
@@ -470,3 +488,4 @@ jobs:
           test "$JAVA_RESULT" = success
           test "$ISOLATED_RESULT" = success
           test "$PERFORMANCE_RESULT" = success
+          test "$CODE_SECURITY_RESULT" = success

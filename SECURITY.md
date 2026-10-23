@@ -20,6 +20,8 @@ Private documentation authorization must protect HTML, route JSON, search indexe
 
 Security-sensitive changes require meaningful authorization, XSS, SSRF, malformed-input and session tests where applicable. Release candidates require dependency/container scans, an updated threat model, and written triage of critical/high findings. The operator owns TLS, database credentials, secret storage, network policy, backups, and production monitoring.
 
+Quality and release rehearsals require [CodeQL source analysis and severity checks](docs/code-security.md) for JavaScript/TypeScript and Java. [Container vulnerability acceptance](docs/container-security.md) separately assesses the actual runtime inventory. Automated checks complement the independent security review required for launch.
+
 ## Dependency audit policy
 
 Dependencies are locked and the source pipeline runs `npm audit --audit-level=moderate`. The Markdown checker uses Node's built-in file globbing and the markdownlint library to avoid the vulnerable `braces` dependency in the former CLI wrapper. A root override pins KaTeX 0.18.2 for the Markdown linter's transitive dependency; remove it when upstream adopts a patched version. YAML parsing uses 2.9.1. A clean advisory audit is one signal and does not replace security review or container scanning.

@@ -1,0 +1,82 @@
+name: Code security
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    - cron: '12 5 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: code-security-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: CodeQL ${{ matrix.language }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: java-kotlin
+            build-mode: manual
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        if: matrix.language == 'java-kotlin'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Initialize source analysis
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+      - name: Compile the actual Java integrations
+        if: matrix.language == 'java-kotlin'
+        run: mvn --batch-mode --no-transfer-progress -f integrations/java/pom.xml -DskipTests compile
+      - name: Analyze and upload current findings
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          category: /language:${{ matrix.language }}
+          output: .api-docs/code-scanning
+      - name: Block high and critical source findings
+        run: node scripts/check-code-scanning.mjs .api-docs/code-scanning/*.sarif
+      - name: Retain current findings and assessment on failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: code-security-${{ matrix.language }}-${{ github.sha }}
+          path: |
+            .api-docs/code-scanning/*.sarif
+            .api-docs/code-scanning-evidence.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  code-security:
+    name: Code security
+    if: always()
+    needs: analyze
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require both language analyses and severity checks
+        env:
+          RESULT: ${{ needs.analyze.result }}
+        run: test "$RESULT" = success

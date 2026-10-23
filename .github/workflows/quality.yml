@@ -16,6 +16,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  code-security:
+    name: Source security
+    uses: ./.github/workflows/code-scanning.yml
+    permissions:
+      contents: read
+      security-events: write
+
   pnpm:
     name: pnpm frozen workspace
     runs-on: ubuntu-24.04
@@ -305,7 +312,8 @@ jobs:
   quality:
     name: Quality
     if: always()
-    needs: [pnpm, source, database, java, isolated-builds, pages-demo]
+    needs:
+      [pnpm, source, database, java, isolated-builds, pages-demo, code-security]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -317,4 +325,5 @@ jobs:
           JAVA_RESULT: ${{ needs.java.result }}
           PAGES_RESULT: ${{ needs.pages-demo.result }}
           ISOLATED_RESULT: ${{ needs.isolated-builds.result }}
-        run: test "$PNPM_RESULT" = success && test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success && test "$ISOLATED_RESULT" = success && test "$PAGES_RESULT" = success
+          CODE_SECURITY_RESULT: ${{ needs.code-security.result }}
+        run: test "$PNPM_RESULT" = success && test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success && test "$ISOLATED_RESULT" = success && test "$PAGES_RESULT" = success && test "$CODE_SECURITY_RESULT" = success
