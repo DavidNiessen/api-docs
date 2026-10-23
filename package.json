@@ -23,6 +23,8 @@
     "test": "npm run build && vitest run",
     "build": "npm run build:packages && npm run build:client -w @api-docs/reader && npm run build:client -w @api-docs/studio",
     "dev": "npm run build && node packages/cli/dist/main.js dev examples/demo",
+    "demo:pages": "node scripts/build-pages-demo.mjs",
+    "test:pages": "playwright test --config playwright.pages.config.ts",
     "demo:build": "node packages/cli/dist/main.js build examples/demo",
     "demo:serve": "node packages/cli/dist/main.js serve examples/demo/.api-docs/site --port 3000",
     "test:e2e": "playwright test",

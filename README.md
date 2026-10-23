@@ -4,6 +4,8 @@ An open source, self-hosted API documentation platform: polished documentation, 
 
 **Status: implementation in progress.** The OpenAPI compiler, React reader, worker-based local search, API explorer, CLI, publication server, Studio, and Java/Spring Boot/Node integrations are runnable. Container deployment and recovery are available. The roadmap still includes substantial customization, extensibility, security and release work; this is not yet a production release.
 
+Try the [GitHub Pages demo](https://davidniessen.github.io/api-docs/) once deployment is enabled: bundled mock responses run entirely in your browser, with no API server or credentials. See [demo deployment and local preview](docs/pages-demo.md).
+
 ## Product direction
 
 - Import OpenAPI in YAML or JSON and combine generated reference pages with authored guides.

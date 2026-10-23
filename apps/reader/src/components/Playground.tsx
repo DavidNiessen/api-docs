@@ -11,6 +11,7 @@ type Props = Pick<
   | 'oauthClients'
   | 'credentialSession'
   | 'relayEndpoint'
+  | 'mockOnly'
 > & {
   ref?: Ref<PlaygroundHandle>;
   hidePreview?: boolean;

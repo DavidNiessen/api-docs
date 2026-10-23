@@ -57,6 +57,10 @@ export const defaultUiMessages = Object.freeze({
   'playground.incompleteUrl': 'Complete the server and request parameters',
   'playground.sendLabel': 'Send request',
   'playground.send': 'Send',
+  'playground.mockSend': 'Send mock',
+  'playground.mockSendLabel': 'Send mock request',
+  'playground.mockNote':
+    'Demo mode: responses are generated locally from the specification. No API requests are sent, credentials are not needed, and changes are not saved.',
   'playground.sending': 'Sending…',
   'playground.cancel': 'Cancel',
   'playground.confirm': 'Send {method} to {origin}? This may modify data.',

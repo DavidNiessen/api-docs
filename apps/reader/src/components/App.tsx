@@ -938,6 +938,7 @@ export function App({
                     headingLevel={3}
                   />
                 )}
+                mockOnly={site.config.explorer?.mode === 'mock'}
                 relayEndpoint={site.config.explorer?.relay}
                 credentialSession={
                   site.config.explorer?.credentialReuse === false
@@ -1056,6 +1057,7 @@ export function App({
                     api={activeApi}
                     operation={activeOperation}
                     basePath={site.config.basePath}
+                    mockOnly={site.config.explorer?.mode === 'mock'}
                     relayEndpoint={site.config.explorer?.relay}
                     credentialSession={
                       site.config.explorer?.credentialReuse === false

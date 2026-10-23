@@ -149,6 +149,7 @@ export interface ProjectConfig {
   i18n?: import('./i18n.js').UiConfiguration;
   feedback?: { url: string; label?: string; includePage?: boolean };
   explorer?: {
+    mode?: 'live' | 'mock';
     relay?: string;
     credentialReuse?: boolean;
     oauthClients?: Record<

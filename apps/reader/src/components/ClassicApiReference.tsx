@@ -31,6 +31,7 @@ export default function ClassicApiReference({
   onChooseApi,
   renderDetails,
   relayEndpoint,
+  mockOnly = false,
   credentialSession,
   oauthClients,
 }: {
@@ -46,6 +47,7 @@ export default function ClassicApiReference({
     prefix: string,
   ) => ReactNode;
   relayEndpoint?: string | undefined;
+  mockOnly?: boolean;
   credentialSession?: CredentialSession | undefined;
   oauthClients?:
     Record<string, { clientId: string; issuer: string }> | undefined;
@@ -404,6 +406,7 @@ export default function ClassicApiReference({
           api={selection.api}
           operation={selection.operation}
           basePath={basePath}
+          mockOnly={mockOnly}
           relayEndpoint={relayEndpoint}
           credentialSession={credentialSession}
           oauthClients={oauthClients}

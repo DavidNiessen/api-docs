@@ -8,6 +8,7 @@ import {
 import type { ApiDocument, Operation, Media } from '@api-docs/contracts';
 import {
   generateSnippet,
+  generateMockResponse,
   prepareRequest,
   redactRequest,
   redactJsonBody,
@@ -22,6 +23,7 @@ import type {
   SnippetLanguage,
   MultipartFiles,
   MultipartHeaders,
+  MockResponse,
 } from '@api-docs/explorer';
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
@@ -99,12 +101,14 @@ export function Explorer({
   onClose,
   credentialSession,
   relayEndpoint,
+  mockOnly = false,
 }: {
   api: ApiDocument;
   operation: Operation;
   basePath?: string;
   relayEndpoint?: string | undefined;
   previewOnly?: boolean;
+  mockOnly?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
   credentialSession?: CredentialSession | undefined;
@@ -113,7 +117,7 @@ export function Explorer({
 }) {
   const t = useUi();
   const panels = useRef<HTMLDivElement>(null);
-  const relay = useRelay(relayEndpoint, !previewOnly);
+  const relay = useRelay(relayEndpoint, !previewOnly && !mockOnly);
   const [origin, setOrigin] = useState('');
   useEffect(() => setOrigin(location.origin), []);
   const [server, setServer] = useState(
@@ -192,7 +196,7 @@ export function Explorer({
     ],
   );
   const auth = useCredentials(
-    previewOnly ? undefined : credentialSession,
+    previewOnly || mockOnly ? undefined : credentialSession,
     authScope,
   );
   const credentials = auth.credentials;
@@ -358,8 +362,44 @@ export function Explorer({
     credentials,
     authNames.join(','),
   ]);
+  function showMockResponse(result: MockResponse) {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
+    setError('');
+    setResponse({
+      status: result.status,
+      duration: 0,
+      body: result.body,
+      contentType: result.contentType,
+      headers: Object.entries(result.headers)
+        .map(([name, value]) => `${name}: ${value}`)
+        .join('\n'),
+      mock: {
+        source: result.source,
+        documentedStatus: result.documentedStatus,
+      },
+    });
+  }
   async function execute() {
     setError('');
+    if (mockOnly) {
+      try {
+        showMockResponse(
+          generateMockResponse(operation, {
+            schemas: api.schemas,
+            openapiVersion: api.openapiVersion,
+          }),
+        );
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Mock response could not be generated.',
+        );
+      }
+      return;
+    }
     if (relay.enabled && !relay.policy) {
       setError('Check documentation server relay access before sending.');
       return;
@@ -567,6 +607,7 @@ export function Explorer({
     >
       <header className="playground-heading">
         <RequestUrlBar
+          mockOnly={mockOnly}
           method={operation.method}
           url={requestTarget}
           busy={busy}
@@ -605,7 +646,7 @@ export function Explorer({
             </p>
           </div>
           <div className="request-fields">
-            {relayEndpoint && (
+            {!mockOnly && relayEndpoint && (
               <RelayControls
                 relay={relay}
                 busy={busy}
@@ -670,7 +711,7 @@ export function Explorer({
                 />
               );
             })}
-            {authNames.length > 0 && (
+            {!mockOnly && authNames.length > 0 && (
               <details className="auth-fields" open>
                 <summary>
                   <Icon name="lock" size={14} />
@@ -930,9 +971,11 @@ export function Explorer({
             </p>
           )}
           <p className="request-note">
-            {relay.enabled
-              ? 'Requests are sent through the documentation server. It enforces its configured destination policy and does not retry requests.'
-              : 'Requests are sent directly from your browser.'}
+            {mockOnly
+              ? t('playground.mockNote')
+              : relay.enabled
+                ? 'Requests are sent through the documentation server. It enforces its configured destination policy and does not retry requests.'
+                : 'Requests are sent directly from your browser.'}
           </p>
         </section>
         <PanelResizeHandle
@@ -955,25 +998,7 @@ export function Explorer({
             api={api}
             operation={operation}
             busy={busy}
-            onGenerate={(result) => {
-              controller.current?.abort();
-              controller.current = null;
-              setBusy(false);
-              setError('');
-              setResponse({
-                status: result.status,
-                duration: 0,
-                body: result.body,
-                contentType: result.contentType,
-                headers: Object.entries(result.headers)
-                  .map(([name, value]) => `${name}: ${value}`)
-                  .join('\n'),
-                mock: {
-                  source: result.source,
-                  documentedStatus: result.documentedStatus,
-                },
-              });
-            }}
+            onGenerate={showMockResponse}
           />
           <div className="response-content">
             {response ? (

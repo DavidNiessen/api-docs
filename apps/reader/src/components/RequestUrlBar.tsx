@@ -7,6 +7,7 @@ export function RequestUrlBar({
   url,
   busy,
   disabled,
+  mockOnly = false,
   onSend,
   onCancel,
 }: {
@@ -14,6 +15,7 @@ export function RequestUrlBar({
   url: string;
   busy: boolean;
   disabled: boolean;
+  mockOnly?: boolean;
   onSend: () => void;
   onCancel: () => void;
 }) {
@@ -39,12 +41,20 @@ export function RequestUrlBar({
       <button
         type="button"
         className="url-send"
-        aria-label={t('playground.sendLabel')}
+        aria-label={t(
+          mockOnly ? 'playground.mockSendLabel' : 'playground.sendLabel',
+        )}
         disabled={disabled || busy || !url}
         onClick={onSend}
       >
         <Icon name="arrow" size={14} />
-        {t(busy ? 'playground.sending' : 'playground.send')}
+        {t(
+          busy
+            ? 'playground.sending'
+            : mockOnly
+              ? 'playground.mockSend'
+              : 'playground.send',
+        )}
       </button>
       {busy && (
         <button type="button" className="url-cancel" onClick={onCancel}>

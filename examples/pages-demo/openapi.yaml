@@ -1,0 +1,249 @@
+openapi: 3.1.0
+info:
+  title: Orbit API
+  version: v1
+  description: A fictional projects and webhooks API. This demo generates local responses only.
+servers:
+  - url: https://demo.orbit.invalid/v1
+    description: Illustrative address · no live service
+security:
+  - bearerAuth: []
+paths:
+  /projects:
+    get:
+      operationId: list-projects
+      summary: List projects
+      description: Browse projects in a workspace with cursor-based pagination.
+      tags: [Projects]
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of projects to return.
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: cursor
+          in: query
+          description: Continue from an earlier page.
+          schema: { type: string, example: next_orbit_02 }
+      responses:
+        '200':
+          description: Projects retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Project' }
+                  has_more: { type: boolean }
+                  next_cursor: { type: [string, 'null'] }
+              examples:
+                workspace:
+                  summary: A workspace with two projects
+                  value:
+                    data:
+                      - id: proj_aurora
+                        name: Aurora
+                        description: Customer-facing analytics
+                        status: active
+                        created_at: '2026-01-15T10:30:00Z'
+                        metadata: { region: eu-west, environment: production }
+                      - id: proj_horizon
+                        name: Horizon
+                        description: The next big thing
+                        status: draft
+                        created_at: '2026-02-01T09:00:00Z'
+                        metadata: { region: us-east, environment: development }
+                    has_more: false
+                    next_cursor: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: create-project
+      summary: Create a project
+      description: Start a project with a name and optional metadata. The demo returns a fixed example without creating anything.
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  {
+                    type: string,
+                    minLength: 1,
+                    maxLength: 100,
+                    example: Aurora,
+                  }
+                description:
+                  { type: string, example: Customer-facing analytics }
+                metadata:
+                  type: object
+                  additionalProperties: { type: string }
+            example:
+              name: Aurora
+              description: Customer-facing analytics
+              metadata: { region: eu-west }
+      responses:
+        '201':
+          description: Project created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Project' }
+              example:
+                id: proj_aurora
+                name: Aurora
+                description: Customer-facing analytics
+                status: active
+                created_at: '2026-01-15T10:30:00Z'
+                metadata: { region: eu-west }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /projects/{project_id}:
+    parameters:
+      - name: project_id
+        in: path
+        required: true
+        description: Unique project identifier.
+        schema: { type: string, example: proj_aurora }
+    get:
+      operationId: get-project
+      summary: Retrieve a project
+      description: Inspect a project's status and metadata.
+      tags: [Projects]
+      responses:
+        '200':
+          description: The requested project.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Project' }
+              example:
+                id: proj_aurora
+                name: Aurora
+                description: Customer-facing analytics
+                status: active
+                created_at: '2026-01-15T10:30:00Z'
+                metadata: { region: eu-west }
+        '404':
+          description: Project not found.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                {
+                  error:
+                    { code: not_found, message: This project does not exist. },
+                }
+    delete:
+      operationId: delete-project
+      summary: Delete a project
+      description: A body-free response example. No resource is deleted in this demo.
+      tags: [Projects]
+      responses:
+        '204':
+          description: Project deleted. There is no response body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /webhooks:
+    post:
+      operationId: create-webhook
+      summary: Create a webhook
+      description: Subscribe a callback URL to project events. No callback is contacted in this demo.
+      tags: [Webhooks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, events]
+              properties:
+                url:
+                  {
+                    type: string,
+                    format: uri,
+                    example: 'https://example.com/webhooks',
+                  }
+                events:
+                  type: array
+                  items:
+                    { type: string, enum: [project.created, project.deleted] }
+            example:
+              url: https://example.com/webhooks
+              events: [project.created]
+      responses:
+        '201':
+          description: Webhook subscription created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  url: { type: string, format: uri }
+                  events: { type: array, items: { type: string } }
+                  enabled: { type: boolean }
+              example:
+                id: hook_polaris
+                url: https://example.com/webhooks
+                events: [project.created]
+                enabled: true
+        '400':
+          description: The webhook URL or event subscription is invalid.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                {
+                  error:
+                    {
+                      code: invalid_request,
+                      message: Choose a valid webhook event.,
+                    },
+                }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Project:
+      type: object
+      required: [id, name, status, created_at]
+      properties:
+        id: { type: string, example: proj_aurora }
+        name: { type: string, example: Aurora }
+        description: { type: string, example: Customer-facing analytics }
+        status:
+          { type: string, enum: [draft, active, archived], example: active }
+        created_at:
+          { type: string, format: date-time, example: '2026-01-15T10:30:00Z' }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string, example: unauthorized }
+            message:
+              { type: string, example: A valid API credential is required. }
+  responses:
+    Unauthorized:
+      description: Authentication required. This is a local preview of an error response.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            {
+              error:
+                {
+                  code: unauthorized,
+                  message: A valid API credential is required.,
+                },
+            }

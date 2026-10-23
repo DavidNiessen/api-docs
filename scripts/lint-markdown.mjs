@@ -10,6 +10,7 @@ for await (const file of glob(['**/*.md', '.github/**/*.md'], {
     '**/coverage/**',
     '**/test-results/**',
     '**/playwright-report/**',
+    '**/playwright-pages-report/**',
     '.git/**',
   ],
 }))

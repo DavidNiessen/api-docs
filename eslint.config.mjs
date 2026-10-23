@@ -9,6 +9,7 @@ export default defineConfig([
     '**/dist/',
     '**/target/',
     'playwright-report/',
+    'playwright-pages-report/',
     'test-results/',
     '**/.api-docs/**',
   ]),

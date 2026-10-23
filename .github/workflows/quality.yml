@@ -111,6 +111,45 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: npm run check:pr-title
 
+  pages-demo:
+    name: Static mock demo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm run demo:pages
+      - run: node packages/cli/dist/main.js doctor examples/pages-demo --strict
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:pages
+      - name: Retain tested static demo
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pages-demo-${{ github.sha }}
+          overwrite: true
+          path: .api-docs/pages-demo/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain demo browser results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pages-demo-browser-${{ github.sha }}
+          path: |
+            playwright-pages-report/
+            .api-docs/pages-screenshots/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
   database:
     name: Server integration
     runs-on: ubuntu-24.04
@@ -227,7 +266,7 @@ jobs:
   quality:
     name: Quality
     if: always()
-    needs: [pnpm, source, database, java, isolated-builds]
+    needs: [pnpm, source, database, java, isolated-builds, pages-demo]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -237,5 +276,6 @@ jobs:
           SOURCE_RESULT: ${{ needs.source.result }}
           DATABASE_RESULT: ${{ needs.database.result }}
           JAVA_RESULT: ${{ needs.java.result }}
+          PAGES_RESULT: ${{ needs.pages-demo.result }}
           ISOLATED_RESULT: ${{ needs.isolated-builds.result }}
-        run: test "$PNPM_RESULT" = success && test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success && test "$ISOLATED_RESULT" = success
+        run: test "$PNPM_RESULT" = success && test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success && test "$ISOLATED_RESULT" = success && test "$PAGES_RESULT" = success

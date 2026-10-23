@@ -1,0 +1,16 @@
+schemaVersion: 1
+name: Orbit
+description: Explore a self-hosted documentation experience with local mock data.
+basePath: /api-docs
+specs:
+  - id: orbit
+    path: openapi.yaml
+    version: v1
+explorer:
+  mode: mock
+theme:
+  preset: mint
+  radius: 14
+links:
+  - label: Source on GitHub
+    href: https://github.com/DavidNiessen/api-docs

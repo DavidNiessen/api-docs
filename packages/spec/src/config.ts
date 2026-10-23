@@ -220,6 +220,7 @@ export const configSchema = z
     plugins: z.array(safePath).default([]),
     explorer: z
       .object({
+        mode: z.enum(['live', 'mock']).optional(),
         relay: z
           .string()
           .refine(

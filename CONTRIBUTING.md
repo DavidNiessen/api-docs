@@ -49,7 +49,7 @@ PR_TITLE='docs(product): clarify release scope' npm run check:pr-title
 
 ## Automation and release status
 
-The `Repository quality` workflow runs on branch pushes, PRs (including title edits), merge queue candidates, and manual dispatch. Its stable job name is `Quality`. It installs locked tooling and runs the same checks as local development; PR events also validate the title. It uses read-only permissions and does not publish artifacts.
+The `Repository quality` workflow runs on branch pushes, PRs (including title edits), merge queue candidates, and manual dispatch. Its stable job name is `Quality`. It installs locked tooling and runs the same checks as local development; PR events also validate the title. It uses read-only permissions and retains validation artifacts. Its required Static mock demo job builds and tests the [local-only Pages demo](docs/pages-demo.md). A separate Pages workflow deploys the exact tested artifact only after a successful quality run for a push to master; only its deployment job receives Pages write/OIDC permissions.
 
 The required pnpm job starts from a fresh checkout, installs the pinned manager and frozen lockfile, audits dependencies, and runs formatting, ESLint, types, tooling tests, source tests and production builds. The existing npm source/browser and installed-consumer jobs remain required as well.
 

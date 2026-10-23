@@ -8,3 +8,5 @@ test-results/
 **/dist/
 **/target/
 .api-docs/
+
+playwright-pages-report/
