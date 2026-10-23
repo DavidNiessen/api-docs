@@ -259,6 +259,48 @@ paths:
                   company: Ada Lab,
                   token: fixture-variant-secret,
                 }
+          application/vnd.api-docs.nested+json:
+            schema:
+              type: object
+              properties:
+                counter: { type: integer }
+                payload: { $ref: '#/components/schemas/NestedChoice' }
+                payload.name: { type: integer }
+                items:
+                  type: array
+                  items: { $ref: '#/components/schemas/NestedChoice' }
+                privatePayload:
+                  $ref: '#/components/schemas/NestedChoice'
+                  writeOnly: true
+                optionalPayload:
+                  anyOf:
+                    - title: Nullable details
+                      type: [object, 'null']
+                      properties:
+                        child: { $ref: '#/components/schemas/NestedChoice' }
+                lists:
+                  anyOf:
+                    - title: Names
+                      type: array
+                      items: { type: string }
+                    - title: Organizations
+                      type: array
+                      items: { $ref: '#/components/schemas/OrganizationBody' }
+            example:
+              counter: 3
+              payload: { kind: person, name: Ada, count: 1, id: 1 }
+              payload.name: 42
+              items:
+                - { kind: person, name: First, id: 1 }
+                - { kind: organization, company: Second, id: 2 }
+              privatePayload:
+                {
+                  kind: person,
+                  name: private-inherited,
+                  token: private-nested-token,
+                }
+              optionalPayload: { child: { kind: person, name: Optional } }
+              lists: [Ada]
           application/vnd.api-docs.constrained+json:
             schema:
               type: object
@@ -474,6 +516,16 @@ components:
       required: true
       schema: { type: string, writeOnly: true }
   schemas:
+    NestedChoice:
+      oneOf:
+        - $ref: '#/components/schemas/PersonBody'
+        - $ref: '#/components/schemas/OrganizationBody'
+        - title: Server provided
+          type: object
+          readOnly: true
+          properties:
+            kind: { type: string, const: server }
+            readonlyValue: { type: string }
     PersonBody:
       title: Individual
       type: object

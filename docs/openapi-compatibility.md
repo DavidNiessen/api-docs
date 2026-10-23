@@ -24,7 +24,7 @@ File reads are bounded before loading the full input: 16 MiB per spec/reference,
 | Callbacks               | Dedicated pages identify the triggering operation, callback name and runtime expression                                                                     |
 | Incoming events         | Explorer execution is disabled; your application's receiver handles the documented request                                                                  |
 
-JSON request-body roots can use [explicit bounded branch selection](explorer-bodies.md#choose-a-root-schema-branch) for supported `oneOf`/`anyOf` object and array controls. This changes editing controls without validating or rewriting the body.
+JSON request-body roots, nested properties and array items can use [explicit bounded branch selection](explorer-bodies.md#choose-a-root-schema-branch) for supported `oneOf`/`anyOf` object and array controls. This changes editing controls without validating or rewriting the body.
 
 The schema view shows nested boolean schemas, object/array constraints, tuple positions, typed dictionaries, conditionals, property patterns and each composition keyword together with its siblings. Referenced descriptions and visibility/deprecation annotations remain visible. Values in enums use JSON notation to distinguish strings from null, booleans and numbers. Nested display stops explicitly after six levels and identifies recursive references. OpenAPI 3.0 typed `nullable` schemas add null; 3.0 reference siblings are ignored. In 3.1 use a JSON Schema null type instead.
 

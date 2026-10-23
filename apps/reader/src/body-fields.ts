@@ -2,14 +2,25 @@ import {
   parseJsonValue,
   resolveSchema,
   objectFieldSchema,
+  schemaVariants,
 } from '@api-docs/contracts';
-import type { JsonValueNode, Schema } from '@api-docs/contracts';
+import type {
+  JsonValueNode,
+  Schema,
+  SchemaVariants,
+} from '@api-docs/contracts';
 
 export type ObjectBodyValue = Extract<JsonValueNode, { kind: 'object' }>;
 export type ArrayBodyValue = Extract<JsonValueNode, { kind: 'array' }>;
 export const MAX_ARRAY_ITEMS = 50;
 type Unavailable = { available: false; error: string };
-type ChildEditors = { nested?: BodyFieldModel; array?: BodyArrayModel };
+export type BodyPath = readonly (string | number)[];
+export type BodyVariants = SchemaVariants & { selected?: number };
+type ChildEditors = {
+  nested?: BodyFieldModel;
+  array?: BodyArrayModel;
+  variants?: BodyVariants;
+};
 export type BodyArrayModel =
   | {
       available: true;
@@ -47,6 +58,10 @@ export function bodyFieldModel(
   schema: Schema,
   schemas: Record<string, Schema>,
   legacy: boolean,
+  options: {
+    variants?: boolean;
+    selections?: ReadonlyMap<string, number>;
+  } = {},
 ): BodyFieldModel | BodyArrayModel {
   const budget = { remaining: 100 };
   const resolved = (schema: Schema, sensitive = false): Schema => {
@@ -64,17 +79,46 @@ export function bodyFieldModel(
       ...(sensitive ? { writeOnly: true } : {}),
     };
   };
+  const select = (schema: Schema, path: BodyPath, sensitive: boolean) => {
+    const base = resolved(schema, sensitive);
+    const variants =
+      options.variants && base.readOnly !== true
+        ? schemaVariants(schema, schemas, legacy)
+        : undefined;
+    const index = options.selections?.get(JSON.stringify(path));
+    const selected =
+      variants && index !== undefined && Number.isInteger(index)
+        ? variants.choices[index]
+        : undefined;
+    return {
+      schema: selected ? resolved(selected.schema, sensitive) : base,
+      ...(variants
+        ? {
+            variants: {
+              ...variants,
+              ...(selected ? { selected: index! } : {}),
+            },
+          }
+        : {}),
+    };
+  };
   function children(
     value: JsonValueNode | undefined,
     schema: Schema,
     depth: number,
     sensitive: boolean,
+    path: BodyPath,
   ): ChildEditors {
-    if (Object.hasOwn(schema, 'const') || Array.isArray(schema.enum)) return {};
+    if (
+      Object.hasOwn(schema, 'const') ||
+      Array.isArray(schema.enum) ||
+      schema.readOnly === true
+    )
+      return {};
     if (value?.kind === 'object')
-      return { nested: build(value, schema, depth, sensitive) };
+      return { nested: build(value, schema, depth, sensitive, path) };
     if (value?.kind === 'array')
-      return { array: buildArray(value, schema, depth, sensitive) };
+      return { array: buildArray(value, schema, depth, sensitive, path) };
     return {};
   }
   function buildArray(
@@ -82,6 +126,7 @@ export function bodyFieldModel(
     schema: Schema,
     depth: number,
     sensitive: boolean,
+    path: BodyPath,
   ): BodyArrayModel {
     try {
       if (depth >= 8)
@@ -123,16 +168,25 @@ export function bodyFieldModel(
         available: true,
         value,
         schema: itemSchema,
-        items: value.items.map((value) => ({
-          value,
-          schema: itemSchema,
-          ...children(
+        items: value.items.map((value, index) => {
+          const childPath = [...path, index];
+          const selected = select(
+            object(actual.items),
+            childPath,
+            actual.writeOnly === true,
+          );
+          return {
             value,
-            itemSchema,
-            depth + 1,
-            itemSchema.writeOnly === true,
-          ),
-        })),
+            ...selected,
+            ...children(
+              value,
+              selected.schema,
+              depth + 1,
+              selected.schema.writeOnly === true,
+              childPath,
+            ),
+          };
+        }),
       };
     } catch (error) {
       return {
@@ -148,6 +202,7 @@ export function bodyFieldModel(
     schema: Schema,
     depth: number,
     sensitive = false,
+    path: BodyPath = [],
   ): BodyFieldModel {
     try {
       if (value.kind !== 'object')
@@ -176,10 +231,13 @@ export function bodyFieldModel(
         );
       const fields = properties
         .filter(([, property]) => property !== false)
-        .map(([name, property]): { name: string; schema: Schema } => {
-          return { name, schema: resolved(object(property), sensitive) };
+        .map(([name, property]) => {
+          return {
+            name,
+            ...select(object(property), [...path, name], sensitive),
+          };
         })
-        .filter((field) => field.schema.readOnly !== true);
+        .filter((field) => field.schema.readOnly !== true || field.variants);
       if (!fields.length)
         throw new Error('No editable fields are defined. Use JSON.');
       if (fields.length > budget.remaining)
@@ -198,6 +256,7 @@ export function bodyFieldModel(
               field.schema,
               depth + 1,
               sensitive || field.schema.writeOnly === true,
+              [...path, field.name],
             ),
           };
         }),
@@ -215,7 +274,7 @@ export function bodyFieldModel(
   try {
     const value = parseJsonValue(body);
     return value.kind === 'array'
-      ? buildArray(value, schema, 0, false)
+      ? buildArray(value, schema, 0, false, [])
       : build(value, schema, 0);
   } catch (error) {
     return {
@@ -223,6 +282,24 @@ export function bodyFieldModel(
       error: error instanceof Error ? error.message : 'Use JSON for this body.',
     };
   }
+}
+/** Error and selection keys share typed paths, so literal dots and numeric keys cannot collide. */
+export function bodyPathWithin(
+  key: string,
+  path: BodyPath,
+  descendantsOnly = false,
+): boolean {
+  let candidate: unknown;
+  try {
+    candidate = JSON.parse(key);
+  } catch {
+    return false;
+  }
+  return (
+    Array.isArray(candidate) &&
+    candidate.length >= path.length + (descendantsOnly ? 1 : 0) &&
+    path.every((part, index) => candidate[index] === part)
+  );
 }
 /** Dot/bracket labels keep literal dots and nested paths distinct. */
 export function bodyFieldLabel(path: readonly (string | number)[]): string {

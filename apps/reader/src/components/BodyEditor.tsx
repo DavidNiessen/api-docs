@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   parseJsonValue,
   serializeJsonValue,
@@ -8,15 +8,21 @@ import {
 import type { JsonValueNode, Schema } from '@api-docs/contracts';
 import type { ReactNode } from 'react';
 import {
+  BodyBranchContext as BranchContext,
+  BodyBranchSelector as BranchSelector,
+} from './BodyBranchSelector.js';
+import {
   bodyFieldModel,
   bodyFieldLabel,
   MAX_ARRAY_ITEMS,
+  bodyPathWithin,
 } from '../body-fields.js';
 import type {
   BodyFieldModel,
   ObjectBodyValue,
   BodyArrayModel,
   ArrayBodyValue,
+  BodyPath,
 } from '../body-fields.js';
 
 const typeOf = (schema: Schema) =>
@@ -58,15 +64,18 @@ function FieldValue({
   onError,
   nested,
   nestedReason,
+  path,
 }: {
   name: string;
   nested?: ReactNode;
   nestedReason?: string | undefined;
+  path: BodyPath;
   schema: Schema;
   value: JsonValueNode;
   onChange: (value: JsonValueNode) => void;
   onError: (name: string, error: string) => void;
 }) {
+  const branchActions = useContext(BranchContext);
   const text = serializeJsonValue(value, true),
     id = useId();
   const [draft, setDraft] = useState(text),
@@ -143,6 +152,8 @@ function FieldValue({
         !(nullable && parsed.kind === 'null')
       )
         throw new Error(`Enter a JSON ${expected.join(' or ')}.`);
+      if (parsed.kind === 'object' || parsed.kind === 'array')
+        branchActions?.reset(path);
       onChange(parsed);
       setError('');
       onError(name, '');
@@ -189,14 +200,14 @@ function FieldValue({
                 checked={value.kind === 'null'}
                 onChange={(event) => {
                   try {
-                    onChange(
-                      event.target.checked
-                        ? { kind: 'null' }
-                        : seed(
-                            { ...schema, nullable: false, type: declared },
-                            true,
-                          ),
-                    );
+                    const next: JsonValueNode = event.target.checked
+                      ? { kind: 'null' }
+                      : seed(
+                          { ...schema, nullable: false, type: declared },
+                          true,
+                        );
+                    branchActions?.reset(path);
+                    onChange(next);
                   } catch {
                     setError(
                       'This field cannot be initialized here. Use JSON.',
@@ -233,6 +244,7 @@ function FieldValue({
                 aria-pressed={nestedMode === 'json'}
                 onClick={() => {
                   setNestedMode('json');
+                  branchActions?.reset(path);
                   setDraft(text);
                   setError('');
                   onError(name, '');
@@ -243,6 +255,26 @@ function FieldValue({
             </div>
           )}
           {nestedReason && <p className="subtle">{nestedReason}</p>}
+          {value.kind === 'null' &&
+            !nullable &&
+            (declared === 'object' || declared === 'array') && (
+              <button
+                type="button"
+                className="body-array-add"
+                aria-label={`Initialize body ${name} as ${declared}`}
+                onClick={() => {
+                  branchActions?.reset(path);
+                  onChange(
+                    declared === 'object'
+                      ? { kind: 'object', entries: [] }
+                      : { kind: 'array', items: [] },
+                  );
+                  onError(name, '');
+                }}
+              >
+                Start empty {declared}
+              </button>
+            )}
           {nullable && value.kind === 'null' ? (
             <code>null</code>
           ) : nested &&
@@ -359,6 +391,7 @@ function ArrayFields({
   onChange: (value: ArrayBodyValue) => void;
   onError: (key: string, error: string) => void;
 }) {
+  const branchActions = useContext(BranchContext);
   const [revision, setRevision] = useState(0),
     [error, setError] = useState('');
   const report = useRef(onError);
@@ -390,6 +423,7 @@ function ArrayFields({
     setRevision((value) => value + 1);
     setError('');
     onError(errorKey, '');
+    branchActions?.reset(path);
     update(items);
   };
   return (
@@ -398,71 +432,89 @@ function ArrayFields({
         Adding or removing an item discards incomplete drafts in this array.
         Valid values are retained.
       </p>
+      {model.items.some((item) => item.variants) && (
+        <p className="subtle">
+          Adding or removing items also resets their schema choices.
+        </p>
+      )}
       {error && <p role="alert">{error}</p>}
       <div ref={list} key={revision} className="body-object-fields">
-        {model.items.map(({ value, schema, nested, array }, index) => {
-          const itemPath = [...path, index],
-            name = bodyFieldLabel(itemPath),
-            key = JSON.stringify(itemPath);
-          return (
-            <div className="body-array-item" key={key}>
-              <div className="body-array-item-heading">
-                <code>{name}</code>
-                <button
-                  type="button"
-                  aria-label={`Remove body ${name}`}
-                  onClick={() =>
-                    restructure(
-                      model.value.items.filter(
-                        (_, position) => position !== index,
-                      ),
-                      Math.min(index, model.items.length - 2),
-                    )
-                  }
-                >
-                  Remove
-                </button>
+        {model.items.map(
+          ({ value, schema, nested, array, variants }, index) => {
+            const itemPath = [...path, index],
+              name = bodyFieldLabel(itemPath),
+              key = JSON.stringify(itemPath);
+            return (
+              <div className="body-array-item" key={key}>
+                <div className="body-array-item-heading">
+                  <code>{name}</code>
+                  <button
+                    type="button"
+                    aria-label={`Remove body ${name}`}
+                    onClick={() =>
+                      restructure(
+                        model.value.items.filter(
+                          (_, position) => position !== index,
+                        ),
+                        Math.min(index, model.items.length - 2),
+                      )
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+                {variants && (
+                  <BranchSelector variants={variants} path={itemPath} />
+                )}
+                {schema.readOnly === true ? (
+                  <p className="subtle">
+                    This branch is read-only. The current value is retained.
+                  </p>
+                ) : (
+                  <FieldValue
+                    key={`${key}:${variants?.selected ?? ''}`}
+                    path={itemPath}
+                    name={name}
+                    schema={schema}
+                    value={value}
+                    onChange={(value) =>
+                      update(
+                        model.value.items.map((previous, position) =>
+                          position === index ? value : previous,
+                        ),
+                      )
+                    }
+                    onError={(_name, error) => onError(key, error)}
+                    nestedReason={
+                      nested && !nested.available
+                        ? nested.error
+                        : array && !array.available
+                          ? array.error
+                          : undefined
+                    }
+                    nested={
+                      nested?.available || array?.available ? (
+                        <ChildFields
+                          nested={nested}
+                          array={array}
+                          path={itemPath}
+                          onChange={(value) =>
+                            update(
+                              model.value.items.map((previous, position) =>
+                                position === index ? value : previous,
+                              ),
+                            )
+                          }
+                          onError={onError}
+                        />
+                      ) : undefined
+                    }
+                  />
+                )}
               </div>
-              <FieldValue
-                name={name}
-                schema={schema}
-                value={value}
-                onChange={(value) =>
-                  update(
-                    model.value.items.map((previous, position) =>
-                      position === index ? value : previous,
-                    ),
-                  )
-                }
-                onError={(_name, error) => onError(key, error)}
-                nestedReason={
-                  nested && !nested.available
-                    ? nested.error
-                    : array && !array.available
-                      ? array.error
-                      : undefined
-                }
-                nested={
-                  nested?.available || array?.available ? (
-                    <ChildFields
-                      nested={nested}
-                      array={array}
-                      path={itemPath}
-                      onChange={(value) =>
-                        update(
-                          model.value.items.map((previous, position) =>
-                            position === index ? value : previous,
-                          ),
-                        )
-                      }
-                      onError={onError}
-                    />
-                  ) : undefined
-                }
-              />
-            </div>
-          );
-        })}
+            );
+          },
+        )}
       </div>
       <button
         ref={add}
@@ -496,6 +548,7 @@ function ObjectFields({
   onChange: (value: ObjectBodyValue) => void;
   onError: (key: string, error: string) => void;
 }) {
+  const branchActions = useContext(BranchContext);
   const [error, setError] = useState('');
   const activeErrors = useRef(new Set<string>()),
     report = useRef(onError);
@@ -515,7 +568,7 @@ function ObjectFields({
   return (
     <div className="body-object-fields">
       {error && <p role="alert">{error}</p>}
-      {model.fields.map(({ name, schema: field, nested, array }) => {
+      {model.fields.map(({ name, schema: field, nested, array, variants }) => {
         const fieldPath = [...path, name],
           label = bodyFieldLabel(fieldPath),
           key = JSON.stringify(fieldPath);
@@ -530,9 +583,12 @@ function ObjectFields({
                   type="checkbox"
                   aria-label={`Include body ${label}`}
                   checked={!!value}
+                  disabled={field.readOnly === true}
                   onChange={(event) => {
                     try {
                       update(event.target.checked ? seed(field) : undefined);
+                      if (!event.target.checked)
+                        branchActions?.reset(fieldPath);
                       setError('');
                       reportError(key, '');
                     } catch {
@@ -548,13 +604,19 @@ function ObjectFields({
               <small>
                 {String(typeOf(field) ?? 'JSON')}
                 {model.required.includes(name) ? ' · required' : ''}
+                {field.readOnly === true ? ' · read-only' : ''}
               </small>
             </div>
             {typeof field.description === 'string' && (
               <p className="subtle">{field.description}</p>
             )}
-            {value && (
+            {variants && (
+              <BranchSelector variants={variants} path={fieldPath} />
+            )}
+            {value && field.readOnly !== true && (
               <FieldValue
+                key={`${key}:${variants?.selected ?? ''}`}
+                path={fieldPath}
                 name={label}
                 schema={field}
                 value={value}
@@ -609,6 +671,9 @@ export function BodyEditor({
   const [mode, setMode] = useState<'json' | 'fields'>(initialMode);
   const [variant, setVariant] = useState<number | undefined>();
   const [revision, setRevision] = useState(0);
+  const [selections, setSelections] = useState<ReadonlyMap<string, number>>(
+    () => new Map(),
+  );
   const variants = useMemo(
     () => (allowVariants ? schemaVariants(schema, schemas, legacy) : undefined),
     [schema, schemas, legacy, allowVariants],
@@ -623,8 +688,12 @@ export function BodyEditor({
   report.current = onError;
   useEffect(() => () => report.current(''), []);
   const model = useMemo(
-    () => bodyFieldModel(body, selectedSchema, schemas, legacy),
-    [body, selectedSchema, schemas, legacy],
+    () =>
+      bodyFieldModel(body, selectedSchema, schemas, legacy, {
+        variants: allowVariants,
+        selections,
+      }),
+    [body, selectedSchema, schemas, legacy, allowVariants, selections],
   );
   const available = model.available;
   const shownMode = available ? mode : 'json';
@@ -642,106 +711,138 @@ export function BodyEditor({
     else errors.current.delete(name);
     onError(errors.current.values().next().value ?? '');
   };
+  function clearErrors(path: BodyPath) {
+    for (const key of errors.current.keys())
+      if (bodyPathWithin(key, path)) errors.current.delete(key);
+    report.current(errors.current.values().next().value ?? '');
+  }
+  const branchActions = {
+    select(path: BodyPath, index: number | undefined) {
+      setSelections((current) => {
+        const next = new Map(
+          [...current].filter(([key]) => !bodyPathWithin(key, path)),
+        );
+        if (index !== undefined) next.set(JSON.stringify(path), index);
+        return next;
+      });
+      clearErrors(path);
+    },
+    reset(path: BodyPath) {
+      setSelections(
+        (current) =>
+          new Map(
+            [...current].filter(([key]) => !bodyPathWithin(key, path, true)),
+          ),
+      );
+      clearErrors(path);
+    },
+  };
   return (
-    <div className="body-editor">
-      {variants && (
-        <div className="body-variant-selector">
-          <label>
-            Editing schema ({variants.keyword})
-            <select
-              aria-label="Request body schema branch"
-              value={variant === undefined ? '' : String(variant)}
-              onChange={(event) => {
-                setVariant(
-                  event.target.value === ''
-                    ? undefined
-                    : Number(event.target.value),
-                );
-                setRevision((value) => value + 1);
-                errors.current.clear();
-                report.current('');
-              }}
-            >
-              <option value="">Choose a branch for field controls</option>
-              {variants.choices.map((choice, index) => (
-                <option key={index} value={index}>
-                  {choice.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="subtle">
-            Selecting a schema changes the field controls, not the request body.
-            Existing values are retained. This does not validate which branches
-            match.
-          </p>
-        </div>
-      )}
-      <div
-        className="body-editor-modes"
-        role="group"
-        aria-label="Request body editor"
-      >
-        <button
-          type="button"
-          aria-pressed={shownMode === 'json'}
-          onClick={() => setMode('json')}
-        >
-          JSON
-        </button>
-        <button
-          type="button"
-          aria-pressed={shownMode === 'fields'}
-          disabled={!available}
-          onClick={() => setMode('fields')}
-        >
-          Fields
-        </button>
-      </div>
-      {shownMode === 'json' || !available ? (
-        <>
-          <label>
-            Request body
-            <textarea
-              aria-label="Request body"
-              value={body}
-              spellCheck={false}
-              rows={8}
-              onChange={(event) => onChange(event.target.value)}
-            />
-          </label>
-          {!available && <p className="subtle">{model.error}</p>}
-        </>
-      ) : (
-        <fieldset className="body-fields" key={revision}>
-          <legend>Request fields</legend>
-          <p className="subtle">
-            Complex schemas use JSON. Unknown and read-only values are retained;
-            edit them in JSON. Required fields and schema constraints still
-            apply.
-          </p>
-          {'fields' in model ? (
-            <ObjectFields
-              model={model}
-              onChange={(value) => onChange(serializeJsonValue(value, true))}
-              onError={fieldError}
-            />
-          ) : (
-            <ArrayFields
-              model={model}
-              path={[]}
-              onChange={(value) => onChange(serializeJsonValue(value, true))}
-              onError={fieldError}
-            />
-          )}
-          {errors.current.size > 0 && (
+    <BranchContext.Provider value={branchActions}>
+      <div className="body-editor">
+        {variants && (
+          <div className="body-variant-selector">
+            <label>
+              Editing schema ({variants.keyword})
+              <select
+                aria-label="Request body schema branch"
+                value={variant === undefined ? '' : String(variant)}
+                onChange={(event) => {
+                  setVariant(
+                    event.target.value === ''
+                      ? undefined
+                      : Number(event.target.value),
+                  );
+                  setRevision((value) => value + 1);
+                  setSelections(new Map());
+                  errors.current.clear();
+                  report.current('');
+                }}
+              >
+                <option value="">Choose a branch for field controls</option>
+                {variants.choices.map((choice, index) => (
+                  <option key={index} value={index}>
+                    {choice.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <p className="subtle">
-              Fix incomplete field values before sending, or return to JSON to
-              use the last valid values.
+              Selecting a schema changes the field controls, not the request
+              body. Existing values are retained. This does not validate which
+              branches match.
             </p>
-          )}
-        </fieldset>
-      )}
-    </div>
+          </div>
+        )}
+        <div
+          className="body-editor-modes"
+          role="group"
+          aria-label="Request body editor"
+        >
+          <button
+            type="button"
+            aria-pressed={shownMode === 'json'}
+            onClick={() => {
+              setMode('json');
+              setSelections(new Map());
+            }}
+          >
+            JSON
+          </button>
+          <button
+            type="button"
+            aria-pressed={shownMode === 'fields'}
+            disabled={!available}
+            onClick={() => setMode('fields')}
+          >
+            Fields
+          </button>
+        </div>
+        {shownMode === 'json' || !available ? (
+          <>
+            <label>
+              Request body
+              <textarea
+                aria-label="Request body"
+                value={body}
+                spellCheck={false}
+                rows={8}
+                onChange={(event) => onChange(event.target.value)}
+              />
+            </label>
+            {!available && <p className="subtle">{model.error}</p>}
+          </>
+        ) : (
+          <fieldset className="body-fields" key={revision}>
+            <legend>Request fields</legend>
+            <p className="subtle">
+              Complex schemas use JSON. Unknown and read-only values are
+              retained; edit them in JSON. Required fields and schema
+              constraints still apply.
+            </p>
+            {'fields' in model ? (
+              <ObjectFields
+                model={model}
+                onChange={(value) => onChange(serializeJsonValue(value, true))}
+                onError={fieldError}
+              />
+            ) : (
+              <ArrayFields
+                model={model}
+                path={[]}
+                onChange={(value) => onChange(serializeJsonValue(value, true))}
+                onError={fieldError}
+              />
+            )}
+            {errors.current.size > 0 && (
+              <p className="subtle">
+                Fix incomplete field values before sending, or return to JSON to
+                use the last valid values.
+              </p>
+            )}
+          </fieldset>
+        )}
+      </div>
+    </BranchContext.Provider>
   );
 }
