@@ -32,6 +32,8 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm audit --audit-level=moderate
       - run: pnpm run check
+      - name: Verify prepared release lockfile
+        run: node scripts/test-pnpm-release.mjs
       - name: Require unchanged dependency metadata
         run: git diff --exit-code -- package.json package-lock.json pnpm-lock.yaml pnpm-workspace.yaml
 

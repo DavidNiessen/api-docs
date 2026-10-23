@@ -186,7 +186,7 @@ async function prepareReleaseUnlocked(
   proposed.set('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
   const pnpmSource = await remember('pnpm-lock.yaml');
   const pnpmLock = parseDocument(pnpmSource);
-  let pnpmChanged = false;
+  const pnpmReplacements = [];
   for (const pkg of packages)
     for (const section of dependencySections)
       for (const name of Object.keys(pkg.metadata[section] ?? {}))
@@ -198,14 +198,27 @@ async function prepareReleaseUnlocked(
             name,
             'specifier',
           ];
-          if (pnpmLock.getIn(path) !== version) {
-            pnpmLock.setIn(path, version);
-            pnpmChanged = true;
+          const scalar = pnpmLock.getIn(path, true);
+          assert(
+            scalar?.range && typeof scalar.value === 'string',
+            'Missing pnpm dependency specifier.',
+          );
+          if (scalar.value !== version) {
+            pnpmReplacements.push({
+              start: scalar.range[0],
+              end: scalar.range[1],
+            });
           }
         }
   proposed.set(
     'pnpm-lock.yaml',
-    pnpmChanged ? pnpmLock.toString() : pnpmSource,
+    pnpmReplacements
+      .sort((a, b) => b.start - a.start)
+      .reduce(
+        (source, { start, end }) =>
+          source.slice(0, start) + version + source.slice(end),
+        pnpmSource,
+      ),
   );
   proposed.set('pnpm-workspace.yaml', await remember('pnpm-workspace.yaml'));
   const runtime = await remember('packages/contracts/src/version.ts');
