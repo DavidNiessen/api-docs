@@ -29,9 +29,10 @@ export type { RemoteSpecOptions, RemoteSpecSnapshot } from './remote.js';
 export async function loadSpec(
   root: string,
   input: { id: string; path: string; version?: string },
+  options: { source?: string } = {},
 ): Promise<ApiDocument> {
   const filename = await confinedPath(root, input.path);
-  const source = await readTextFile(filename);
+  const source = options.source ?? (await readTextFile(filename));
   const parsed = record(parseSource(source, input.path));
   if (!/^3\.(0|1)\.\d+$/.test(text(parsed.openapi)))
     throw new Error(

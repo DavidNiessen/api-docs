@@ -4,9 +4,12 @@ import { Command } from 'commander';
 import { mkdir, writeFile, access } from 'node:fs/promises';
 import { resolve, join, dirname, basename } from 'node:path';
 import { watch } from 'node:fs';
-import { compileProject, auditDocumentation } from '@api-docs/compiler';
-import { loadSpec, diffApi, parseConfig } from '@api-docs/spec';
-import { checkPluginConformance } from '@api-docs/plugin-sdk';
+import {
+  compileProject,
+  auditDocumentation,
+  checkProjectPluginConformance,
+} from '@api-docs/compiler';
+import { loadSpec, diffApi } from '@api-docs/spec';
 import {
   lifecycleReport,
   isCalendarDate,
@@ -447,7 +450,7 @@ program
   );
 program
   .command('plugin-check <file> [project]')
-  .description('Execute a reviewed plugin twice against a project fixture')
+  .description('Check a reviewed plugin across two complete project builds')
   .requiredOption(
     '--trust-plugins',
     'acknowledge execution of reviewed local code',
@@ -461,20 +464,16 @@ program
       options: { config: string; trustContent?: boolean },
     ) => {
       const root = resolve(project);
-      const site = await compileProject(root, options.config, {
-        skipPlugins: true,
-        trustContent: options.trustContent ?? false,
-      });
-      const result = await checkPluginConformance(root, [file], site);
-      try {
-        parseConfig(result.site.config);
-      } catch {
-        throw new Error(
-          'Invalid plugin project configuration. Review the configuration contract.',
-        );
-      }
+      const site = await checkProjectPluginConformance(
+        root,
+        [file],
+        options.config,
+        {
+          trustContent: options.trustContent ?? false,
+        },
+      );
       console.log(
-        `Plugin conformance passed: ${result.plugins[0]!.name}@${result.plugins[0]!.version}. Fresh executions returned identical validated output.`,
+        `Plugin conformance passed: ${site.pluginVersions![0]!.name}@${site.pluginVersions![0]!.version}. Fresh executions returned identical validated output.`,
       );
     },
   );

@@ -6,6 +6,8 @@ import { applyPlugins, definePlugin } from './index.js';
 import type { BuildPlugin } from './index.js';
 import { pluginFile, pluginDigest } from './files.js';
 import type { PluginInput } from './files.js';
+import { applySourcePlugins } from './sources.js';
+import type { SpecSource } from './sources.js';
 async function main() {
   const chunks: Buffer[] = [];
   let size = 0;
@@ -14,12 +16,13 @@ async function main() {
     if (size > 256 * 1024 * 1024) throw new Error('Input limit exceeded');
     chunks.push(chunk as Buffer);
   }
-  const { root, entries, site, maxBytes } = JSON.parse(
+  const { root, entries, site, sources, maxBytes } = JSON.parse(
     Buffer.concat(chunks).toString('utf8'),
   ) as {
     root: string;
     entries: PluginInput[];
-    site: SiteData;
+    site?: SiteData;
+    sources?: SpecSource[];
     maxBytes: number;
   };
   const plugins: BuildPlugin[] = [],
@@ -54,12 +57,14 @@ async function main() {
     });
     plugins.push(plugin);
   }
-  const transformed = await applyPlugins(site, plugins);
+  const transformed = sources
+    ? await applySourcePlugins(sources, plugins)
+    : { site: await applyPlugins(site!, plugins) };
   for (const plugin of metadata)
     for (const input of plugin.inputs)
       if ((await pluginFile(root, input.path)).metadata.digest !== input.digest)
         throw new Error('Input changed during transform');
-  const output = JSON.stringify({ site: transformed, plugins: metadata });
+  const output = JSON.stringify({ ...transformed, plugins: metadata });
   if (Buffer.byteLength(output) > maxBytes)
     throw new Error('Output limit exceeded');
   const pipe = createWriteStream('', { fd: 3, autoClose: true });

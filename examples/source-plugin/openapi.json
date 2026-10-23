@@ -1,0 +1,13 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Generated service API", "version": "v1" },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Check deployment health",
+        "responses": { "200": { "description": "Healthy" } }
+      }
+    }
+  }
+}

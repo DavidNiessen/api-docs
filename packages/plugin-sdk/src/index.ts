@@ -2,8 +2,10 @@ import type { Diagnostic, SiteData, Theme } from '@api-docs/contracts';
 import { validatePluginSite } from './validation.js';
 import { applyThemePatch } from './theme.js';
 import type { ThemePatch } from './theme.js';
+import type { SpecSource } from './sources.js';
+export type { SpecSource } from './sources.js';
 export type { ThemePatch } from './theme.js';
-export type BuildPluginCapability = 'transform' | 'theme';
+export type BuildPluginCapability = 'transform' | 'theme' | 'source';
 export interface BuildPluginContext {
   signal: AbortSignal;
   diagnostic: (message: Diagnostic) => void;
@@ -14,6 +16,10 @@ export interface BuildPlugin {
   pluginApi: '1';
   inputs?: string[];
   capabilities?: readonly BuildPluginCapability[];
+  loadSpec?: (
+    source: Readonly<SpecSource>,
+    context: BuildPluginContext,
+  ) => Promise<string> | string;
   theme?: (
     theme: Readonly<Theme>,
     context: BuildPluginContext,
@@ -37,6 +43,9 @@ export function definePlugin(plugin: BuildPlugin): BuildPlugin {
     (plugin.theme !== undefined &&
       (typeof plugin.theme !== 'function' ||
         !plugin.capabilities?.includes('theme'))) ||
+    (plugin.loadSpec !== undefined &&
+      (typeof plugin.loadSpec !== 'function' ||
+        !plugin.capabilities?.includes('source'))) ||
     (plugin.inputs !== undefined &&
       (!Array.isArray(plugin.inputs) ||
         plugin.inputs.length > 128 ||
@@ -46,10 +55,13 @@ export function definePlugin(plugin: BuildPlugin): BuildPlugin {
     (plugin.capabilities !== undefined &&
       (!Array.isArray(plugin.capabilities) ||
         plugin.capabilities.length < 1 ||
-        plugin.capabilities.length > 2 ||
+        plugin.capabilities.length > 3 ||
         new Set(plugin.capabilities).size !== plugin.capabilities.length ||
         plugin.capabilities.some(
-          (capability) => capability !== 'transform' && capability !== 'theme',
+          (capability) =>
+            capability !== 'transform' &&
+            capability !== 'theme' &&
+            capability !== 'source',
         ) ||
         (plugin.transform !== undefined &&
           !plugin.capabilities.includes('transform'))))
@@ -57,8 +69,17 @@ export function definePlugin(plugin: BuildPlugin): BuildPlugin {
     throw new Error('Invalid plugin name, version or pluginApi (supported: 1)');
   return Object.freeze(plugin);
 }
-export { runPluginFiles, checkPluginConformance } from './runner.js';
-export type { PluginExecution } from './runner.js';
+export {
+  runPluginFiles,
+  checkPluginConformance,
+  runSourcePluginFiles,
+  checkSourcePluginConformance,
+} from './runner.js';
+export type {
+  PluginExecution,
+  SourcePluginExecution,
+  PluginWorkerOptions,
+} from './runner.js';
 export async function applyPlugins(
   site: SiteData,
   plugins: BuildPlugin[],

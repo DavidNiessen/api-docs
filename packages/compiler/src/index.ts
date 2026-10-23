@@ -21,7 +21,8 @@ import {
   readBoundedFile,
 } from '@api-docs/spec';
 import { loadGuides, renderMarkdown } from '@api-docs/content';
-import { runPluginFiles } from '@api-docs/plugin-sdk';
+import { runPluginFiles, runSourcePluginFiles } from '@api-docs/plugin-sdk';
+import type { SpecSource, SourcePluginExecution } from '@api-docs/plugin-sdk';
 import { loadPublicAssets } from './assets.js';
 export { loadPublicAssets } from './assets.js';
 export { auditDocumentation } from './doctor.js';
@@ -35,15 +36,49 @@ export async function compileProject(
     trustPlugins?: boolean;
     trustContent?: boolean;
     skipPlugins?: boolean;
+    /** Tooling override; still requires explicit trust and project-local entry files. */
+    pluginFiles?: string[];
   } = {},
 ): Promise<SiteData> {
   root = await realpath(root);
   const file = await confinedPath(root, configFile);
-  const config = parseConfig(
+  let config = parseConfig(
     parseSource(await readTextFile(file, 1024 * 1024), configFile),
   );
+  if (options.pluginFiles !== undefined)
+    config = parseConfig({ ...config, plugins: options.pluginFiles });
+  const pluginsEnabled = config.plugins.length > 0 && !options.skipPlugins;
+  if (pluginsEnabled && !options.trustPlugins)
+    throw new Error(
+      'Project requests executable build plugins. Review them and use --trust-plugins to opt in.',
+    );
+  let sourceExecution: SourcePluginExecution | undefined;
+  const sources: SpecSource[] = [];
+  const sourceFiles: string[] = [];
+  if (pluginsEnabled) {
+    let bytes = 0;
+    if (config.specs.length > 128)
+      throw new Error('Source plugins support at most 128 specs');
+    for (const spec of config.specs) {
+      const filename = await confinedPath(root, spec.path);
+      const content = await readTextFile(filename);
+      bytes += Buffer.byteLength(content);
+      if (bytes > 64 * 1024 * 1024)
+        throw new Error('Source plugin documents exceed 64 MiB total');
+      sources.push({ ...spec, content });
+      sourceFiles.push(filename);
+    }
+    sourceExecution = await runSourcePluginFiles(root, config.plugins, sources);
+  }
   const apis = [];
-  for (const spec of config.specs) apis.push(await loadSpec(root, spec));
+  for (const [i, spec] of config.specs.entries())
+    apis.push(
+      await loadSpec(
+        root,
+        spec,
+        sourceExecution ? { source: sourceExecution.sources[i]!.content } : {},
+      ),
+    );
   for (const api of apis)
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(api.version))
       throw new Error(
@@ -65,14 +100,26 @@ export async function compileProject(
       trustContent: options.trustContent ?? false,
       basePath: config.basePath,
     }),
-    diagnostics: apis.flatMap((api) => api.diagnostics),
+    diagnostics: [
+      ...(sourceExecution?.diagnostics ?? []),
+      ...apis.flatMap((api) => api.diagnostics),
+    ],
   };
-  if (config.plugins.length && !options.skipPlugins) {
-    if (!options.trustPlugins)
-      throw new Error(
-        'Project requests executable build plugins. Review them and use --trust-plugins to opt in.',
-      );
+  if (pluginsEnabled) {
     const execution = await runPluginFiles(root, config.plugins, site);
+    if (
+      JSON.stringify(execution.plugins) !==
+      JSON.stringify(sourceExecution!.plugins)
+    )
+      throw new Error(
+        'Plugin declared inputs changed between source and graph stages',
+      );
+    for (const [i, filename] of sourceFiles.entries())
+      if (
+        (await confinedPath(root, config.specs[i]!.path)) !== filename ||
+        (await readTextFile(filename)) !== sources[i]!.content
+      )
+        throw new Error('Spec input changed during plugin execution');
     site = execution.site;
     try {
       site.config = parseConfig(site.config);
@@ -92,6 +139,25 @@ export async function compileProject(
     site.pluginVersions = execution.plugins;
   }
   return site;
+}
+
+/** Full source → validation → theme/graph conformance using only the selected reviewed plugins. */
+export async function checkProjectPluginConformance(
+  root: string,
+  paths: string[],
+  configFile = 'docs.config.yaml',
+  options: { trustContent?: boolean } = {},
+): Promise<SiteData> {
+  if (!paths.length)
+    throw new Error('Select at least one plugin for conformance');
+  const settings = { ...options, trustPlugins: true, pluginFiles: paths };
+  const first = await compileProject(root, configFile, settings);
+  const second = await compileProject(root, configFile, settings);
+  if (JSON.stringify(first) !== JSON.stringify(second))
+    throw new Error(
+      'Plugin conformance failed: output or metadata differs between fresh executions',
+    );
+  return first;
 }
 /** Reuse the API graph only when a plain Markdown body changes without affecting shared navigation. */
 export async function compileGuideUpdate(

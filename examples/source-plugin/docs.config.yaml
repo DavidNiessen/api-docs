@@ -1,0 +1,6 @@
+name: Deployment source plugin
+specs:
+  - id: service
+    path: openapi.json
+plugins:
+  - deployment.mjs

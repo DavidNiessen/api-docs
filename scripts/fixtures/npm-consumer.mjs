@@ -134,7 +134,7 @@ for (const name of Object.keys(metadata.dependencies).filter((name) =>
 await writeFile(
   'types.mts',
   typeImports.join('\n') +
-    `\nimport { definePlugin } from '@api-docs/plugin-sdk';\nimport type { ThemePatch, BuildPluginContext } from '@api-docs/plugin-sdk';\nimport type { SiteData } from '@api-docs/contracts';\nimport { createExpressDocs } from '@api-docs/node/express';\nimport { apiDocsPlugin } from '@api-docs/node/fastify';\nimport { buildSite } from '@api-docs/cli';\nconst plugin = definePlugin({ name: 'installed-types', version: '1.0.0', pluginApi: '1', capabilities: ['theme', 'transform'], theme: (theme, context: BuildPluginContext): ThemePatch => ({ radius: context.signal.aborted ? theme.radius : 12 }), transform: (site: SiteData) => site });\nvoid [plugin, createExpressDocs, apiDocsPlugin, buildSite];\n`,
+    `\nimport { definePlugin } from '@api-docs/plugin-sdk';\nimport type { ThemePatch, BuildPluginContext, SpecSource } from '@api-docs/plugin-sdk';\nimport type { SiteData } from '@api-docs/contracts';\nimport { createExpressDocs } from '@api-docs/node/express';\nimport { apiDocsPlugin } from '@api-docs/node/fastify';\nimport { buildSite } from '@api-docs/cli';\nconst plugin = definePlugin({ name: 'installed-types', version: '1.0.0', pluginApi: '1', capabilities: ['source', 'theme', 'transform'], loadSpec: (source: Readonly<SpecSource>) => source.content, theme: (theme, context: BuildPluginContext): ThemePatch => ({ radius: context.signal.aborted ? theme.radius : 12 }), transform: (site: SiteData) => site });\nvoid [plugin, createExpressDocs, apiDocsPlugin, buildSite];\n`,
 );
 await exec(process.execPath, [
   'node_modules/typescript/bin/tsc',
@@ -220,7 +220,7 @@ await writeFile(
 );
 await writeFile(
   'docs/plugin.mjs',
-  `import { definePlugin } from '@api-docs/plugin-sdk';\nexport default definePlugin({ name: 'installed-consumer', version: '1.0.0', pluginApi: '1', capabilities: ['theme', 'transform'], theme: () => ({ radius: 12, colors: { light: { surface: '#f4f8f6' } } }), transform: (site) => { if (site.config.theme.radius !== 12) throw new Error('Theme hook did not precede transform'); return { ...site, config: { ...site.config, name: 'Packaged consumer' }, apis: site.apis.map((api, i) => i ? api : { ...api, operations: api.operations.map((op, j) => j ? op : { ...op, lifecycle: { sunsetOn: '2028-01-01', message: 'Packaged lifecycle metadata' } }) }) }; } });\n`,
+  `import { definePlugin } from '@api-docs/plugin-sdk';\nexport default definePlugin({ name: 'installed-consumer', version: '1.0.0', pluginApi: '1', capabilities: ['source', 'theme', 'transform'], loadSpec: (source) => source.content.replace('title: My API', 'title: Installed source API'), theme: () => ({ radius: 12, colors: { light: { surface: '#f4f8f6' } } }), transform: (site) => { if (site.config.theme.radius !== 12 || site.apis[0].title !== 'Installed source API') throw new Error('Source/theme hooks did not precede transform'); return { ...site, config: { ...site.config, name: 'Packaged consumer' }, apis: site.apis.map((api, i) => i ? api : { ...api, operations: api.operations.map((op, j) => j ? op : { ...op, lifecycle: { sunsetOn: '2028-01-01', message: 'Packaged lifecycle metadata' } }) }) }; } });\n`,
 );
 await writeFile(
   'docs/guides/installed.mdx',
@@ -257,6 +257,7 @@ const installedSite = JSON.parse(
 );
 assert.equal(installedSite.config.theme.radius, 12);
 assert.equal(installedSite.config.theme.colors.light.surface, '#f4f8f6');
+assert.equal(installedSite.apis[0].title, 'Installed source API');
 assert(
   (await readFile(join(directory, 'index.html'), 'utf8')).includes(
     `content="api-docs ${version}"`,

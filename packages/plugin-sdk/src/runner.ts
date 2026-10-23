@@ -2,10 +2,19 @@ import { spawn } from 'node:child_process';
 import { realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { Readable } from 'node:stream';
-import type { SiteData } from '@api-docs/contracts';
+import type { Diagnostic, SiteData } from '@api-docs/contracts';
 import { pluginFile, pluginDigest } from './files.js';
 import type { PluginInput } from './files.js';
 import { validatePluginSite } from './validation.js';
+import { validateSpecSources } from './sources.js';
+import type { SpecSource } from './sources.js';
+import { z } from 'zod';
+
+export interface PluginWorkerOptions {
+  timeoutMs?: number;
+  maxBytes?: number;
+  heapMiB?: number;
+}
 
 export interface PluginExecution {
   site: SiteData;
@@ -16,13 +25,89 @@ export interface PluginExecution {
     inputs: PluginInput[];
   }[];
 }
+export interface SourcePluginExecution {
+  sources: SpecSource[];
+  diagnostics: Diagnostic[];
+  plugins: PluginExecution['plugins'];
+}
 /** Trusted-code resource boundary. This does not restrict filesystem, network or credentials. */
 export async function runPluginFiles(
   root: string,
   paths: string[],
   site: SiteData,
-  options: { timeoutMs?: number; maxBytes?: number; heapMiB?: number } = {},
+  options: PluginWorkerOptions = {},
 ): Promise<PluginExecution> {
+  const result = await runWorker(root, paths, { site }, options);
+  try {
+    return { site: validatePluginSite(result.site), plugins: result.plugins };
+  } catch {
+    throw new Error(
+      'Trusted plugin output or declared inputs failed verification',
+    );
+  }
+}
+
+export async function runSourcePluginFiles(
+  root: string,
+  paths: string[],
+  sources: SpecSource[],
+  options: PluginWorkerOptions = {},
+): Promise<SourcePluginExecution> {
+  const inputs = structuredClone(validateSpecSources(sources));
+  const result = await runWorker(root, paths, { sources: inputs }, options);
+  try {
+    const output = validateSpecSources(result.sources);
+    if (
+      output.length !== inputs.length ||
+      output.some(
+        (source, i) =>
+          source.id !== inputs[i]!.id ||
+          source.path !== inputs[i]!.path ||
+          source.version !== inputs[i]!.version,
+      )
+    )
+      throw new Error();
+    const diagnostics = z
+      .array(
+        z
+          .object({
+            code: z.string().min(1).max(1024),
+            severity: z.enum(['warning', 'error']),
+            message: z.string().max(2 * 1024 * 1024),
+            source: z
+              .string()
+              .max(2 * 1024 * 1024)
+              .optional(),
+          })
+          .strict(),
+      )
+      .max(10_000)
+      .parse(result.diagnostics);
+    return {
+      sources: output,
+      diagnostics: diagnostics.map(({ source, ...rest }) =>
+        source === undefined ? rest : { ...rest, source },
+      ),
+      plugins: result.plugins,
+    };
+  } catch {
+    throw new Error(
+      'Trusted plugin output or declared inputs failed verification',
+    );
+  }
+}
+
+async function runWorker(
+  root: string,
+  paths: string[],
+  payload: { site: SiteData } | { sources: SpecSource[] },
+  options: PluginWorkerOptions,
+): Promise<{
+  site?: unknown;
+  sources?: unknown;
+  diagnostics?: unknown;
+  plugins: PluginExecution['plugins'];
+}> {
   const timeoutMs = options.timeoutMs ?? 10_000;
   const maxBytes = options.maxBytes ?? 128 * 1024 * 1024;
   const heapMiB = options.heapMiB ?? 512;
@@ -52,7 +137,7 @@ export async function runPluginFiles(
       throw new Error('Compile plugin entries to .js, .mjs or .cjs first');
     entries.push(entry.metadata);
   }
-  const input = JSON.stringify({ root, entries, site, maxBytes });
+  const input = JSON.stringify({ root, entries, ...payload, maxBytes });
   if (Buffer.byteLength(input) > maxBytes)
     throw new Error('Plugin worker input exceeds its byte limit');
   const output = await new Promise<string>((resolve, reject) => {
@@ -119,16 +204,19 @@ export async function runPluginFiles(
     });
     child.stdin!.end(input);
   });
-  let result: PluginExecution;
+  let result: {
+    site?: unknown;
+    sources?: unknown;
+    diagnostics?: unknown;
+    plugins: PluginExecution['plugins'];
+  };
   try {
-    result = JSON.parse(output) as PluginExecution;
+    result = JSON.parse(output) as typeof result;
     if (
-      !result.site ||
       !Array.isArray(result.plugins) ||
       result.plugins.length !== paths.length
     )
       throw new Error();
-    result.site = validatePluginSite(result.site);
     let verifiedBytes = 0;
     for (const plugin of result.plugins) {
       if (
@@ -154,6 +242,21 @@ export async function runPluginFiles(
     );
   }
   return result;
+}
+
+/** Checks source text and declared input metadata in two independent workers. */
+export async function checkSourcePluginConformance(
+  root: string,
+  paths: string[],
+  sources: SpecSource[],
+): Promise<SourcePluginExecution> {
+  const first = await runSourcePluginFiles(root, paths, sources);
+  const second = await runSourcePluginFiles(root, paths, sources);
+  if (JSON.stringify(first) !== JSON.stringify(second))
+    throw new Error(
+      'Plugin conformance failed: output or metadata differs between fresh executions',
+    );
+  return first;
 }
 
 /** Executes a reviewed plugin twice in fresh workers to check reproducibility on a fixture. */
