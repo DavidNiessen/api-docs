@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
   scanner,
+  requireCompleteInventory,
   validateContainerInventory,
   verifyScanner,
 } from '../lib/container-inventory.mjs';
@@ -117,4 +118,18 @@ test('rejects a modified executable and executable symlinks before execution', a
   const link = join(root, 'linked');
   await symlink(path, link);
   await assert.rejects(verifyScanner(link), /regular file/);
+});
+test('refuses a partially completed inventory even when its other files are present', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'api-docs-incomplete-inventory-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await assert.rejects(requireCompleteInventory(join(root, 'missing')));
+  await writeFile(join(root, 'report.json'), '{}');
+  await writeFile(join(root, 'server.cdx.json'), '{}');
+  await writeFile(join(root, '.incomplete'), 'not complete');
+  await assert.rejects(
+    requireCompleteInventory(root),
+    /inventory is incomplete/,
+  );
+  await rm(join(root, '.incomplete'));
+  await requireCompleteInventory(root);
 });

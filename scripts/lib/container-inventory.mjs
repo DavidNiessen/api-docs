@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { lstat } from 'node:fs/promises';
+import { join } from 'node:path';
 import { satisfies } from 'semver';
 import { readWorkspacePackages } from './workspaces.mjs';
 
@@ -29,6 +30,15 @@ export async function verifyScanner(path) {
     scanner.executableSha256,
     'Scanner integrity check failed',
   );
+}
+export async function requireCompleteInventory(directory) {
+  assert((await lstat(directory)).isDirectory(), 'Invalid inventory directory');
+  try {
+    await lstat(join(directory, '.incomplete'));
+    assert.fail('Container inventory is incomplete');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
 }
 
 export async function inventoryContext(image, toolVersion) {

@@ -5,6 +5,7 @@ import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { toolVersion } from '@api-docs/contracts';
 import {
   inventoryContext,
+  requireCompleteInventory,
   scanner,
   sha256,
   validateContainerInventory,
@@ -41,6 +42,7 @@ assert(
     !isAbsolute(local),
   'Inventory must belong to the candidate directory',
 );
+await requireCompleteInventory(directory);
 const path = await realpath(join(directory, 'server.cdx.json'));
 assert.equal(
   relative(directory, path),
