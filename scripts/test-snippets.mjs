@@ -224,6 +224,7 @@ try {
               : 'text/plain; charset=utf-8'),
           Authorization: 'Bearer fixture-token',
           'X-Fixture': 'quote" backslash\\',
+          'X-Empty': '',
         },
         ...(fixture.multipart
           ? { multipart: fixture.multipart }
@@ -384,6 +385,7 @@ try {
       }
       assert.equal(actual.headers.authorization, input.headers.Authorization);
       assert.equal(actual.headers['x-fixture'], input.headers['X-Fixture']);
+      assert.equal(actual.headers['x-empty'], '');
       const wireHeaders = new Map(
         Array.from({ length: actual.rawHeaders.length / 2 }, (_, index) => [
           actual.rawHeaders[index * 2].toLowerCase(),

@@ -21,7 +21,7 @@ const server = createServer(async (request, response) => {
   );
   response.setHeader(
     'Access-Control-Allow-Headers',
-    'Authorization,Content-Type,X-Color',
+    'Authorization,Content-Type,X-Color,trace',
   );
   response.setHeader('Content-Type', 'application/json');
   const send = (status, body) => {
@@ -133,6 +133,11 @@ const server = createServer(async (request, response) => {
     request.method === 'GET'
   ) {
     send(200, { url: request.url, header: request.headers['x-color'] });
+  } else if (
+    url.pathname.startsWith('/v1/presence/') &&
+    request.method === 'GET'
+  ) {
+    send(200, { url: request.url, trace: request.headers.trace ?? null });
   } else if (url.pathname === '/v1/projects' && request.method === 'GET') {
     const limit = Math.min(
       100,

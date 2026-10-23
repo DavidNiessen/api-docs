@@ -92,7 +92,8 @@ export function generateMultipartSnippet(
         `curl --silent --show-error --fail-with-body --max-time 30 --request ${shell(request.method)}`,
         `  --url ${shell(request.url)}`,
         ...Object.entries(headers).map(
-          ([name, value]) => `  --header ${shell(`${name}: ${value}`)}`,
+          ([name, value]) =>
+            `  --header ${shell(/^[\t ]*$/.test(value) ? `${name};` : `${name}: ${value}`)}`,
         ),
         '  --header "Content-Type: multipart/form-data; boundary=$boundary"',
         '  --data-binary @"$body_dir/body"',

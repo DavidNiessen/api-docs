@@ -1027,6 +1027,27 @@ h3 {
   font-weight: 550;
   color: var(--text);
 }
+.request-fields .parameter-presence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.playground-inputs .request-fields .parameter-presence input {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  flex: none;
+  accent-color: var(--accent-text);
+}
+.parameter-presence-hint {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 6px 0 0;
+}
 .request-fields label > span {
   display: flex;
   justify-content: space-between;

@@ -3,7 +3,11 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import type { Operation, Parameter } from '@api-docs/contracts';
-import { prepareRequest, redactRequest } from '@api-docs/explorer';
+import {
+  prepareRequest,
+  redactRequest,
+  canSerializeEmptyParameter,
+} from '@api-docs/explorer';
 
 const operation: Operation = {
   id: 'serialize',
@@ -52,6 +56,256 @@ function request(parameter: Partial<Parameter>, raw: string, extra = {}) {
   );
 }
 describe('OpenAPI parameter wire serialization', () => {
+  it.each(['query', 'header', 'path'] as const)(
+    'supports explicit empty %s scalars while preserving omission defaults',
+    (location) => {
+      const key = `${location}:color`;
+      const prepared = request({ in: location }, '', {
+        parameterPresence: { [key]: true },
+      });
+      if (location === 'query')
+        expect(prepared.url).toBe('https://api.example.test/v1/colors?color=');
+      if (location === 'header') expect(prepared.headers.color).toBe('');
+      if (location === 'path')
+        expect(prepared.url).toBe('https://api.example.test/v1/colors/');
+      expect(() => request({ in: location }, '')).toThrow('color is required');
+      expect(() =>
+        request({ in: location }, 'draft', {
+          parameterPresence: { [key]: false },
+        }),
+      ).toThrow('color is required');
+      if (location !== 'path') {
+        const omitted = request(
+          { in: location, required: false },
+          'invalid draft',
+          { parameterPresence: { [key]: false } },
+        );
+        expect(omitted.url).toBe('https://api.example.test/v1/colors');
+      } else
+        expect(() =>
+          request({ in: location, required: false }, 'draft', {
+            parameterPresence: { [key]: false },
+          }),
+        ).toThrow('Unresolved path');
+    },
+  );
+  it('omits optional invalid structured/content drafts before parsing and retains precise included values', () => {
+    expect(
+      request({ required: false, schema: { type: 'array' } }, '[invalid', {
+        parameterPresence: { 'query:color': false },
+      }).url,
+    ).toBe('https://api.example.test/v1/colors');
+    expect(
+      request(
+        { required: false, content: { 'application/json': { schema: {} } } },
+        'private invalid draft',
+        { parameterPresence: { 'query:color': false } },
+      ).url,
+    ).toBe('https://api.example.test/v1/colors');
+    expect(() =>
+      request({ schema: { type: 'array' } }, '', {
+        parameterPresence: { 'query:color': true },
+      }),
+    ).toThrow('valid JSON');
+    expect(() =>
+      request({ content: { 'application/json': { schema: {} } } }, '', {
+        parameterPresence: { 'query:color': true },
+      }),
+    ).toThrow('valid JSON');
+    expect(
+      request({}, '9007199254740993', {
+        parameterPresence: { 'query:color': true },
+      }).url,
+    ).toContain('color=9007199254740993');
+  });
+  it('keeps URL dot, cookie, forbidden-header and reserved-header boundaries with explicit presence', () => {
+    expect(() =>
+      request({ in: 'path', style: 'label' }, '', {
+        parameterPresence: { 'path:color': true },
+      }),
+    ).toThrow('dot segments');
+    expect(
+      request({ in: 'path', style: 'matrix' }, '', {
+        parameterPresence: { 'path:color': true },
+      }).url.endsWith('/colors/;color='),
+    ).toBe(true);
+    expect(() =>
+      request({ in: 'cookie' }, '', {
+        parameterPresence: { 'cookie:color': true },
+      }),
+    ).toThrow('cannot be set manually');
+    expect(() =>
+      request({ in: 'header', name: 'Host' }, '', {
+        parameterPresence: { 'header:Host': true },
+      }),
+    ).toThrow('Header cannot be set');
+    expect(
+      request({ in: 'header', name: 'Authorization' }, '', {
+        parameterPresence: { 'header:Authorization': true },
+      }).headers,
+    ).not.toHaveProperty('Authorization');
+  });
+  it.each([null, [], true, 'true', 1])(
+    'rejects invalid presence records %j without interpreting them as booleans',
+    (parameterPresence) => {
+      expect(() => request({}, '', { parameterPresence })).toThrow(
+        'presence must be a record',
+      );
+    },
+  );
+  it.each([undefined, null, 1, 'true', {}])(
+    'rejects nonboolean own presence flags %j',
+    (flag) => {
+      expect(() =>
+        request({}, '', { parameterPresence: { 'query:color': flag } }),
+      ).toThrow('must be a boolean');
+    },
+  );
+  it('ignores inherited inclusion flags and isolates same-name locations', () => {
+    expect(() =>
+      request({}, '', {
+        parameterPresence: Object.create({ 'query:color': true }),
+      }),
+    ).toThrow('color is required');
+    const parameters: Parameter[] = ['query', 'header'].map((location) => ({
+      name: 'trace',
+      in: location as 'query' | 'header',
+      required: false,
+      description: '',
+      schema: { type: 'string' },
+    }));
+    const prepared = prepareRequest(
+      { ...operation, parameters },
+      {},
+      {
+        server: 'https://api.example.test',
+        parameters: {
+          'query:trace': 'query draft',
+          'header:trace': 'header value',
+        },
+        parameterPresence: { 'query:trace': false, 'header:trace': true },
+      },
+    );
+    expect(prepared.url).toBe('https://api.example.test/colors');
+    expect(prepared.headers.trace).toBe('header value');
+  });
+  it('reports whether empty text can serialize through the real parameter rules', () => {
+    const parameter: Parameter = {
+      name: 'color',
+      in: 'query',
+      required: true,
+      description: '',
+      schema: { type: 'string' },
+    };
+    expect(canSerializeEmptyParameter(parameter)).toBe(true);
+    expect(
+      canSerializeEmptyParameter({
+        ...parameter,
+        schema: { $ref: '#/components/schemas/Missing' },
+      }),
+    ).toBe(false);
+    expect(
+      canSerializeEmptyParameter({ ...parameter, schema: { type: 'object' } }),
+    ).toBe(false);
+    expect(
+      canSerializeEmptyParameter({
+        ...parameter,
+        content: { 'text/plain': { schema: {} } },
+      }),
+    ).toBe(true);
+    expect(
+      canSerializeEmptyParameter({
+        ...parameter,
+        content: { 'application/json': { schema: {} } },
+      }),
+    ).toBe(false);
+    expect(canSerializeEmptyParameter({ ...parameter, in: 'cookie' })).toBe(
+      false,
+    );
+    expect(
+      canSerializeEmptyParameter({
+        ...parameter,
+        in: 'header',
+        name: 'Authorization',
+      }),
+    ).toBe(false);
+    expect(
+      canSerializeEmptyParameter({ ...parameter, in: 'header', name: 'Host' }),
+    ).toBe(false);
+  });
+  it('transmits empty query/path/header values to a real loopback server and omits retained drafts', async () => {
+    let received: {
+      url?: string;
+      headers?: import('node:http').IncomingHttpHeaders;
+    } = {};
+    const server = createServer((incoming, response) => {
+      received = { url: incoming.url ?? '', headers: incoming.headers };
+      response.end('ok');
+    });
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    try {
+      const parameters: Parameter[] = [
+        {
+          name: 'id',
+          in: 'path',
+          required: true,
+          description: '',
+          schema: { type: 'string' },
+        },
+        {
+          name: 'trace',
+          in: 'query',
+          required: true,
+          description: '',
+          schema: { type: 'string' },
+        },
+        {
+          name: 'trace',
+          in: 'header',
+          required: false,
+          description: '',
+          schema: { type: 'string' },
+        },
+        {
+          name: 'draft',
+          in: 'query',
+          required: false,
+          description: '',
+          schema: { type: 'object' },
+        },
+      ];
+      const prepared = prepareRequest(
+        { ...operation, path: '/echo/{id}', parameters },
+        {},
+        {
+          server: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+          parameters: {
+            'path:id': '',
+            'query:trace': '',
+            'header:trace': '',
+            'query:draft': 'invalid private draft',
+          },
+          parameterPresence: {
+            'path:id': true,
+            'query:trace': true,
+            'header:trace': true,
+            'query:draft': false,
+          },
+        },
+      );
+      await (
+        await fetch(prepared.url, { headers: Object.entries(prepared.headers) })
+      ).text();
+      expect(received.url).toBe('/echo/?trace=');
+      expect(received.headers).toHaveProperty('trace', '');
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
   it.each([
     ['simple', false, array, 'blue,black,brown'],
     ['simple', true, array, 'blue,black,brown'],

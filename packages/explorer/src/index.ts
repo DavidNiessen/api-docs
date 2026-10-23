@@ -20,6 +20,8 @@ import { redactMultipartParts } from './redact-multipart.js';
 export interface RequestInput {
   server: string;
   parameters: Record<string, string>;
+  /** Qualified in:name keys: true includes empty input, false omits an optional draft. */
+  parameterPresence?: Readonly<Record<string, boolean>>;
   body?: string;
   bodyFormat?: 'serialized' | 'json';
   files?: MultipartFiles;
@@ -312,6 +314,7 @@ export function toFetchRequest(request: PreparedRequest): {
   };
 }
 export { generateSnippet } from './snippets.js';
+export { canSerializeEmptyParameter } from './parameters.js';
 export type { SnippetLanguage } from './snippets.js';
 export {
   multipartHeaderFields,

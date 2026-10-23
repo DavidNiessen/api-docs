@@ -297,6 +297,7 @@ export function serializeParameters(
   options: {
     schemas?: Record<string, Schema>;
     openapiVersion?: string | undefined;
+    parameterPresence?: Readonly<Record<string, boolean>>;
   } = {},
 ): {
   paths: Record<string, string>;
@@ -309,6 +310,11 @@ export function serializeParameters(
   >;
   const query: QueryPart[] = [],
     headers: Record<string, string> = {};
+  const presence = options.parameterPresence;
+  if (presence !== undefined && !isObject(presence))
+    throw new Error(
+      'Parameter presence must be a record of qualified keys and booleans',
+    );
   for (const parameter of parameters) {
     // OpenAPI reserves these headers for its media/security definitions.
     if (
@@ -316,10 +322,16 @@ export function serializeParameters(
       /^(accept|content-type|authorization)$/i.test(parameter.name)
     )
       continue;
-    const raw = input[`${parameter.in}:${parameter.name}`] ?? '';
-    if (!raw && parameter.required)
-      throw new Error(`${parameter.name} is required`);
-    if (!raw) continue;
+    const key = `${parameter.in}:${parameter.name}`;
+    const raw = input[key] ?? '';
+    const explicit = presence && Object.hasOwn(presence, key);
+    if (explicit && typeof presence[key] !== 'boolean')
+      throw new Error(`Parameter presence for ${key} must be a boolean`);
+    const included = explicit ? presence[key] : raw !== '';
+    if (!included) {
+      if (parameter.required) throw new Error(`${parameter.name} is required`);
+      continue;
+    }
     if (parameter.in === 'cookie')
       throw new Error(
         'Cookie parameters require a same-origin authenticated session and cannot be set manually in a browser',
@@ -345,4 +357,28 @@ export function serializeParameters(
     }
   }
   return { paths, query, headers };
+}
+
+/** Whether empty text has a supported representation, before URL-level checks. */
+export function canSerializeEmptyParameter(
+  parameter: Parameter,
+  options: ParameterOptions = {},
+): boolean {
+  if (
+    parameter.in === 'cookie' ||
+    (parameter.in === 'header' &&
+      /^(accept|content-type|authorization)$/i.test(parameter.name))
+  )
+    return false;
+  const key = `${parameter.in}:${parameter.name}`;
+  try {
+    serializeParameters(
+      [parameter],
+      { [key]: '' },
+      { ...options, parameterPresence: { [key]: true } },
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }

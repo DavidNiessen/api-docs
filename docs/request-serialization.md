@@ -1,6 +1,30 @@
 # Request serialization
 
-The API playground and generated snippets use the same prepared URL, headers and body. Path, query and header values follow the operation's parameter definitions. Enter arrays and flat objects as JSON; enter scalar schema values as text. Required parameters start with an authored example or an illustrative generated value. Blank inputs currently mean omitted; empty scalar parameter values need a content-based representation or an external client.
+The API playground and generated snippets use the same prepared URL, headers and body. Path, query and header values follow the operation's parameter definitions. Enter arrays and flat objects as JSON; enter scalar schema values as text. Required parameters start with an authored example or an illustrative generated value. By default, nonempty inputs are included and blank inputs are omitted. Explicit presence controls distinguish an omitted draft from an intentionally empty value.
+
+## Include, omit and send empty values
+
+Optional parameters have an **Include in request** checkbox. Typing into an untouched parameter includes it automatically. Unchecking keeps its text as a draft while excluding it from the URL, headers, snippets and outgoing request; even an incomplete JSON draft can be retained this way. Once explicitly omitted, editing the draft does not include it again until checked. Checking an empty scalar input requests an empty value, such as `?trace=` or an empty custom header. Structured and JSON-content parameters still require valid input in their format; use `""` for an empty JSON string.
+
+Required parameters cannot be omitted. Supported text parameters have an **Allow empty value** control; leaving it unchecked retains the required-value error when an input is cleared. A required authored empty example starts with that explicit choice enabled when its format supports empty text. Empty path values remain subject to URL checks: for example, a label-style `.` segment is rejected. These controls select bytes to send; they do not establish that an empty value meets every schema constraint or the API's validation rules.
+
+Same-named parameters retain independent values and inclusion choices by location. Their input labels include the location when necessary. Choices and drafts remain in memory for the active playground, separate from persisted appearance settings.
+
+SDK callers can provide an optional `parameterPresence` map to `prepareRequest`, using the same `in:name` keys as `parameters`:
+
+```ts
+const request = prepareRequest(operation, api.securitySchemes, {
+  server: 'https://api.example.com',
+  parameters: { 'query:trace': '', 'header:trace': 'retained draft' },
+  parameterPresence: { 'query:trace': true, 'header:trace': false },
+  schemas: api.schemas,
+  openapiVersion: api.openapiVersion,
+});
+```
+
+An absent flag preserves automatic inclusion of nonempty input. `true` includes even empty text; `false` omits an optional value before parsing its draft and rejects omission of a required parameter. Flags must be own boolean properties of a record. `canSerializeEmptyParameter(parameter, { schemas, openapiVersion })` reports whether empty text has a supported parameter representation before URL-level checks. Neither inclusion nor this helper bypasses cookie, forbidden-header, reserved-header or URL policies.
+
+cURL snippets use `--header 'trace;'` for an empty custom header; `trace:` would remove that header in cURL. Generated clients in all five languages are executed against a loopback server with empty headers, alongside the existing body, multipart and error/redirect cases.
 
 ## Supported styles
 

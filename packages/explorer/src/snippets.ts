@@ -15,7 +15,8 @@ export function generateSnippet(
       `curl --silent --show-error --fail-with-body --max-time 30 --request ${shell(request.method)}`,
       `  --url ${shell(request.url)}`,
       ...Object.entries(request.headers).map(
-        ([key, value]) => `  --header ${shell(`${key}: ${value}`)}`,
+        ([key, value]) =>
+          `  --header ${shell(/^[\t ]*$/.test(value) ? `${key};` : `${key}: ${value}`)}`,
       ),
       ...(request.body ? [`  --data-raw ${shell(request.body)}`] : []),
     ].join(' \\\n');

@@ -15,6 +15,7 @@ import {
   isFormMediaType,
   toFetchRequest,
   isMultipartMediaType,
+  canSerializeEmptyParameter,
 } from '@api-docs/explorer';
 import type {
   PreparedRequest,
@@ -27,6 +28,7 @@ import { Icon } from './Icon.js';
 import { CopyButton } from './CopyButton.js';
 import { PanelResizeHandle } from './PanelResizeHandle.js';
 import { RequestUrlBar } from './RequestUrlBar.js';
+import { ParameterInput } from './ParameterInput.js';
 import { MockResponseControls } from './MockResponseControls.js';
 
 import { AuthField } from './AuthField.js';
@@ -139,6 +141,45 @@ export function Explorer({
         }),
     ),
   );
+  const emptyParameters = useMemo(
+    () =>
+      new Set(
+        operation.parameters
+          .filter(
+            (parameter) =>
+              parameter.required &&
+              canSerializeEmptyParameter(parameter, {
+                schemas: api.schemas,
+                openapiVersion: api.openapiVersion,
+              }),
+          )
+          .map((parameter) => `${parameter.in}:${parameter.name}`),
+      ),
+    [operation, api.schemas, api.openapiVersion],
+  );
+  const [parameterPresence, setParameterPresence] = useState<
+    Record<string, boolean>
+  >(() =>
+    Object.fromEntries(
+      operation.parameters
+        .filter(
+          (parameter) =>
+            parameter.required &&
+            parameters[`${parameter.in}:${parameter.name}`] === '' &&
+            emptyParameters.has(`${parameter.in}:${parameter.name}`),
+        )
+        .map((parameter) => [`${parameter.in}:${parameter.name}`, true]),
+    ),
+  );
+  const qualifiedParameterNames = useMemo(() => {
+    const names = new Set<string>(),
+      duplicates = new Set<string>();
+    for (const parameter of operation.parameters) {
+      if (names.has(parameter.name)) duplicates.add(parameter.name);
+      names.add(parameter.name);
+    }
+    return duplicates;
+  }, [operation]);
   const authScope = useMemo(
     () => credentialScope(api, operation, server, oauthClients),
     [
@@ -235,6 +276,7 @@ export function Explorer({
         schemas: api.schemas,
         openapiVersion: api.openapiVersion,
         parameters,
+        parameterPresence,
         body,
         bodyFormat,
         files,
@@ -277,6 +319,7 @@ export function Explorer({
     api,
     server,
     parameters,
+    parameterPresence,
     body,
     contentType,
     accept,
@@ -295,6 +338,7 @@ export function Explorer({
       const target = prepareRequest(targetOperation, api.securitySchemes, {
         server,
         parameters,
+        parameterPresence,
         schemas: api.schemas,
         openapiVersion: api.openapiVersion,
         credentials: Object.fromEntries(
@@ -305,7 +349,15 @@ export function Explorer({
     } catch {
       return '';
     }
-  }, [operation, api, server, parameters, credentials, authNames.join(',')]);
+  }, [
+    operation,
+    api,
+    server,
+    parameters,
+    parameterPresence,
+    credentials,
+    authNames.join(','),
+  ]);
   async function execute() {
     setError('');
     if (relay.enabled && !relay.policy) {
@@ -323,6 +375,7 @@ export function Explorer({
         schemas: api.schemas,
         openapiVersion: api.openapiVersion,
         parameters,
+        parameterPresence,
         body,
         bodyFormat,
         files,
@@ -593,34 +646,30 @@ export function Explorer({
                 No server defined in the spec. Set your API URL.
               </p>
             )}
-            {operation.parameters.map((parameter) => (
-              <label key={`${parameter.in}:${parameter.name}`}>
-                <span>
-                  <code>{parameter.name}</code>
-                  <small>
-                    {parameter.in}
-                    {parameter.required ? ' · required' : ''}
-                  </small>
-                </span>
-                <input
-                  aria-label={`${parameter.name} parameter`}
-                  value={parameters[`${parameter.in}:${parameter.name}`] ?? ''}
-                  placeholder={
-                    parameter.schema.type === 'array'
-                      ? '["value"]'
-                      : parameter.schema.type === 'object'
-                        ? '{"key":"value"}'
-                        : 'Enter a value'
+            {operation.parameters.map((parameter) => {
+              const key = `${parameter.in}:${parameter.name}`;
+              return (
+                <ParameterInput
+                  key={key}
+                  parameter={parameter}
+                  value={parameters[key] ?? ''}
+                  presence={parameterPresence[key]}
+                  allowEmpty={emptyParameters.has(key)}
+                  qualified={qualifiedParameterNames.has(parameter.name)}
+                  onChange={(value) =>
+                    setParameters((previous) => ({ ...previous, [key]: value }))
                   }
-                  onChange={(event) =>
-                    setParameters({
-                      ...parameters,
-                      [`${parameter.in}:${parameter.name}`]: event.target.value,
+                  onPresence={(value) =>
+                    setParameterPresence((previous) => {
+                      const next = { ...previous };
+                      if (value === undefined) delete next[key];
+                      else next[key] = value;
+                      return next;
                     })
                   }
                 />
-              </label>
-            ))}
+              );
+            })}
             {authNames.length > 0 && (
               <details className="auth-fields" open>
                 <summary>

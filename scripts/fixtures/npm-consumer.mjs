@@ -44,10 +44,46 @@ import {
   generateSnippet,
   redactRequest,
   generateMockResponse,
+  prepareRequest,
+  canSerializeEmptyParameter,
 } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
 const browserPages = [];
+const installedParameter = {
+  name: 'empty',
+  in: 'query',
+  required: true,
+  description: '',
+  schema: { type: 'string' },
+};
+assert.equal(canSerializeEmptyParameter(installedParameter), true);
+assert.equal(
+  prepareRequest(
+    {
+      id: 'installed-presence',
+      slug: 'installed-presence',
+      method: 'get',
+      path: '/probe',
+      summary: '',
+      description: '',
+      tags: [],
+      deprecated: false,
+      parameters: [installedParameter],
+      responses: [],
+      security: [],
+      servers: [],
+      source: '#/paths/probe/get',
+    },
+    {},
+    {
+      server: 'https://installed.example.test',
+      parameters: { 'query:empty': '' },
+      parameterPresence: { 'query:empty': true },
+    },
+  ).url,
+  'https://installed.example.test/probe?empty=',
+);
 const browserExtension = defineReaderExtension({
   id: 'installed-browser',
   version: '1.0.0',

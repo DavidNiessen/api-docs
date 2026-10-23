@@ -3,6 +3,44 @@ info:
   title: Gallery API
   version: v1
 paths:
+  /presence/{id}:
+    get:
+      operationId: parameterPresence
+      summary: Optional and empty parameter values
+      tags: [Examples]
+      servers:
+        - url: http://127.0.0.1:4010/v1
+      security:
+        - bearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          example: example
+        - name: requiredBlank
+          in: query
+          required: true
+          schema: { type: string }
+          example: ''
+        - name: trace
+          in: query
+          schema: { type: string }
+        - name: trace
+          in: header
+          schema: { type: string }
+        - name: filters
+          in: query
+          schema:
+            type: object
+            properties:
+              name: { type: string }
+      responses:
+        '200':
+          description: Received parameter values
+          content:
+            application/json:
+              schema: { type: object }
   /health:
     get:
       operationId: health
