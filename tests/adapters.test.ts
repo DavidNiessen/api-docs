@@ -63,6 +63,152 @@ describe.each(['', '/docs'])('framework adapters at %j', (prefix) => {
     await server.close();
     await rm(project, { recursive: true, force: true });
   });
+  it('limits Express documentation before authentication and leaves host routes usable', async () => {
+    let authentications = 0;
+    const app = express();
+    app.get('/host-owned', (_request, response) => response.send('host-owned'));
+    const docs = await createExpressDocs({
+      directory,
+      rateLimit: { maxRequests: 2, maxClients: 1 },
+      authenticate: (request, response, next) => {
+        authentications++;
+        if (request.headers.authorization !== 'Bearer fixture')
+          response.sendStatus(401);
+        else next();
+      },
+    });
+    app.use(docs.mountPath, docs.router);
+    const listener = app.listen(0, '127.0.0.1');
+    await new Promise<void>((resolve) => listener.once('listening', resolve));
+    const address = listener.address();
+    if (!address || typeof address === 'string')
+      throw new Error('No TCP listener');
+    const base = `http://127.0.0.1:${address.port}`;
+    try {
+      const unauthorized = await fetch(base + prefix + '/index.html');
+      expect(unauthorized.status).toBe(401);
+      await unauthorized.text();
+      const allowed = await fetch(base + prefix + '/index.html', { headers });
+      expect(allowed.status).toBe(200);
+      expect(await allowed.text()).toContain('Introduction');
+      const limited = await fetch(base + prefix + '/index.html', { headers });
+      expect(limited.status).toBe(429);
+      expect(limited.headers.get('cache-control')).toBe('no-store');
+      expect(Number(limited.headers.get('retry-after'))).toBeGreaterThan(0);
+      expect(Number(limited.headers.get('retry-after'))).toBeLessThanOrEqual(
+        60,
+      );
+      expect(await limited.text()).not.toContain('Introduction');
+      expect(authentications).toBe(2);
+      expect(await (await fetch(base + '/host-owned')).text()).toBe(
+        'host-owned',
+      );
+      expect(authentications).toBe(2);
+    } finally {
+      listener.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        listener.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it('limits Fastify documentation before authentication and keeps rate responses uncacheable', async () => {
+    let authentications = 0;
+    const app = Fastify();
+    app.get('/host-owned', async () => 'host-owned');
+    await app.register(apiDocsPlugin, {
+      directory,
+      rateLimit: { maxRequests: 2, maxClients: 1 },
+      authenticate: async (request, reply) => {
+        authentications++;
+        if (request.headers.authorization !== 'Bearer fixture')
+          return reply.code(401).send();
+      },
+    });
+    try {
+      expect((await app.inject(prefix + '/index.html')).statusCode).toBe(401);
+      expect(
+        (await app.inject({ url: prefix + '/index.html', headers })).statusCode,
+      ).toBe(200);
+      const limited = await app.inject({
+        url: prefix + '/index.html',
+        headers,
+      });
+      expect(limited.statusCode).toBe(429);
+      expect(limited.headers['cache-control']).toBe('no-store');
+      expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
+      expect(limited.body).not.toContain('Introduction');
+      expect(authentications).toBe(2);
+      expect((await app.inject('/host-owned')).body).toBe('host-owned');
+      expect(authentications).toBe(2);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('groups neighboring IPv6 clients into one documentation quota', async () => {
+    const app = Fastify();
+    await app.register(apiDocsPlugin, {
+      directory,
+      rateLimit: { maxRequests: 1 },
+    });
+    try {
+      expect(
+        (
+          await app.inject({
+            url: prefix + '/index.html',
+            remoteAddress: '2001:db8::1',
+          })
+        ).statusCode,
+      ).toBe(200);
+      expect(
+        (
+          await app.inject({
+            url: prefix + '/index.html',
+            remoteAddress: '2001:db8::2',
+          })
+        ).statusCode,
+      ).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('keeps distinct IPv4 clients separate and normalizes mapped IPv4 identities', async () => {
+    const app = Fastify();
+    await app.register(apiDocsPlugin, {
+      directory,
+      rateLimit: { maxRequests: 1 },
+    });
+    try {
+      expect(
+        (
+          await app.inject({
+            url: prefix + '/index.html',
+            remoteAddress: '::ffff:192.0.2.1',
+          })
+        ).statusCode,
+      ).toBe(200);
+      expect(
+        (
+          await app.inject({
+            url: prefix + '/index.html',
+            remoteAddress: '192.0.2.1',
+          })
+        ).statusCode,
+      ).toBe(429);
+      expect(
+        (
+          await app.inject({
+            url: prefix + '/index.html',
+            remoteAddress: '::ffff:192.0.2.2',
+          })
+        ).statusCode,
+      ).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
 
   it('mounts Fastify docs at a subpath and applies authentication to every asset', async () => {
     await server.register(apiDocsPlugin, {

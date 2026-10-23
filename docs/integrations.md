@@ -37,6 +37,24 @@ await app.listen({ port: 8080 });
 
 Authentication hooks remain within the plugin's encapsulation. Follow the documented immutable artifact policy and keep the generated `basePath` aligned with reverse-proxy routing.
 
+## Node request quotas
+
+Both adapters limit documentation requests before authentication. Each adapter instance allows 600 requests per client per 60-second fixed window and remembers at most 10,000 clients. Assets, failed authentication and missing documentation paths count toward the quota. Excess requests receive an uncached `429` with `Retry-After`; when the client table is full, unknown clients are refused until the window resets. Active quotas are never evicted to admit new clients.
+
+Configure either adapter with the same optional settings:
+
+```js
+const rateLimit = {
+  maxRequests: 600,
+  windowMs: 60_000,
+  maxClients: 10_000,
+};
+```
+
+Pass `rateLimit` alongside `directory` to `createExpressDocs` or `app.register(apiDocsPlugin, ...)`. Settings must be safe integers: `maxRequests` from 1 to 1,000,000, `windowMs` from 1,000 to 86,400,000 and `maxClients` from 1 to 100,000. Invalid or unknown options fail startup. Neighboring IPv6 clients share a `/56` quota; IPv4-mapped IPv6 addresses use their corresponding IPv4 identity.
+
+Configure the host framework's trusted proxies narrowly so its client IP represents the actual caller. Untrusted forwarded headers must not select the quota identity. Without proxy trust, users behind the same proxy share a quota. This in-memory limit is per adapter instance and process; deployments with replicas need a gateway policy for aggregate quotas. It does not replace network-level traffic protection. Host-owned Express routes registered before a root-mounted router, and Fastify routes outside the documentation plugin, retain their host policy.
+
 ## Spring Boot
 
 Use the [explicit snapshot importer](remote-import.md#spring-boot-and-other-local-generators) with an existing springdoc `/v3/api-docs` endpoint before building your static publication. Private-network and cleartext destinations require explicit options; protected sources can use a bearer environment variable.
@@ -73,7 +91,7 @@ The publication's `basePath` must equal the application context path plus the no
 
 Disable the integration with `api-docs.enabled=false`. Configure security rules for the entire `/docs/**` tree, including search JSON and scripts. The starter does not weaken the host security policy.
 
-Spring Boot 3.5.16 and 4.1.1 pass the local Linux matrix on JDK 17, 21 and 25, compiling Java 17 bytecode. Each combination runs manifest and servlet/reactive host tests without skips. GitHub-hosted CI is configured for the same matrix but remains unverified while account billing blocks Actions. See [runtime versions, evidence and the local runner](java-validation.md). The installed-consumer runner also checks one baseline-built JAR against both Boot lines with isolated MVC-only/WebFlux-only classpaths; a compatibility split will be introduced if their binary APIs diverge.
+Spring Boot 3.5.16 and 4.1.1 pass the local and GitHub-hosted Linux matrix on JDK 17, 21 and 25, compiling Java 17 bytecode. Each combination runs manifest and servlet/reactive host tests without skips. See [runtime versions, evidence and the local runner](java-validation.md). The installed-consumer runner also checks one baseline-built JAR against both Boot lines with isolated MVC-only/WebFlux-only classpaths; a compatibility split will be introduced if their binary APIs diverge.
 
 ## Generic Java
 

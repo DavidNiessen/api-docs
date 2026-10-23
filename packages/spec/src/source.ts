@@ -21,15 +21,26 @@ export async function confinedPath(
   const chosenRoot = resolve(root),
     base = await realpath(chosenRoot),
     chosenTarget = resolve(chosenRoot, path);
-  const requested = relative(chosenRoot, chosenTarget);
-  const canonicalRequested = relative(base, chosenTarget);
-  const outside = (value: string) =>
-    value === '..' || value.startsWith(`..${sep}`) || isAbsolute(value);
-  if (outside(requested) && outside(canonicalRequested))
-    throw new Error(`Path escapes the project: ${path}`);
-  const target = await realpath(chosenTarget);
+  let requested = relative(chosenRoot, chosenTarget);
+  // Accept either spelling of an explicitly selected symlink root, then resolve
+  // from its canonical directory so a changed root alias cannot redirect the lookup.
+  if (
+    requested === '..' ||
+    requested.startsWith('..' + sep) ||
+    isAbsolute(requested)
+  ) {
+    requested = relative(base, chosenTarget);
+    if (
+      requested === '..' ||
+      requested.startsWith('..' + sep) ||
+      isAbsolute(requested)
+    )
+      throw new Error(`Path escapes the project: ${path}`);
+  }
+  const target = await realpath(resolve(base, requested));
   const local = relative(base, target);
-  if (outside(local)) throw new Error(`Path escapes the project: ${path}`);
+  if (local === '..' || local.startsWith('..' + sep) || isAbsolute(local))
+    throw new Error(`Path escapes the project: ${path}`);
   return target;
 }
 /** Bound reads before allocating the entire input, including files that grow after stat. */

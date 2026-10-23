@@ -19,7 +19,8 @@
   "dependencies": {
     "@api-docs/compiler": "0.1.0",
     "@api-docs/contracts": "0.1.0",
-    "@fastify/static": "10.1.7"
+    "@fastify/static": "10.1.7",
+    "express-rate-limit": "8.7.1"
   },
   "peerDependencies": {
     "express": "^5.0.0",
