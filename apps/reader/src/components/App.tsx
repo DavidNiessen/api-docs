@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  lazy,
+  Suspense,
+} from 'react';
+import { createCredentialSession } from '../credential-session.js';
 import type {
   CSSProperties,
   MouseEvent,
@@ -91,6 +99,24 @@ export function App({
   initialPath: string;
 }) {
   const [site, setSite] = useState(initialSite);
+  const [credentialSession] = useState(createCredentialSession);
+  useSyncExternalStore(
+    credentialSession.subscribe,
+    credentialSession.getRevision,
+    () => 0,
+  );
+  useEffect(() => {
+    const clear = () => credentialSession.clearAll();
+    window.addEventListener('pagehide', clear);
+    return () => {
+      window.removeEventListener('pagehide', clear);
+      clear();
+    };
+  }, [credentialSession]);
+  useEffect(() => {
+    if (site.config.explorer?.credentialReuse === false)
+      credentialSession.clearAll();
+  }, [site.config.explorer?.credentialReuse, credentialSession]);
   const [path, setPath] = useState(initialPath);
   const [loading, setLoading] = useState(false);
   const [searchIndex, setSearchIndex] = useState(() =>
@@ -348,7 +374,12 @@ export function App({
       );
       if (!response.ok) throw new Error('Page data unavailable');
       const next = (await response.json()) as SiteData;
-      if (next.schemaVersion !== 1 || !next.config || !Array.isArray(next.apis))
+      if (
+        next.schemaVersion !== 1 ||
+        !next.config ||
+        next.config.basePath !== config.basePath ||
+        !Array.isArray(next.apis)
+      )
         throw new Error('Invalid page data');
       if (id !== navigationId.current) return;
       if (push) history.pushState({}, '', url.pathname + url.search + url.hash);
@@ -452,6 +483,24 @@ export function App({
             <kbd>⌘ K</kbd>
           </button>
           <div className="header-actions">
+            {site.config.explorer?.credentialReuse !== false &&
+              credentialSession.hasRemembered() && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Forget saved API credentials"
+                  title="Forget saved API credentials"
+                  onClick={(event) => {
+                    const search = event.currentTarget
+                      .closest('header')
+                      ?.querySelector<HTMLButtonElement>('.search-trigger');
+                    credentialSession.clearAll();
+                    search?.focus();
+                  }}
+                >
+                  <Icon name="lock" />
+                </button>
+              )}
             {config.links.map((link) => (
               <a
                 key={link.href}
@@ -774,6 +823,11 @@ export function App({
                   api={activeApi}
                   operation={activeOperation}
                   basePath={site.config.basePath}
+                  credentialSession={
+                    site.config.explorer?.credentialReuse === false
+                      ? undefined
+                      : credentialSession
+                  }
                   oauthClients={
                     site.config.explorer?.oauthClients?.[activeApi.id]
                   }

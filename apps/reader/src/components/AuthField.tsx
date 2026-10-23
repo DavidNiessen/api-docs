@@ -12,11 +12,13 @@ export function AuthField({
   redirectUri,
   client,
   server,
+  credentialExpiresAt,
 }: {
   name: string;
   scheme: SecurityScheme | undefined;
   credential: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, expiresAt?: number) => void;
+  credentialExpiresAt?: number | undefined;
   scopes: string[];
   redirectUri: string;
   client?: { clientId: string; issuer: string } | undefined;
@@ -34,10 +36,15 @@ export function AuthField({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [status, setStatus] = useState('');
-  const [expiresAt, setExpiresAt] = useState<number>();
+  const [expiresAt, setExpiresAt] = useState<number | undefined>(
+    credentialExpiresAt,
+  );
   const pending = useRef<AbortController | null>(null),
-    token = useRef<string | undefined>(undefined),
+    token = useRef<string | undefined>(
+      credentialExpiresAt ? credential : undefined,
+    ),
     mounted = useRef(true);
+  const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -53,9 +60,19 @@ export function AuthField({
     }
   }, [credential]);
   useEffect(() => {
+    if (credentialExpiresAt && credential) {
+      token.current = credential;
+      setExpiresAt(credentialExpiresAt);
+    } else if (!credential) {
+      token.current = undefined;
+      setExpiresAt(undefined);
+    }
+  }, [credential, credentialExpiresAt]);
+  useEffect(() => {
     if (!expiresAt || !credential || token.current !== credential) return;
     let timeout: ReturnType<typeof setTimeout>;
     const check = () => {
+      if (token.current !== credential) return;
       if (Date.now() >= expiresAt) {
         token.current = undefined;
         setExpiresAt(undefined);
@@ -101,7 +118,7 @@ export function AuthField({
       if (!mounted.current || controller.signal.aborted) return;
       token.current = result.accessToken;
       setExpiresAt(result.expiresAt);
-      onChange(result.accessToken);
+      onChange(result.accessToken, result.expiresAt);
       setStatus('Bearer token received. It stays in memory.');
     } catch (error) {
       if (mounted.current)
@@ -122,6 +139,7 @@ export function AuthField({
       <label>
         {name}
         <input
+          ref={input}
           type="password"
           autoComplete="off"
           aria-label={`${name} credential`}
@@ -129,6 +147,10 @@ export function AuthField({
           value={credential}
           onChange={(event) => {
             setError('');
+            if (event.target.value !== credential) {
+              token.current = undefined;
+              setExpiresAt(undefined);
+            }
             onChange(event.target.value);
           }}
           placeholder={
@@ -148,6 +170,7 @@ export function AuthField({
             setExpiresAt(undefined);
             setStatus('Credentials cleared.');
             onChange('');
+            input.current?.focus();
           }}
           aria-label={`Clear ${name} credential`}
         >

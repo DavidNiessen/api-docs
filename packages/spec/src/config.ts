@@ -143,6 +143,7 @@ export const configSchema = z
     plugins: z.array(safePath).default([]),
     explorer: z
       .object({
+        credentialReuse: z.boolean().optional(),
         oauthClients: z
           .record(
             z.string().min(1).max(1024),

@@ -1144,6 +1144,23 @@ h3 {
 .auth-fields label {
   margin-top: 10px;
 }
+.credential-memory-controls {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.credential-memory-controls .body-checkbox {
+  margin-top: 0;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+.credential-memory-controls .body-checkbox span {
+  min-width: 0;
+  flex: 1;
+}
 .auth-field + .auth-field {
   border-top: 1px solid var(--border);
   margin-top: 14px;

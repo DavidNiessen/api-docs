@@ -250,6 +250,31 @@ paths:
             application/json:
               schema: { type: object }
   /projects:
+    post:
+      operationId: createOAuthProject
+      summary: Create project with OAuth
+      description: A write-scope endpoint for credential isolation fixtures.
+      tags: [Examples]
+      servers:
+        - url: http://127.0.0.1:4010/v1
+      security:
+        - oauth: [projects:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 100 }
+            example: { name: OAuth fixture project }
+      responses:
+        '201':
+          description: Created project
+          content:
+            application/json:
+              schema: { type: object }
     get:
       operationId: oauthProjects
       summary: Projects with OAuth
@@ -408,6 +433,7 @@ components:
           tokenUrl: http://127.0.0.1:4020/token
           scopes:
             projects:read: Read projects
+            projects:write: Write projects
     bearer:
       type: http
       scheme: bearer

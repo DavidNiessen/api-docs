@@ -31,6 +31,9 @@ import { BodyEditor } from './BodyEditor.js';
 import { FormBodyEditor } from './FormBodyEditor.js';
 import { MultipartBodyEditor } from './MultipartBodyEditor.js';
 import { multipartExampleBody } from '../multipart-input.js';
+import { credentialScope } from '../credential-session.js';
+import type { CredentialSession } from '../credential-session.js';
+import { useCredentials } from '../use-credentials.js';
 const ResponseEditor = lazy(() =>
   import('./ResponseEditor.js').catch(() => ({ default: ResponseFallback })),
 );
@@ -79,6 +82,7 @@ export function Explorer({
   previewOnly = false,
   onOpen,
   onClose,
+  credentialSession,
 }: {
   api: ApiDocument;
   operation: Operation;
@@ -86,6 +90,7 @@ export function Explorer({
   previewOnly?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
+  credentialSession?: CredentialSession | undefined;
   oauthClients?:
     Record<string, { clientId: string; issuer: string }> | undefined;
 }) {
@@ -116,7 +121,22 @@ export function Explorer({
         }),
     ),
   );
-  const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const authScope = useMemo(
+    () => credentialScope(api, operation, server, oauthClients),
+    [
+      api.id,
+      api.version,
+      api.securitySchemes,
+      operation.security,
+      server,
+      oauthClients,
+    ],
+  );
+  const auth = useCredentials(
+    previewOnly ? undefined : credentialSession,
+    authScope,
+  );
+  const credentials = auth.credentials;
   const responseTypes = [
     ...new Set(
       operation.responses
@@ -162,9 +182,17 @@ export function Explorer({
     contentType: string;
   }>();
   const controller = useRef<AbortController | null>(null);
+  useEffect(() => {
+    controller.current?.abort();
+    controller.current = null;
+    setBusy(false);
+    setResponse(undefined);
+    setError('');
+  }, [auth.resetEpoch]);
   useEffect(
     () => () => {
       controller.current?.abort();
+      controller.current = null;
     },
     [],
   );
@@ -271,7 +299,7 @@ export function Explorer({
         files,
         contentType,
         accept,
-        credentials,
+        credentials: auth.currentCredentials(),
       });
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Invalid request');
@@ -314,6 +342,13 @@ export function Explorer({
           text += decoder.decode(part.value, { stream: true });
         }
       text += decoder.decode();
+      if (
+        abort.signal.aborted ||
+        controller.current !== abort ||
+        (credentialSession &&
+          credentialSession.getResetEpoch() !== auth.resetEpoch)
+      )
+        return;
       setResponse({
         status: result.status,
         duration: Math.round(performance.now() - start),
@@ -324,6 +359,12 @@ export function Explorer({
           .join('\n'),
       });
     } catch (error) {
+      if (
+        controller.current !== abort ||
+        (credentialSession &&
+          credentialSession.getResetEpoch() !== auth.resetEpoch)
+      )
+        return;
       setError(
         error instanceof Error && error.name === 'AbortError'
           ? 'Request cancelled or timed out after 30 seconds.'
@@ -331,7 +372,7 @@ export function Explorer({
       );
     } finally {
       clearTimeout(timeout);
-      setBusy(false);
+      if (controller.current === abort) setBusy(false);
     }
   }
   const snippet = (
@@ -450,7 +491,12 @@ export function Explorer({
                 value={server}
                 onChange={(event) => {
                   setServer(event.target.value);
-                  setCredentials({});
+                  auth.clearLocal();
+                  controller.current?.abort();
+                  controller.current = null;
+                  setBusy(false);
+                  setResponse(undefined);
+                  setError('');
                   if (isMultipartMediaType(contentType)) {
                     setFiles({});
                     setBodyRevision((current) => current + 1);
@@ -500,19 +546,64 @@ export function Explorer({
                 </summary>
                 <p>
                   Use one complete authentication alternative. Credentials stay
-                  in memory and clear when the API server changes.
+                  in memory. Reuse is off unless you choose to remember them.
                 </p>
+                {credentialSession && (
+                  <div className="credential-memory-controls">
+                    <label className="body-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={auth.remembered}
+                        disabled={!authScope.group}
+                        onChange={(event) =>
+                          auth.remember(event.target.checked)
+                        }
+                      />
+                      <span>Remember for 30 minutes in this tab</span>
+                    </label>
+                    {credentialSession.hasRemembered() && (
+                      <button
+                        type="button"
+                        className="auth-action"
+                        onClick={(event) => {
+                          const fields =
+                            event.currentTarget.closest('.auth-fields');
+                          auth.clearAll();
+                          requestAnimationFrame(() => {
+                            if (fields?.isConnected)
+                              fields
+                                .querySelector<HTMLInputElement>(
+                                  '.auth-field input',
+                                )
+                                ?.focus();
+                          });
+                        }}
+                      >
+                        Clear all API credentials
+                      </button>
+                    )}
+                    {auth.notice.text && (
+                      <p role={auth.notice.error ? 'alert' : 'status'}>
+                        {auth.notice.text}
+                      </p>
+                    )}
+                  </div>
+                )}
                 {authNames.map((name) => (
                   <AuthField
-                    key={JSON.stringify([server, name])}
+                    key={JSON.stringify([
+                      server,
+                      name,
+                      auth.resetEpoch,
+                      !!credentialSession,
+                      authScope.keys.get(name),
+                    ])}
                     name={name}
                     scheme={api.securitySchemes[name]}
                     credential={credentials[name] ?? ''}
-                    onChange={(value) =>
-                      setCredentials((current) => ({
-                        ...current,
-                        [name]: value,
-                      }))
+                    credentialExpiresAt={auth.entries[name]?.expiresAt}
+                    onChange={(value, expiresAt) =>
+                      auth.change(name, value, expiresAt)
                     }
                     scopes={
                       operation.security.find((alternative) =>

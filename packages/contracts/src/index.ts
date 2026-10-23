@@ -131,6 +131,7 @@ export interface Theme {
 }
 export interface ProjectConfig {
   explorer?: {
+    credentialReuse?: boolean;
     oauthClients?: Record<
       string,
       Record<string, { clientId: string; issuer: string }>
