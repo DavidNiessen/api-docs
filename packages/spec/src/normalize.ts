@@ -5,6 +5,7 @@ import {
   resolveHeaderObject,
 } from '@api-docs/contracts';
 import { Ajv2020 } from 'ajv/dist/2020.js';
+import { validateSchemaBoundaries } from './schema-boundaries.js';
 const schemaValidator = new Ajv2020({ strict: false, validateFormats: false });
 import type {
   ApiDocument,
@@ -426,25 +427,61 @@ export function normalizeSpec(
         `${input.path}: unsupported JSON Schema dialect ${text(document.jsonSchemaDialect)}; use draft 2020-12 or the OpenAPI 3.1 base dialect`,
       );
     const roots: [string, unknown][] = Object.entries(schemas);
+    function headerSchemas(source: string, input: unknown, depth: number) {
+      const header = record(input);
+      if (header.schema !== undefined)
+        roots.push([source + '/schema', header.schema]);
+      mediaSchemas(source + '/content', header.content, depth + 1);
+    }
+    function mediaSchemas(source: string, input: unknown, depth = 0) {
+      if (input === undefined) return;
+      if (depth > 8)
+        throw new Error('Media and Header Object nesting exceeds eight levels');
+      for (const [type, raw] of Object.entries(record(input))) {
+        const media = record(raw),
+          location = source + '/' + pointerEscape(type);
+        if (media.schema !== undefined)
+          roots.push([location + '/schema', media.schema]);
+        for (const [field, rawEncoding] of Object.entries(
+          record(media.encoding),
+        ))
+          for (const [name, header] of Object.entries(
+            record(record(rawEncoding).headers),
+          ))
+            headerSchemas(
+              location +
+                '/encoding/' +
+                pointerEscape(field) +
+                '/headers/' +
+                pointerEscape(name),
+              header,
+              depth,
+            );
+      }
+    }
     for (const operation of operations) {
-      for (const parameter of operation.parameters)
+      for (const parameter of operation.parameters) {
         roots.push([
           `${operation.source}/parameters/${parameter.name}`,
           parameter.schema,
         ]);
-      for (const media of Object.values(operation.requestBody?.content ?? {}))
-        roots.push([`${operation.source}/requestBody`, media.schema]);
+        mediaSchemas(
+          `${operation.source}/parameters/${pointerEscape(parameter.name)}/content`,
+          parameter.content,
+        );
+      }
+      mediaSchemas(
+        `${operation.source}/requestBody/content`,
+        operation.requestBody?.content,
+      );
       for (const response of operation.responses) {
-        for (const media of Object.values(response.content))
-          roots.push([
-            `${operation.source}/responses/${response.status}`,
-            media.schema,
-          ]);
-        for (const header of Object.values(response.headers))
-          if (record(header).schema !== undefined)
-            roots.push([operation.source, record(header).schema]);
+        const source = `${operation.source}/responses/${response.status}`;
+        mediaSchemas(source + '/content', response.content);
+        for (const [name, header] of Object.entries(response.headers))
+          headerSchemas(source + '/headers/' + pointerEscape(name), header, 0);
       }
     }
+    validateSchemaBoundaries(roots, dialects, input.path);
     for (const [source, value] of roots) {
       const schema = record(value);
       if (schema.$schema && !dialects.has(text(schema.$schema)))

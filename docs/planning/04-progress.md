@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated: 2026-10-23. **Approximately 95% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-23. **Approximately 96% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
 ## Current milestone status
 
@@ -16,6 +16,14 @@ Updated: 2026-10-23. **Approximately 95% complete; pre-release.** This is an eng
 | M7 — Launch              | Local automated validation and documented performance experiments                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Independent pilots, security/accessibility review, complete license/distribution audit, protected release approval and registry installation verification |
 
 ## Latest completed increment
+
+**Unsupported schema resource scope now fails explicitly.** Reproductions showed nested custom dialects and dynamic references entering the compiled model without diagnostics. A bounded, schema-aware pass now checks known schema positions for supported dialects and rejects resource identities, named/dynamic anchors and dynamic/legacy recursive references. It preserves ordinary properties and literal example/default/enum data. Parameter content, response Header Object content and multipart encoding headers participate in the same checks and JSON Schema validation. The walk handles shared/cyclic objects without mutation, bounds source context and does not reflect identity URIs in errors. Doctor's direct-model conversion also recognizes the legacy recursive keywords as unsupported.
+
+Thirty new source cases pass, covering YAML/JSON keyword rejection, nested map/branch/single-schema positions, content/header forms, unused reusable schemas, supported nested declarations, literal data and cycles. npm and isolated pnpm quality/build suites pass 80 tooling and 983 source cases; all 12 installed npm consumers and all 84 reader browser journeys pass. Server/session code is unchanged, retaining the preceding 83 PostgreSQL/API, 15 Studio and five local static-demo baselines.
+
+The engineering estimate is now approximately 96%, pre-release, following the completed Studio orchestration/role/session work and these standards fixes. Remaining advanced product wording, supported-keyword/deployment acceptance, independent reviews and protected release gates remain open. Hosted CI and public demo deployment still require owner action on GitHub billing and Pages permissions. See [the supported OpenAPI boundaries](../openapi-compatibility.md#validation-and-references).
+
+## Previous endpoint-message increment
 
 **Endpoint reference, parameter controls and code examples now use the typed message catalog.** Thirty-three stable IDs cover authorization/fallback parameter guidance, all parameter-section headings, request/response and incoming-event labels, parameter inclusion/empty/draft controls, generated/inline example labels and code-copy feedback. Named values retain context and remain escaped plain text. Authored names, summaries, JSON values, security-scheme identities, MIME types and wire locations stay literal. The same reference headings render without JavaScript and inside classic details. The German example demonstrates optional query presence without changing default request URLs.
 

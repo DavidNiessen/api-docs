@@ -10,6 +10,7 @@ import type {
 } from '@api-docs/contracts';
 import type { ValidateFunction } from 'ajv';
 import { record } from './source.js';
+import { unsupportedSchemaScopeKeywords } from './schema-boundaries.js';
 
 function validateExamples(api: ApiDocument): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -101,12 +102,7 @@ function validateExamples(api: ApiDocument): Diagnostic[] {
       const result: Schema = Object.create(null) as Schema;
       for (const [key, value] of Object.entries(schema)) {
         if (ignored.has(key) || key === '$schema') continue;
-        if (
-          key === '$id' ||
-          key === '$anchor' ||
-          key === '$dynamicRef' ||
-          key === '$dynamicAnchor'
-        ) {
+        if (unsupportedSchemaScopeKeywords.has(key)) {
           add(
             'example-schema-unsupported',
             source,

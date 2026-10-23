@@ -4,7 +4,9 @@ The compiler accepts OpenAPI 3.0.0–3.0.4 and 3.1.0–3.1.2 in YAML or JSON. Eq
 
 ## Validation and references
 
-Inputs are structurally validated against the OpenAPI schemas. OpenAPI 3.1 schemas are additionally checked against the JSON Schema 2020-12 meta-schema. The default OpenAPI 3.1 dialect and explicit 2020-12 dialect are supported; custom dialects produce an error. This validates the schema's structure, not every authored example or its business meaning.
+Inputs are structurally validated against the OpenAPI schemas. OpenAPI 3.1 schemas exposed in the compiled API graph are additionally checked against the JSON Schema 2020-12 meta-schema. The default OpenAPI 3.1 dialect and explicit 2020-12 dialect are supported; custom dialects in those schemas produce an error. This validates the schema's structure, not every authored example or its business meaning.
+
+Dialect checks include nested schema positions: properties, definitions, compositions, arrays, conditionals, dictionaries and content schemas, including parameter/response/multipart Header Object content. Schema resource identities (`$id`), named anchors (`$anchor`), dynamic references/anchors and legacy recursive references/anchors are not implemented and fail explicitly. Ordinary JSON Pointer `$ref` recursion remains supported. The guard walks schema positions rather than literal example/default/enum data, so an API field named `$id` or an example containing `$schema` remains data. Errors identify the keyword and bounded source location without reflecting the resource URI.
 
 Semantic checks reject duplicate operation IDs and parameters, ambiguous path templates, missing/optional path parameters, unknown security scheme names, invalid references and route collisions. Omitted responses are valid in OpenAPI 3.1 and produce a documentation warning; OpenAPI 3.0 requires them. Errors identify the source file and pointer where available. `validate --strict` fails on documentation warnings.
 
