@@ -1,0 +1,114 @@
+name: Verified release candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source:
+    name: Require reviewed clean release source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/check-release-source.mjs
+
+  quality:
+    name: Exact candidate acceptance and producer provenance
+    needs: source
+    uses: ./.github/workflows/quality.yml
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+      attestations: write
+    with:
+      release-candidate: true
+
+  browsers:
+    name: Release browser matrix
+    needs: source
+    uses: ./.github/workflows/browser-compatibility.yml
+
+  performance:
+    name: Release performance budgets
+    needs: source
+    uses: ./.github/workflows/performance.yml
+
+  verify:
+    name: Verify exact producer-attested assets
+    needs: [source, quality, browsers, performance]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      attestations: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/check-release-source.mjs
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-npm-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/release-assets/npm/
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-java-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/release-assets/java/
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-container-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/release-assets/container/
+      - name: Refuse stale, unlisted, mismatched or modified candidates
+        run: node scripts/verify-release-assets.mjs
+      - name: Verify GitHub-hosted producer identity and exact source for every file
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh attestation verify --help > /dev/null
+          mkdir -p .api-docs/release-verification
+          for kind in npm java container; do
+            for asset in .api-docs/release-assets/"$kind"/*; do
+              gh attestation verify "$asset" \
+                --repo "$GITHUB_REPOSITORY" \
+                --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/quality.yml" \
+                --source-ref "$GITHUB_REF" \
+                --source-digest "$GITHUB_SHA" \
+                --deny-self-hosted-runners \
+                --format json > ".api-docs/release-verification/$kind-$(basename "$asset").json"
+            done
+          done
+      - name: Retain candidate-verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/release-verification/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Record the approval boundary
+        run: |
+          echo 'All required checks and producer attestations passed. No registry packages, images, tags or GitHub releases were published.' >> "$GITHUB_STEP_SUMMARY"

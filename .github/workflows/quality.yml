@@ -7,6 +7,12 @@ on:
     types: [opened, edited, synchronize, reopened, ready_for_review]
   merge_group:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      release-candidate:
+        description: Retain and attest exact candidates from a clean release tag
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,11 +53,16 @@ jobs:
   source:
     name: Source and browser
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -60,6 +71,9 @@ jobs:
           cache: npm
       - name: Install locked tooling
         run: npm ci --ignore-scripts
+      - name: Require clean release source before building candidates
+        if: inputs.release-candidate
+        run: node scripts/check-release-source.mjs
       - name: Audit locked dependencies
         run: npm audit --audit-level=moderate
       - name: Set up snippet Java runtime
@@ -117,6 +131,34 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: npm run check:pr-title
+
+      - name: Retain only the exact tested npm candidates
+        if: inputs.release-candidate
+        run: node scripts/stage-release-assets.mjs npm
+      - name: Attest candidates in their producing job
+        id: attest-npm
+        if: inputs.release-candidate
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: .api-docs/release-assets/npm/*
+      - name: Retain verified candidates for later review
+        if: inputs.release-candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-npm-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/release-assets/npm/
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - name: Retain the producer attestation bundle
+        if: inputs.release-candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-npm-provenance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.attest-npm.outputs.bundle-path }}
+          if-no-files-found: error
+          retention-days: 14
 
   pages-demo:
     name: Static mock demo
@@ -190,6 +232,10 @@ jobs:
   java:
     name: Java ${{ matrix.java }} / Boot ${{ matrix.boot }}
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -199,6 +245,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -210,6 +257,9 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
       - run: npm ci --ignore-scripts
+      - name: Require clean release source before building candidates
+        if: inputs.release-candidate
+        run: node scripts/check-release-source.mjs
       - run: npm run build
       - run: node scripts/prepare-java-fixture.mjs
       - name: Verify installed baseline JAR consumers
@@ -241,9 +291,41 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Retain only the exact tested java candidates
+        if: inputs.release-candidate && matrix.java == '21' && matrix.boot == '3.5.16'
+        run: node scripts/stage-release-assets.mjs java
+      - name: Attest candidates in their producing job
+        id: attest-java
+        if: inputs.release-candidate && matrix.java == '21' && matrix.boot == '3.5.16'
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: .api-docs/release-assets/java/*
+      - name: Retain verified candidates for later review
+        if: inputs.release-candidate && matrix.java == '21' && matrix.boot == '3.5.16'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-java-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/release-assets/java/
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - name: Retain the producer attestation bundle
+        if: inputs.release-candidate && matrix.java == '21' && matrix.boot == '3.5.16'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-java-provenance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.attest-java.outputs.bundle-path }}
+          if-no-files-found: error
+          retention-days: 14
+
   isolated-builds:
     name: Isolated documentation builds
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     timeout-minutes: 30
     services:
       postgres:
@@ -268,6 +350,9 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Require clean release source before building candidates
+        if: inputs.release-candidate
+        run: node scripts/check-release-source.mjs
       - run: npm run build
       - name: Build approved worker from this checkout
         run: docker build --target isolated-builder --iidfile /tmp/api-docs-builder.id .
@@ -306,6 +391,34 @@ jobs:
             .api-docs/container-candidates/**/server.cdx.json
             .api-docs/container-candidates/**/report.json
           include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Retain only the exact tested container candidates
+        if: inputs.release-candidate
+        run: node scripts/stage-release-assets.mjs container
+      - name: Attest candidates in their producing job
+        id: attest-container
+        if: inputs.release-candidate
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: .api-docs/release-assets/container/*
+      - name: Retain verified candidates for later review
+        if: inputs.release-candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-container-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/release-assets/container/
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - name: Retain the producer attestation bundle
+        if: inputs.release-candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-container-provenance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.attest-container.outputs.bundle-path }}
           if-no-files-found: error
           retention-days: 14
 

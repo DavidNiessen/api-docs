@@ -109,6 +109,10 @@ Current inventories also support Alpine package identities after the runtime ref
 
 Prepared [rehearsal 40000268183](https://github.com/DavidNiessen/api-docs/actions/runs/40000268183) passed every required job at `28b43aa`, including the new image inventory and incomplete-result guard. The actual prepared `0.2.0` server image is `sha256:6ba4a47df57b9fa186a5511b906887e68a6da408890a3f3e116228cd0a9626f5`; its CycloneDX checksum is `91595452e487e03d95c8141b4d08300d8174b72337568f71eccaac88889ca363`. Retained bytes were rehashed after download and validated against every prepared workspace version, scanner/subject identity and OS/runtime requirements. Normal Quality also passed every job. These receipts remain unpublished, unsigned rehearsal evidence.
 
+## Clean-tag candidate provenance
+
+The [verified release-candidate workflow](release-provenance.md) reuses the required quality, browser and performance gates against reviewed, clean release metadata. It retains the exact tested npm/Java files and Docker image, attests them in their producing jobs and verifies source-bound signatures and bytes after download. This manual tag-only path creates no registry packages or release entries; it does not turn the dirty prepared-version rehearsal into a signed stable release.
+
 ## Still required before publication
 
 Confirm owned npm/Maven/container namespaces and the final project name. Complete the advertised support matrix, independent security/accessibility review and pilots; verify branch/tag/environment protection; then test the exact candidate from a clean checkout. Registry release workflows, reviewed final version/changelog changes, final container inventory review, signatures, provenance, upgrade/install rehearsals and release-owner approval remain launch gates. A local tarball install and a cache-only npm reinstall do not establish installation from public registries or a fully air-gapped server deployment.

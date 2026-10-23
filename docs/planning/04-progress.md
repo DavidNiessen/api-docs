@@ -17,6 +17,14 @@ Updated: 2026-10-23. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**Clean release candidates now have a source-bound collection and producer-provenance workflow.** A manual canonical-tag run reuses Quality, all three browser engines and both performance budgets, retaining the exact tested npm/Java archives and Docker image with raw security/deployment evidence. Producer jobs attest their own files; final verification checks every digest, upstream source/tag, workflow identity and run attempt. Dirty, stale, changed, unlisted and incomplete bundles fail. This path does not publish or approve a release. See [release provenance](../release-provenance.md).
+
+Local validation passes **128 tooling cases**, including seven new release-boundary cases. A separate prepared `0.2.0` clone packs and tests all 12 installed npm components, then passes the actual collection script and clean-source guard using an unpublished local fixture tag. Both real Java 21 / Boot 3.5.16 consumers then pass eight tests and offline compilation; collection verifies the same runtime/documentation JARs, POMs and SBOM. Actual GitHub OIDC/signature verification remains pending a reviewed clean-tag run; fixture identities are not hosted provenance.
+
+The security fixes are merged into `master` at `7b40f45`. Hosted [Quality run 40031034649](https://github.com/DavidNiessen/api-docs/actions/runs/40031034649) passes every job, including both CodeQL languages, source/browser, all six Java/Spring combinations, isolated builds, all 44 deployment checks and current image security. Rehashed/reassessed evidence confirms **zero High/Critical source matches** (five JavaScript Medium retained, no Java findings) and **zero High/Critical/unknown image matches** (three BusyBox Medium retained). A full prepared `0.2.0` [rehearsal 40031987561](https://github.com/DavidNiessen/api-docs/actions/runs/40031987561) is running. Registry publication, independent reviews and protected approval remain open; the estimate stays approximately **97%, pre-release**.
+
+## Previous canonical-prefix increment
+
 **Canonical filesystem lookups now verify the final separator-delimited root prefix before resolution.** This complements the relative-path checks and canonical rebasing while allowing an explicitly selected filesystem root, project-root alias and the project directory itself. Targeted containment and artifact-cache checks pass with strict types.
 
 Hosted extraction at `2912184` confirms both Express resource-protection findings are resolved: **one High/five Medium** JavaScript matches remain, with no Java findings. The final path finding stays blocking pending a new extraction. Source-security acceptance, signed distribution and independent launch gates remain open; the estimate stays approximately **97%, pre-release**.
