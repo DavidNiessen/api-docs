@@ -12,6 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { auditReleaseVersions } from '../lib/release-versions.mjs';
+import { parse, stringify } from 'yaml';
 
 import { fixture, BASE_VERSION, poms } from './helpers/release-fixture.mjs';
 
@@ -58,6 +59,76 @@ test('release mode requires identical Maven coordinates and allows the aligned r
   );
 });
 const mutations = [
+  ...[
+    [
+      'pnpm inventory',
+      'pnpm-lock.yaml',
+      (data) => {
+        delete data.importers['apps/reader'];
+      },
+      /pnpm lockfile workspace inventory/,
+    ],
+    [
+      'pnpm external specifier',
+      'pnpm-lock.yaml',
+      (data) => {
+        data.importers['.'].devDependencies.prettier.specifier = '0.0.0';
+      },
+      /pnpm dependency specifier/,
+    ],
+    [
+      'pnpm internal specifier',
+      'pnpm-lock.yaml',
+      (data) => {
+        data.importers['apps/reader'].dependencies[
+          '@api-docs/contracts'
+        ].specifier = OTHER_VERSION;
+      },
+      /pnpm dependency specifier/,
+    ],
+    [
+      'pnpm local link',
+      'pnpm-lock.yaml',
+      (data) => {
+        data.importers['apps/reader'].dependencies[
+          '@api-docs/contracts'
+        ].version = 'link:../../packages/spec';
+      },
+      /pnpm workspace link/,
+    ],
+    [
+      'pnpm overrides',
+      'pnpm-lock.yaml',
+      (data) => {
+        data.overrides.dompurify = '0.0.0';
+      },
+      /pnpm lockfile overrides/,
+    ],
+    [
+      'workspace overrides',
+      'pnpm-workspace.yaml',
+      (data) => {
+        data.overrides.dompurify = '0.0.0';
+      },
+      /Package-manager override/,
+    ],
+    [
+      'pnpm workspace declarations',
+      'pnpm-workspace.yaml',
+      (data) => {
+        data.packages = ['packages/*'];
+      },
+      /pnpm workspace declarations/,
+    ],
+  ].map(([name, path, change, expected]) => [
+    name,
+    async (root) => {
+      const data = parse(await readFile(join(root, path), 'utf8'));
+      change(data);
+      await writeFile(join(root, path), stringify(data));
+    },
+    expected,
+  ]),
   [
     'workspace declaration drift',
     (root) =>

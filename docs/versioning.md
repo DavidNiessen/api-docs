@@ -1,5 +1,7 @@
 # Distribution version consistency
 
+The pnpm workspace and lockfile are audited alongside `package-lock.json`: workspace inventory, direct dependency specifiers, internal links and shared security overrides must agree. Release preparation updates both locks offline while preserving external resolutions. See [local checks](../CONTRIBUTING.md#local-checks) for installation and dependency-update commands.
+
 The repository uses one distribution version across the root, all npm workspaces and the Java reactor. `packages/contracts/src/version.ts` exports the runtime `toolVersion` used by the CLI, HTML generator metadata and compiler manifests. API documentation versions, plugin API versions and artifact schema versions have separate contracts.
 
 ```sh

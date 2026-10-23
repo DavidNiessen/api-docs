@@ -1,0 +1,12 @@
+packages:
+  - packages/*
+  - apps/*
+  - integrations/node
+
+linkWorkspacePackages: true
+preferWorkspacePackages: true
+allowBuilds: {}
+
+overrides:
+  katex: 0.18.2
+  dompurify: 3.4.17

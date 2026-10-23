@@ -4,12 +4,23 @@ The project is implementing its roadmap. Start with the [product](docs/planning/
 
 ## Local checks
 
-Install the Node.js version in `.node-version` and npm 11. The repository uses npm 11.9.0 as its package-manager baseline and commits `package-lock.json`.
+Install the Node.js version in `.node-version` and npm 11. The workspace pins pnpm 11.25.0 in `packageManager`; install it with `npm install --global pnpm@11.25.0` or use Corepack when available.
+
+```sh
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm run check
+```
+
+Prettier and ESLint are pinned development dependencies. `pnpm run format` applies formatting; `pnpm run format:check` and `pnpm run lint` enforce it. Dependency build scripts are disabled by the pnpm workspace policy. The committed `pnpm-workspace.yaml` links local packages and mirrors npm's security overrides.
+
+The npm 11.9.0 installation path remains supported for container builds and physically installed package-consumer checks:
 
 ```sh
 npm ci
 npm run check
 ```
+
+Do not alternate managers in the same `node_modules`; use a fresh checkout or remove that generated directory before switching. Commit both `package-lock.json` and `pnpm-lock.yaml` for dependency changes. Update the npm lock with `npm install --package-lock-only --ignore-scripts`, then run `pnpm import` and verify a fresh `pnpm install --frozen-lockfile --ignore-scripts`. Keep overrides in `package.json` and `pnpm-workspace.yaml` aligned. The version audit checks workspace inventories, dependency specifiers, local links and overrides for drift; release preparation updates internal dependency versions in both locks without resolving external packages.
 
 Run `npm run format` to apply formatting. `npm run check` verifies Prettier, ESLint, Markdown, strict TypeScript, compiler tests, and a production build. Browser tests run with `npm run demo:build && npm run test:e2e` after `npx playwright install chromium`. For a system Chromium install, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to its executable path.
 
@@ -39,6 +50,8 @@ PR_TITLE='docs(product): clarify release scope' npm run check:pr-title
 ## Automation and release status
 
 The `Repository quality` workflow runs on branch pushes, PRs (including title edits), merge queue candidates, and manual dispatch. Its stable job name is `Quality`. It installs locked tooling and runs the same checks as local development; PR events also validate the title. It uses read-only permissions and does not publish artifacts.
+
+The required pnpm job starts from a fresh checkout, installs the pinned manager and frozen lockfile, audits dependencies, and runs formatting, ESLint, types, tooling tests, source tests and production builds. The existing npm source/browser and installed-consumer jobs remain required as well.
 
 The aggregate also requires the Linux Docker [isolated-build harness](docs/isolated-builds.md#validation), which builds an approved worker and checks resource enforcement, artifact parity, cancellation and cleanup after parent death. Run it locally when changing the runner or worker image.
 

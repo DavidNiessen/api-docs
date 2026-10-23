@@ -21,13 +21,13 @@ An open source, self-hosted API documentation platform: polished documentation, 
 
 ## Run the example
 
-Use Node.js from `.node-version` and npm 11:
+Use Node.js from `.node-version` and pnpm 11.25.0 (`npm install --global pnpm@11.25.0`):
 
 ```sh
-npm ci
-npm run build
-npm run demo:build
-npm run demo:serve
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm run build
+pnpm run demo:build
+pnpm run demo:serve
 ```
 
 The documentation server listens on port 3000. In a second terminal, run `npm run demo:api` to start the local API on port 4010. Use the public fixture token `demo-token` in the playground. These are local demonstration services.
@@ -44,14 +44,14 @@ Edit `docs.config.yaml`, point it to your YAML or JSON OpenAPI document, and add
 
 ## Repository checks
 
-Use Node.js from `.node-version` and npm 11:
+Use the pinned Node.js and pnpm versions:
 
 ```sh
-npm ci
-npm run check
-npm run demo:build
-npx playwright install chromium
-npm run test:e2e
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm run check
+pnpm run demo:build
+pnpm exec playwright install chromium
+pnpm run test:e2e
 ```
 
 Prettier, ESLint, and Markdown linting run on feature branch pushes, pull requests, merge queue candidates, and `master`. PR titles use conventional commit format. Strict TypeScript checks, compiler/security unit tests, deterministic publication checks, browser workflows, and automated accessibility checks also run in CI. See [CONTRIBUTING](CONTRIBUTING.md).

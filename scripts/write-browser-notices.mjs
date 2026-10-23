@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const output = resolve(process.argv[2] ?? 'dist/client');
-const packages = new Set(['vite']); // Includes the generated module-preload helper.
+const packages = new Map([['vite', undefined]]); // Includes the generated module-preload helper.
 async function walk(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     if (entry.isDirectory()) await walk(join(directory, entry.name));
@@ -19,10 +19,25 @@ async function walk(directory) {
           ),
           'The browser bundle must use the separately pinned patched DOMPurify.',
         );
-        const name = source.match(
-          /(?:^|\/)node_modules\/((?:@[^/]+\/)?[^/]+)/,
-        )?.[1];
-        if (name) packages.add(name);
+        const match = source.match(
+          /(?:^|\/)node_modules\/(?!\.pnpm\/)((?:@[^/]+\/)?[^/]+)/,
+        );
+        const name = match?.[1];
+        if (name) {
+          if (!packages.has(name)) packages.set(name, undefined);
+          // Resolve metadata from bundled sources, including pnpm's isolated store.
+          const bundledDirectory = resolve(
+            directory,
+            source.slice(0, match.index + match[0].length),
+          );
+          const candidate = resolve(bundledDirectory, 'package.json');
+          try {
+            if (JSON.parse(await readFile(candidate, 'utf8')).name === name)
+              packages.set(name, bundledDirectory);
+          } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+          }
+        }
       }
     }
   }
@@ -39,9 +54,10 @@ assert(
 const sections = [
   'Third-party notices for the bundled browser code.\nProject code is licensed under Apache-2.0. Dependencies retain their own licenses.\n',
 ];
-for (const name of [...packages].sort()) {
+for (const name of [...packages.keys()].sort()) {
   // Some ESM packages intentionally do not export package.json.
-  let directory = dirname(fileURLToPath(import.meta.resolve(name)));
+  let directory =
+    packages.get(name) ?? dirname(fileURLToPath(import.meta.resolve(name)));
   let file;
   for (;;) {
     const candidate = join(directory, 'package.json');

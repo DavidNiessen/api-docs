@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { valid } from 'semver';
 import { readRepositoryFile, readWorkspacePackages } from './workspaces.mjs';
+import { auditPnpmLock } from './pnpm-lock.mjs';
 
 export const dependencySections = [
   'dependencies',
@@ -87,6 +88,7 @@ export async function auditReleaseVersions(root, { release = false } = {}) {
       }
     }
   }
+  await auditPnpmLock(root, packages);
   const runtime = await readRepositoryFile(
     root,
     'packages/contracts/src/version.ts',

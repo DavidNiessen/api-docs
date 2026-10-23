@@ -22,6 +22,8 @@ export async function fixture(t) {
       (pkg) => (pkg.path ? pkg.path + '/' : '') + 'package.json',
     ),
     'package-lock.json',
+    'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
     'packages/contracts/src/version.ts',
     ...poms,
   ];

@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { format } from 'prettier';
+import { parseDocument } from 'yaml';
 import { createReleasePlan, git, canonicalVersion } from './release-plan.mjs';
 import {
   auditReleaseVersions,
@@ -183,6 +184,30 @@ async function prepareReleaseUnlocked(
     changeDependencies(lock.packages[pkg.path]);
   }
   proposed.set('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+  const pnpmSource = await remember('pnpm-lock.yaml');
+  const pnpmLock = parseDocument(pnpmSource);
+  let pnpmChanged = false;
+  for (const pkg of packages)
+    for (const section of dependencySections)
+      for (const name of Object.keys(pkg.metadata[section] ?? {}))
+        if (names.has(name)) {
+          const path = [
+            'importers',
+            pkg.path || '.',
+            section === 'peerDependencies' ? 'dependencies' : section,
+            name,
+            'specifier',
+          ];
+          if (pnpmLock.getIn(path) !== version) {
+            pnpmLock.setIn(path, version);
+            pnpmChanged = true;
+          }
+        }
+  proposed.set(
+    'pnpm-lock.yaml',
+    pnpmChanged ? pnpmLock.toString() : pnpmSource,
+  );
+  proposed.set('pnpm-workspace.yaml', await remember('pnpm-workspace.yaml'));
   const runtime = await remember('packages/contracts/src/version.ts');
   proposed.set(
     'packages/contracts/src/version.ts',

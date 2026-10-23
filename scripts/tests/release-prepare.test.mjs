@@ -14,6 +14,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { inc } from 'semver';
+import { parse } from 'yaml';
 import { createReleasePlan, git } from '../lib/release-plan.mjs';
 import { prepareRelease } from '../lib/release-prepare.mjs';
 import {
@@ -89,6 +90,9 @@ test('applies unified versions to every npm/lock/runtime/Java reference while pr
   const before = JSON.parse(
     await readFile(join(root, 'package-lock.json'), 'utf8'),
   );
+  const pnpmBefore = parse(
+    await readFile(join(root, 'pnpm-lock.yaml'), 'utf8'),
+  );
   await chmod(join(root, 'packages/contracts/src/version.ts'), 0o640);
   const result = await prepareRelease(root, plan, { apply: true });
   assert(result.applied);
@@ -106,6 +110,20 @@ test('applies unified versions to every npm/lock/runtime/Java reference while pr
   for (const [path, metadata] of Object.entries(before.packages))
     if (path.split('/').includes('node_modules'))
       assert.deepEqual(after.packages[path], metadata);
+  const pnpmAfter = parse(await readFile(join(root, 'pnpm-lock.yaml'), 'utf8'));
+  assert.deepEqual(pnpmAfter.packages, pnpmBefore.packages);
+  assert.deepEqual(pnpmAfter.snapshots, pnpmBefore.snapshots);
+  assert.deepEqual(pnpmAfter.overrides, pnpmBefore.overrides);
+  assert.equal(
+    pnpmAfter.importers['apps/reader'].dependencies['@api-docs/contracts']
+      .specifier,
+    TARGET,
+  );
+  assert.equal(
+    pnpmAfter.importers['apps/reader'].dependencies['@api-docs/contracts']
+      .version,
+    'link:../../packages/contracts',
+  );
   for (const pkg of await readWorkspacePackages(root))
     assert.equal(pkg.metadata.version, TARGET);
   for (const path of await readJavaVersionPaths(root))

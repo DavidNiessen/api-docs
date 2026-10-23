@@ -1,12 +1,14 @@
 import express from 'express';
-import type { RequestHandler } from 'express';
+import type { RequestHandler, Router } from 'express';
 import { headers, prepare } from './shared.js';
 export interface ExpressDocsOptions {
   directory: string;
   mountPath?: string;
   authenticate?: RequestHandler;
 }
-export async function createExpressDocs(options: ExpressDocsOptions) {
+export async function createExpressDocs(
+  options: ExpressDocsOptions,
+): Promise<{ router: Router; mountPath: string; root: string }> {
   const { root, basePath, allowsPath, hasNotFoundPage } = await prepare(
     options.directory,
     options.mountPath,

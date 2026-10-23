@@ -16,6 +16,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pnpm:
+    name: pnpm frozen workspace
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+      - name: Install pinned pnpm
+        run: npm install --global --ignore-scripts "$(node --input-type=module -e 'import p from "./package.json" with {type:"json"}; console.log(p.packageManager)')"
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm audit --audit-level=moderate
+      - run: pnpm run check
+      - name: Require unchanged dependency metadata
+        run: git diff --exit-code -- package.json package-lock.json pnpm-lock.yaml pnpm-workspace.yaml
+
   source:
     name: Source and browser
     runs-on: ubuntu-24.04
@@ -206,14 +225,15 @@ jobs:
   quality:
     name: Quality
     if: always()
-    needs: [source, database, java, isolated-builds]
+    needs: [pnpm, source, database, java, isolated-builds]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: Require every validation job to succeed
         env:
+          PNPM_RESULT: ${{ needs.pnpm.result }}
           SOURCE_RESULT: ${{ needs.source.result }}
           DATABASE_RESULT: ${{ needs.database.result }}
           JAVA_RESULT: ${{ needs.java.result }}
           ISOLATED_RESULT: ${{ needs.isolated-builds.result }}
-        run: test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success && test "$ISOLATED_RESULT" = success
+        run: test "$PNPM_RESULT" = success && test "$SOURCE_RESULT" = success && test "$DATABASE_RESULT" = success && test "$JAVA_RESULT" = success && test "$ISOLATED_RESULT" = success
