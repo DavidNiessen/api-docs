@@ -1,14 +1,12 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
+import { releaseCommand } from './release-command.mjs';
 import { releaseRequest } from './release-http.mjs';
 import { verifyReleaseAssets } from './release-assets.mjs';
 
-const exec = promisify(execFile);
 const digestPattern = /^sha256:[a-f0-9]{64}$/;
 export const promotionPredicateType =
   'https://github.com/DavidNiessen/api-docs/attestations/promotion/v1';
@@ -147,17 +145,16 @@ export async function runReleaseDocker(
   ])
     delete environment[name];
   try {
-    const operation = exec(
+    return await releaseCommand(
       'docker',
       ['--config', config, '--host=unix:///var/run/docker.sock', ...args],
       {
         env: environment,
         timeout: 300_000,
         maxBuffer: 4 * 1024 * 1024,
+        input,
       },
     );
-    operation.child.stdin.end(input ?? '');
-    return await operation;
   } catch {
     throw new Error(
       'Release Docker command failed. Check the local daemon, registry authorization and retained publication receipts.',

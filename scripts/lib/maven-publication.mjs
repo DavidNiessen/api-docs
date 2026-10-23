@@ -1,16 +1,14 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
-import { promisify } from 'node:util';
+import { releaseCommand } from './release-command.mjs';
 import { readRegularFile } from './read-regular-file.mjs';
 import { hashReleaseAsset, verifyReleaseAssets } from './release-assets.mjs';
 import { releaseRequest } from './release-http.mjs';
 
-const exec = promisify(execFile);
 const central = 'https://central.sonatype.com/api/v1/publisher';
 export const mavenRegistry = 'https://repo.maven.apache.org/maven2';
 const hash = (bytes, algorithm = 'sha256') =>
@@ -102,14 +100,13 @@ export async function runSigningTool(
   { cwd, env = process.env, input } = {},
 ) {
   try {
-    const operation = exec(file, args, {
+    return await releaseCommand(file, args, {
       cwd,
       env,
       timeout: 60_000,
       maxBuffer: 4 * 1024 * 1024,
+      input,
     });
-    operation.child.stdin.end(input ?? '');
-    return await operation;
   } catch {
     throw new Error(
       'Maven signing command failed. Check the configured key, fingerprint and passphrase.',
