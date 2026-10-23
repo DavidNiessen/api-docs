@@ -1,0 +1,74 @@
+name: Scheduled dependency security
+
+on:
+  schedule:
+    - cron: '40 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependencies:
+    name: Current application advisories
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Check current advisories at the moderate threshold
+        run: |
+          mkdir -p .api-docs
+          npm audit --audit-level=moderate --json > .api-docs/npm-audit.json
+      - name: Retain the audit result
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: application-advisories-${{ github.sha }}
+          path: .api-docs/npm-audit.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  image:
+    name: Current server image advisories
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: docker build --target server --iidfile /tmp/api-docs-server.id .
+      - uses: ./.github/actions/image-security
+      - name: Retain findings and incomplete evidence on failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: server-advisories-${{ github.sha }}
+          path: |
+            .api-docs/container-inventory-evidence.json
+            .api-docs/container-candidates/**/server.cdx.json
+            .api-docs/container-candidates/**/report.json
+            .api-docs/container-security-evidence.json
+            .api-docs/container-security-candidates/**/server.grype.json
+            .api-docs/container-security-candidates/**/report.json
+            .api-docs/container-security-candidates/**/.incomplete
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

@@ -5,7 +5,7 @@
   "description": "Self-hosted API documentation platform",
   "type": "module",
   "engines": {
-    "node": ">=24.19.0 <25",
+    "node": ">=24.22.1 <25",
     "npm": ">=11 <12",
     "pnpm": "11.25.0"
   },

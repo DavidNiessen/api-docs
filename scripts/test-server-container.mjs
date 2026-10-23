@@ -128,7 +128,7 @@ async function waitFor(check, label) {
 }
 // Executed inside the selected image; keep its imports local to the function.
 async function readContainerRuntime() {
-  const { readFileSync } = await import('node:fs');
+  const { readFileSync, existsSync } = await import('node:fs');
   const { toolVersion } = await import('@api-docs/contracts');
   const lines = readFileSync('/proc/self/status', 'utf8').split(
     String.fromCharCode(10),
@@ -142,6 +142,13 @@ async function readContainerRuntime() {
   const capabilities = status('CapEff');
   return {
     toolVersion,
+    packageManagersAbsent: [
+      '/usr/local/bin/npm',
+      '/usr/local/bin/npx',
+      '/usr/local/bin/corepack',
+      '/usr/local/bin/yarn',
+      '/usr/local/bin/yarnpkg',
+    ].every((path) => !existsSync(path)),
     uid: process.getuid(),
     memoryMax: group('memory.max'),
     cpuMax: group('cpu.max'),
@@ -354,6 +361,7 @@ try {
   );
   assert.deepEqual(probe, {
     toolVersion,
+    packageManagersAbsent: true,
     uid: 1000,
     memoryMax: '536870912',
     cpuMax: '200000 100000',

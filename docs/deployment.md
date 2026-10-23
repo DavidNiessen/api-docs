@@ -35,6 +35,8 @@ Only for local evaluation, use `PUBLIC_URL=http://127.0.0.1:8080 INSECURE_DEVELO
 
 The `migrate` job owns the schema, applies migrations under a transaction/advisory lock, and grants the runtime role access. The application role cannot create schema objects, mutate migration history, or update/delete audit rows. The application starts only after migration succeeds. Remote PostgreSQL deployments must use verified TLS and equivalent owner/runtime grants. For a source checkout, run `node apps/server/dist/migrate.js` with the migration connection before `npm run server` with the runtime connection; set `DB_RUNTIME_ROLE` during migration to apply the grants.
 
+The current image uses the pinned Node 24.22.1 Alpine runtime and contains no npm, npx, Yarn or Corepack executables. Build dependencies in the build stage; deploy reviewed immutable images instead of installing tools into a running service. See the required [container vulnerability checks](container-security.md) and their recorded evidence limits.
+
 The current runtime requires schema version 2. Its migration upgrades version 1 atomically, retaining existing metadata and adding the [build queue tables](build-jobs.md). Run the matching migration job during an upgrade and retain a pre-upgrade recovery set with its compatible image. A version 1 runtime cannot start against a version 2 database; reverting the application image alone is not a schema rollback. The server provides authenticated source/job HTTP routes. Configure the [separate build worker](build-worker.md) for execution and use [Studio build controls](studio-builds.md) to manage approved sources and queued work.
 
 The reader runs as UID 1000, drops capabilities, uses a read-only root filesystem, and mounts artifacts read-only. Only a separate trusted publisher should mount the artifact volume writable. Build a project with `basePath: /docs/<project-slug>`, stage its verified output into that volume using the CLI image, then activate it through Studio or `api-docs publish`. See [CLI publishing](cli.md). A publication stores a digest and changes a database pointer atomically; changing an artifact in place is unsupported.
@@ -85,6 +87,8 @@ docker compose -f deploy/compose.yaml up -d --no-build --wait
 The script checks backup hashes, refuses a database with existing public tables or a nonempty artifact volume, verifies every restored publication, restores the schema as its owner in one database transaction, and reapplies runtime grants. The writable artifact override is used only for the temporary recovery helper. If recovery fails, keep the failed environment for diagnosis and retry into another fresh project; the script does not erase or repair existing volumes.
 
 Verify readiness, public pages, private page/search denial, authenticated access, publication history and audit records before exposing traffic. Apply a production HTTPS origin and TLS proxy before switching DNS. Measure and record your own recovery time and recovery point objectives. Application rollback can activate a retained previous artifact; database schema rollback requires a compatible recovery set and cannot be achieved by merely starting an older container.
+
+A schema rollback restores the backup's point in time. Writes after that recovery point are not retained. Keep writers paused during the upgrade decision window or use a separately tested reconciliation procedure before moving traffic back.
 
 ## Kubernetes template
 

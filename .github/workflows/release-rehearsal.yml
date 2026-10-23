@@ -282,12 +282,8 @@ jobs:
         run: |
           docker pull caddy:2.11.7-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
           SERVER_BASELINE_IMAGE="$(cat .api-docs/upgrade-baseline.id)" SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent > .api-docs/server-container-evidence.json
-      - name: Install the checksum-pinned inventory scanner
-        run: node scripts/install-inventory-tool.mjs
-      - name: Inventory the tested server image and verify its receipt
-        run: |
-          node scripts/container-inventory.mjs "$(cat /tmp/api-docs-server.id)" > .api-docs/container-inventory-evidence.json
-          node scripts/check-container-inventory.mjs "$(cat /tmp/api-docs-server.id)"
+      - name: Verify tested image inventory and vulnerabilities
+        uses: ./.github/actions/image-security
       - name: Require receipts from the prepared tool and image
         run: |
           node --input-type=module <<'NODE'
@@ -314,6 +310,7 @@ jobs:
           const server = JSON.parse(await readFile('.api-docs/server-container-evidence.json', 'utf8'));
           assert.equal(server.toolVersion, toolVersion);
           assert.equal(server.runtime.toolVersion, toolVersion);
+          assert.equal(server.runtime.packageManagersAbsent, true);
           assert.equal(server.resolvedImage, serverImage);
           assert.equal(server.cleanupVerified, true);
           assert(server.checks.length >= 9 && server.privateFiles >= 8);
@@ -366,8 +363,16 @@ jobs:
           assert.equal(inventory.resolvedImage, serverImage);
           assert.equal(inventory.signed, false);
           assert.equal(inventory.publicationApproved, false);
+          const security = JSON.parse(await readFile('.api-docs/container-security-evidence.json', 'utf8'));
+          assert.equal(security.toolVersion, toolVersion);
+          assert.equal(security.resolvedImage, serverImage);
+          assert.equal(security.inventorySha256, inventory.inventory.sha256);
+          assert.equal(security.assessment.passed, true);
+          assert.equal(security.signed, false);
+          assert.equal(security.publicationApproved, false);
           NODE
       - name: Retain prepared control and artifact receipts
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: prepared-isolated-builds-${{ github.run_id }}-${{ github.run_attempt }}
@@ -377,6 +382,10 @@ jobs:
             .api-docs/server-container-evidence.json
             .api-docs/upgrade-baseline-evidence.json
             .api-docs/container-inventory-evidence.json
+            .api-docs/container-security-evidence.json
+            .api-docs/container-security-candidates/**/server.grype.json
+            .api-docs/container-security-candidates/**/report.json
+            .api-docs/container-security-candidates/**/.incomplete
             .api-docs/container-candidates/**/server.cdx.json
             .api-docs/container-candidates/**/report.json
           include-hidden-files: true

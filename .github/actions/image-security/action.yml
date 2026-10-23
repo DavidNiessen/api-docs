@@ -1,0 +1,28 @@
+name: Verify image inventory and vulnerabilities
+description: Bind a fresh unsuppressed vulnerability assessment to the exact server inventory.
+inputs:
+  image-id-file:
+    description: File containing the immutable tested server image ID.
+    required: false
+    default: /tmp/api-docs-server.id
+runs:
+  using: composite
+  steps:
+    - name: Inventory the selected server
+      shell: bash
+      env:
+        IMAGE_ID_FILE: ${{ inputs.image-id-file }}
+      run: |
+        node scripts/install-inventory-tool.mjs
+        image="$(cat "$IMAGE_ID_FILE")"
+        node scripts/container-inventory.mjs "$image" > .api-docs/container-inventory-evidence.json
+        node scripts/check-container-inventory.mjs "$image"
+    - name: Assess every known image finding
+      shell: bash
+      env:
+        IMAGE_ID_FILE: ${{ inputs.image-id-file }}
+      run: |
+        node scripts/install-security-tool.mjs
+        image="$(cat "$IMAGE_ID_FILE")"
+        node scripts/container-security.mjs "$image" > .api-docs/container-security-evidence.json
+        node scripts/check-container-security.mjs "$image"

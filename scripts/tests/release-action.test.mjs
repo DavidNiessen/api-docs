@@ -63,6 +63,7 @@ test('release action preserves input argument boundaries and never evaluates she
     bin = join(root, 'bin'),
     log = join(root, 'argv.jsonl');
   await mkdir(bin);
+  await writeFile(join(bin, 'package.json'), '{"type":"commonjs"}\n');
   await writeFile(
     join(bin, 'node'),
     '#!' +

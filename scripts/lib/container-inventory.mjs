@@ -19,7 +19,7 @@ export async function sha256(path) {
   for await (const chunk of createReadStream(path)) hash.update(chunk);
   return hash.digest('hex');
 }
-export async function verifyScanner(path) {
+export async function verifyScanner(path, expected = scanner) {
   const info = await lstat(path);
   assert(
     info.isFile() && !info.isSymbolicLink(),
@@ -27,7 +27,7 @@ export async function verifyScanner(path) {
   );
   assert.equal(
     await sha256(path),
-    scanner.executableSha256,
+    expected.executableSha256,
     'Scanner integrity check failed',
   );
 }
@@ -74,14 +74,15 @@ export function validateContainerInventory(
   );
   assert(Array.isArray(bom.components) && bom.components.length > 0);
   assert(Array.isArray(bom.dependencies) && bom.dependencies.length > 0);
-  const counts = { npm: 0, deb: 0, files: 0 };
+  const counts = { npm: 0, deb: 0, apk: 0, files: 0 };
   for (const component of bom.components) {
     if (component.purl?.startsWith('pkg:npm/')) counts.npm++;
     if (component.purl?.startsWith('pkg:deb/')) counts.deb++;
+    if (component.purl?.startsWith('pkg:apk/')) counts.apk++;
     if (component.type === 'file') counts.files++;
   }
   assert(
-    counts.npm > 0 && counts.deb > 0,
+    counts.npm > 0 && counts.deb + counts.apk > 0,
     'Missing application or operating-system packages',
   );
   for (const name of packages) {

@@ -144,6 +144,8 @@ it('a changed approved snapshot fails before any Docker command and retains an e
   await writeFile(join(project, 'openapi.json'), '{"changed":true}');
   const marker = join(root, 'docker-call');
   const executable = join(bin, 'docker');
+  // TMPDIR may live inside an ESM checkout; the fake executable uses CommonJS.
+  await writeFile(join(bin, 'package.json'), '{"type":"commonjs"}\n');
   await writeFile(
     executable,
     `#!${process.execPath}\nrequire('node:fs').writeFileSync(process.env.API_DOCS_DOCKER_CALL, JSON.stringify(process.argv.slice(2)));process.exit(2);\n`,

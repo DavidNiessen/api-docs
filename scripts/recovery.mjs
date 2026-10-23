@@ -220,9 +220,9 @@ if (action === 'backup') {
       '-',
       '-C',
       '/data/artifacts',
-      '--no-same-owner',
+      '-o',
       '--no-same-permissions',
-      '--keep-old-files',
+      '-k',
     ],
     { input: join(directory, files[1]), writable: true },
   );

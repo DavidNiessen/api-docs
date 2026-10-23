@@ -15,7 +15,7 @@ const context = {
   image,
   toolVersion: '0.2.0',
   packages: ['@example/server', '@example/contracts'],
-  nodeRange: '>=24.19.0 <25',
+  nodeRange: '>=24.22.1 <25',
 };
 const npm = (name, version) => ({
   name,
@@ -35,7 +35,7 @@ const bom = {
     npm('fastify', '5.12.7'),
     npm('pg', '8.23.1'),
     { name: 'libc6', version: '2.36', purl: 'pkg:deb/debian/libc6@2.36' },
-    { name: 'node', version: '24.19.0', purl: 'pkg:generic/node@24.19.0' },
+    { name: 'node', version: '24.22.1', purl: 'pkg:generic/node@24.22.1' },
     { name: '/app/LICENSE', type: 'file' },
   ],
   dependencies: [{ ref: 'server', dependsOn: ['fastify'] }],
@@ -44,8 +44,31 @@ test('accepts a version-matched image inventory with OS, runtime and all declare
   assert.deepEqual(validateContainerInventory(bom, context), {
     npm: 4,
     deb: 1,
+    apk: 0,
     files: 1,
   });
+});
+
+test('accepts actual Alpine package identities while retaining application and runtime requirements', () => {
+  const alpine = structuredClone(bom);
+  alpine.components = alpine.components.filter(
+    (item) => !item.purl?.startsWith('pkg:deb/'),
+  );
+  alpine.components.push({
+    name: 'musl',
+    version: '1.2.6-r1',
+    purl: 'pkg:apk/alpine/musl@1.2.6-r1',
+  });
+  assert.deepEqual(validateContainerInventory(alpine, context), {
+    npm: 4,
+    deb: 0,
+    apk: 1,
+    files: 1,
+  });
+  alpine.components = alpine.components.filter(
+    (item) => !item.purl?.startsWith('pkg:apk/'),
+  );
+  assert.throws(() => validateContainerInventory(alpine, context));
 });
 test('rejects a source inventory, mismatched image or stale scanner', () => {
   for (const change of [
