@@ -1,6 +1,6 @@
-# Durable build queue foundation
+# Durable build jobs
 
-The PostgreSQL adapter exposes a typed `buildJobs` repository for approved source metadata and durable build jobs. This increment provides persistence and concurrency controls. The management HTTP API, separate worker executable and Studio build controls are still pending; installing the server does not start queued source builds. Use the existing operator-only [isolated build runner](isolated-builds.md) for executable builds.
+The PostgreSQL adapter exposes a typed `buildJobs` repository and the management server provides authenticated source/job HTTP routes. The separate worker executable and Studio build controls are still pending; installing the server does not start queued source builds. Use the existing operator-only [isolated build runner](isolated-builds.md) for executable builds.
 
 ## Approved sources
 
@@ -50,10 +50,39 @@ The repository is an internal trusted port. It does not authenticate actors, aut
 
 `sources(projectId, { after, activeOnly })` and `jobs(projectId, after)` return at most 100 entries plus `nextCursor`. Continue with that cursor for complete history. Ordering is creation time and UUID descending; cursor lookups remain within the project. Job/source reads contain only their documented fields, ISO UTC dates and bounded result metadata.
 
+## Management HTTP API
+
+Routes are available when the server repository provides `buildJobs`; `/api/me` reports the boolean `builds` capability. The PostgreSQL adapter enables this capability. Embedded/custom repositories without that port retain ordinary serving without build routes. All build metadata requires authenticated project membership, including on public documentation. Every request rechecks the current session/token and project role before repository operations or idempotent replay. Session mutations require the configured origin; bearer clients retain ordinary token authentication.
+
+In the following paths, `:project` is a project ID or slug; `:source` and `:job` are UUIDs.
+
+| Method and path                                            | Minimum authorization | Behavior                                                                      |
+| ---------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------- |
+| `GET /api/projects/:project/build-sources`                 | Viewer                | Paginated approval history; optional `after` and `activeOnly=true` or `false` |
+| `GET /api/projects/:project/build-sources/:source`         | Viewer                | One approval, including its revocation state                                  |
+| `POST /api/projects/:project/build-sources`                | Operator              | Approve a source and executable policy                                        |
+| `POST /api/projects/:project/build-sources/:source/revoke` | Admin                 | Revoke and cancel unfinished jobs                                             |
+| `GET /api/projects/:project/builds`                        | Viewer                | Paginated job history; optional `after` cursor                                |
+| `GET /api/projects/:project/builds/:job`                   | Viewer                | Public job state and aggregate result                                         |
+| `POST /api/projects/:project/builds`                       | Editor                | Enqueue an approved source                                                    |
+| `POST /api/projects/:project/builds/:job/cancel`           | Editor                | Cancel queued/running work                                                    |
+| `POST /api/build-workers/claim`                            | Operator              | Claim one allowed source, returning `{lease: null}` when unavailable          |
+| `POST /api/projects/:project/builds/:job/heartbeat`        | Operator              | Renew ownership; return `{owned: false}` when no longer owned                 |
+| `POST /api/projects/:project/builds/:job/complete`         | Operator              | Verify staged artifact and settle success                                     |
+| `POST /api/projects/:project/builds/:job/fail`             | Operator              | Settle a controlled terminal failure                                          |
+
+Approval bodies contain `{label, revision?, snapshot, policy, idempotencyKey}`. The `snapshot` is the source metadata from `source-info`, and `policy` follows the contract above. Source paths, environment variables, remote checkouts and arbitrary logs are not accepted. Enqueue bodies contain `{sourceId, idempotencyKey}`. Cancel/revoke take an empty or absent body.
+
+Claim bodies contain `{workerId, sourceIds, leaseSeconds?}`; allowlists contain 1–1000 approval IDs. The response contains a lease token only for the authenticated operator. Keep this credential out of reader state, logs and source containers. Heartbeat bodies contain `{token, leaseSeconds?}`. Failure bodies contain `{token, code}`, with `build_failed`, `source_changed` or `deadline_exceeded`. Terminal failures are safe to retry with identical metadata and ownership.
+
+Completion bodies contain `{token, result}`. Results include `artifactId`, versioned `source`, `requestedImage`, `resolvedImage`, `toolVersion` and `durationMs`. The operator must stage the verified output in `ARTIFACT_ROOT/<artifactId>` first. The HTTP process independently hashes its manifest-listed files, requires `site.json` and `index.html`, checks the directory/manifest digest and compiler version, and validates a bounded site configuration with the literal base path `/docs/<project-slug>`. It then delegates atomic lease/result checks and registration to the repository. Replayed completions reverify stored bytes; corruption cannot pass as an idempotent success. At most two completion verifications run concurrently per server process. None of these endpoints executes source code or publishes the artifact.
+
+Bodies retain the server's 64 KiB limit. Unknown body/query fields, invalid policies and identifiers fail with 400; invalid staged artifacts return a generic 400 without exposing filesystem paths. Permission failures return 401/403, absent project-scoped records return 404, conflicting requests/lost leases return 409, queue admission limits return 429 and completion-verification saturation returns 503. Responses use `Cache-Control: no-store`. Worker APIs use the existing full operator identity; a narrower worker identity is not yet implemented. Keep this credential on the trusted build host, use TLS, and never forward it into source workloads.
+
 ## Schema upgrades and acceptance
 
 This adapter requires database schema version **2**. Run the matching schema-owner migration before starting its runtime. A fresh database receives migrations 1 and 2; an existing version 1 installation upgrades atomically while retaining projects, roles, publications and audit. Incomplete/future migration histories fail closed. Failed migration transactions leave no partial queue tables. Run `DB_RUNTIME_ROLE` grants through the migration executable for the new tables; migration history stays read-only and audit stays append-only for the runtime role.
 
 Keep the application image matched to the database schema. An older version 1 runtime will refuse a version 2 database; restore a compatible recovery set for a schema rollback. No automatic down-migration is provided. See the [deployment and recovery runbook](deployment.md).
 
-Acceptance tests use actual PostgreSQL concurrent claims, lock interleavings, expirations, capacity limits, cancellation, revocation, idempotency, pagination and upgrade rollback. `TEST_DATABASE_URL` must refer to a disposable schema-owner fixture. The runtime-grant acceptance case additionally needs `CREATEROLE` or a test superuser to create/drop its isolated runtime identity; production migration roles do not require that test-only permission. Queue workflow acceptance with the HTTP API, real worker and Docker remains pending.
+Acceptance tests use actual PostgreSQL concurrent claims, lock interleavings, expirations, capacity limits, cancellation, revocation, idempotency, pagination and upgrade rollback. `TEST_DATABASE_URL` must refer to a disposable schema-owner fixture. The runtime-grant acceptance case additionally needs `CREATEROLE` or a test superuser to create/drop its isolated runtime identity; production migration roles do not require that test-only permission. HTTP acceptance additionally checks role/token/origin isolation, strict request budgets, cancellation fencing, real staged-byte verification, receipt mismatches and publication separation. Complete workflow acceptance with the worker and Docker remains pending.

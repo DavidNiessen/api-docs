@@ -4,25 +4,36 @@ import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import { randomBytes } from 'node:crypto';
-import { readFile, mkdir } from 'node:fs/promises';
-import { resolve, join, extname } from 'node:path';
+import { mkdir } from 'node:fs/promises';
+import { resolve, extname } from 'node:path';
 import { verifyArtifact } from '@api-docs/compiler';
 import { confinedPath } from '@api-docs/spec';
-import { can, ConflictError } from '@api-docs/domain';
+import {
+  can,
+  ConflictError,
+  BuildInputError,
+  BuildLeaseLostError,
+  BuildCapacityError,
+  BuildNotFoundError,
+} from '@api-docs/domain';
 import type {
   Principal,
   Project,
   Repository,
   Role,
   RelayAuditWriter,
+  BuildJobRepository,
 } from '@api-docs/domain';
-import type { SiteData } from '@api-docs/contracts';
 import { equalSecret, registerOidc, tokenHash } from './oidc.js';
 import type { OidcOptions } from './oidc.js';
-import { PublicationManifestCache } from './artifacts.js';
+import {
+  PublicationManifestCache,
+  verifyProjectArtifact,
+} from './artifacts.js';
 import { parseRelayPolicy } from './relay-policy.js';
 import type { RelayConfiguration } from './relay-policy.js';
 import { registerRelay, RELAY_PATH } from './relay.js';
+import { registerBuildJobs } from './build-jobs.js';
 declare module 'fastify' {
   interface FastifyRequest {
     principal: Principal | undefined;
@@ -30,7 +41,8 @@ declare module 'fastify' {
 }
 export interface ServerOptions {
   relay?: RelayConfiguration;
-  repository: Repository & Partial<RelayAuditWriter>;
+  repository: Repository &
+    Partial<RelayAuditWriter> & { buildJobs?: BuildJobRepository };
   artifactRoot: string;
   rootToken: string;
   publicUrl: string;
@@ -200,11 +212,17 @@ export async function createServer(options: ServerOptions) {
       validation?: unknown;
     };
     const status =
-      typed instanceof ConflictError
+      typed instanceof ConflictError || typed instanceof BuildLeaseLostError
         ? 409
-        : typed.validation
+        : typed instanceof BuildInputError
           ? 400
-          : (typed.statusCode ?? 500);
+          : typed instanceof BuildCapacityError
+            ? 429
+            : typed instanceof BuildNotFoundError
+              ? 404
+              : typed.validation
+                ? 400
+                : (typed.statusCode ?? 500);
     if (status >= 500) app.log.error({ type: typed.name }, 'Request failed');
     reply.code(status).send({
       error:
@@ -240,6 +258,13 @@ export async function createServer(options: ServerOptions) {
     if (!request.principal?.root)
       fail(403, 'Operator authentication is required');
   };
+  if (repository.buildJobs)
+    registerBuildJobs(app, {
+      queue: repository.buildJobs,
+      artifactRoot: options.artifactRoot,
+      needProject,
+      requireRoot,
+    });
   if (relay)
     await registerRelay(
       app,
@@ -261,6 +286,7 @@ export async function createServer(options: ServerOptions) {
     subject: request.principal?.subject ?? null,
     operator: request.principal?.root ?? false,
     oidc: Boolean(options.oidc),
+    builds: Boolean(repository.buildJobs),
   }));
   app.post('/auth/token', async (request, reply) => {
     if (
@@ -410,18 +436,11 @@ export async function createServer(options: ServerOptions) {
         request.params.project,
         'publisher',
       );
-      const directory = await confinedPath(
+      await verifyProjectArtifact(
         options.artifactRoot,
+        project,
         request.body.artifactId,
       );
-      const manifest = await verifyArtifact(directory);
-      const site = JSON.parse(
-        await readFile(join(directory, 'site.json'), 'utf8'),
-      ) as SiteData;
-      if (site.config.basePath !== `/docs/${project.slug}`)
-        fail(400, `Build this project with basePath /docs/${project.slug}`);
-      if (manifest.artifactDigest !== request.body.artifactId)
-        fail(400, 'Artifact directory must match its artifact digest');
       await repository.registerArtifact(
         project.id,
         request.body.artifactId,

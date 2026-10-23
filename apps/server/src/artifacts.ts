@@ -1,5 +1,48 @@
-import { parseArtifactManifest } from '@api-docs/compiler';
-import { confinedPath, readTextFile } from '@api-docs/spec';
+import { parseArtifactManifest, verifyArtifact } from '@api-docs/compiler';
+import { confinedPath, readTextFile, parseConfig } from '@api-docs/spec';
+import type { Project } from '@api-docs/domain';
+import { BuildInputError } from '@api-docs/domain';
+import { join } from 'node:path';
+
+/** Verify staged bytes before registering a worker result or publication. */
+export async function verifyProjectArtifact(
+  root: string,
+  project: Project,
+  artifactId: string,
+  expectedToolVersion?: string,
+) {
+  try {
+    const directory = await confinedPath(root, artifactId);
+    const manifest = await verifyArtifact(directory);
+    if (
+      manifest.artifactDigest !== artifactId ||
+      !Object.hasOwn(manifest.files, 'site.json') ||
+      !Object.hasOwn(manifest.files, 'index.html') ||
+      (expectedToolVersion !== undefined &&
+        manifest.compilerVersion !== expectedToolVersion)
+    )
+      throw new Error('Invalid staged identity');
+    const site: unknown = JSON.parse(
+      await readTextFile(join(directory, 'site.json'), 64 * 1024 * 1024),
+    );
+    if (!site || typeof site !== 'object' || !('config' in site))
+      throw new Error('Missing project configuration');
+    const config = parseConfig(site.config);
+    if (
+      !site.config ||
+      typeof site.config !== 'object' ||
+      !('basePath' in site.config) ||
+      site.config.basePath !== config.basePath ||
+      config.basePath !== `/docs/${project.slug}`
+    )
+      throw new Error('Mismatched project base path');
+    return manifest;
+  } catch {
+    throw new BuildInputError(
+      'Staged artifact verification failed; check its identity, bytes and project base path',
+    );
+  }
+}
 interface CachedPublication {
   readonly directory: string;
   readonly hasFile: (path: string) => boolean;
