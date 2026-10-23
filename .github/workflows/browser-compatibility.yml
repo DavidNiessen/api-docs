@@ -69,8 +69,14 @@ jobs:
       - run: npm run build
       - run: npm run demo:build
       - run: npm run demo:pages
-      - name: Install the selected engine and its system libraries
-        run: npx playwright install --with-deps "$PLAYWRIGHT_BROWSER"
+      - name: Install the selected engine and required host libraries
+        timeout-minutes: 8
+        run: |
+          if test "$PLAYWRIGHT_BROWSER" = chromium; then
+            npx playwright install chromium
+          else
+            npx playwright install --with-deps "$PLAYWRIGHT_BROWSER"
+          fi
       - name: Reader and real API playground journeys
         run: npm run test:e2e -- --output=.api-docs/browser-results/reader
       - name: Static mock demo journeys
