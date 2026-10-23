@@ -17,7 +17,9 @@ test('an operator creates a private project, publishes, reads it and audits the 
   await page.getByLabel('Project name').fill('Browser project');
   await page.getByLabel('URL slug').fill(slug);
   await page.getByRole('button', { name: 'Create project' }).click();
-  await expect(page.getByRole('status')).toContainText('Project created');
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Project created' }),
+  ).toBeVisible();
   const root = resolve('.api-docs/studio-test', slug);
   await mkdir(root, { recursive: true });
   await cp(resolve('examples/demo'), root, {
@@ -37,7 +39,9 @@ test('an operator creates a private project, publishes, reads it and audits the 
   await page.getByRole('button', { name: 'Publications', exact: true }).click();
   await page.getByLabel('Artifact SHA-256').fill(artifact);
   await page.getByRole('button', { name: 'Verify and publish' }).click();
-  await expect(page.getByRole('status')).toContainText('Publication activated');
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Publication activated' }),
+  ).toBeVisible();
   const documentation = await page.context().newPage();
   await documentation.goto(`/docs/${slug}/`);
   await expect(

@@ -1,0 +1,14 @@
+{
+  "name": "@api-docs/worker",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "private": true,
+  "dependencies": {
+    "@api-docs/cli": "0.1.0",
+    "@api-docs/compiler": "0.1.0",
+    "@api-docs/contracts": "0.1.0",
+    "@api-docs/domain": "0.1.0",
+    "@api-docs/spec": "0.1.0"
+  }
+}

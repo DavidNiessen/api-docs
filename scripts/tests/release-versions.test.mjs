@@ -32,7 +32,7 @@ test('all npm/runtime/lockfile and Maven versions align without changing files',
   assert.deepEqual(report, {
     version: BASE_VERSION,
     mode: 'development',
-    nodePackages: 15,
+    nodePackages: 16,
     publicPackages: 12,
     javaVersion: BASE_VERSION + '-SNAPSHOT',
     javaPoms: 3,

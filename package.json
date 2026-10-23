@@ -44,7 +44,9 @@
     "test:tooling": "node --test scripts/tests/*.test.mjs",
     "release:plan": "node scripts/release-plan.mjs",
     "release:prepare": "node scripts/release-prepare.mjs",
-    "test:java-consumers": "node scripts/test-java-consumers.mjs"
+    "test:java-consumers": "node scripts/test-java-consumers.mjs",
+    "worker": "node apps/worker/dist/main.js",
+    "test:build-worker": "node scripts/test-build-worker.mjs"
   },
   "devDependencies": {
     "@api-docs/cli": "0.1.0",

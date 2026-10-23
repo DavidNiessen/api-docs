@@ -217,6 +217,24 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
 
+  apps/worker:
+    dependencies:
+      '@api-docs/cli':
+        specifier: 0.1.0
+        version: link:../../packages/cli
+      '@api-docs/compiler':
+        specifier: 0.1.0
+        version: link:../../packages/compiler
+      '@api-docs/contracts':
+        specifier: 0.1.0
+        version: link:../../packages/contracts
+      '@api-docs/domain':
+        specifier: 0.1.0
+        version: link:../../packages/domain
+      '@api-docs/spec':
+        specifier: 0.1.0
+        version: link:../../packages/spec
+
   integrations/node:
     dependencies:
       '@api-docs/compiler':

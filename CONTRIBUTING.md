@@ -53,7 +53,7 @@ The `Repository quality` workflow runs on branch pushes, PRs (including title ed
 
 The required pnpm job starts from a fresh checkout, installs the pinned manager and frozen lockfile, audits dependencies, and runs formatting, ESLint, types, tooling tests, source tests and production builds. The existing npm source/browser and installed-consumer jobs remain required as well.
 
-The aggregate also requires the Linux Docker [isolated-build harness](docs/isolated-builds.md#validation), which builds an approved worker and checks resource enforcement, artifact parity, cancellation and cleanup after parent death. Run it locally when changing the runner or worker image.
+The aggregate also requires the Linux Docker [isolated-build harness](docs/isolated-builds.md#validation), which builds an approved worker and checks resource enforcement, artifact parity, cancellation and cleanup after parent death. Its PostgreSQL/API/worker acceptance also runs actual queued Docker builds, cancellation and killed-worker recovery after the real hard deadline. Run both harnesses locally when changing the runner, worker or image; see [worker acceptance](docs/build-worker.md#acceptance).
 
 Dependabot checks npm dependencies and GitHub Actions weekly. Actions are pinned by commit SHA. Maintainers must enable branch rules requiring `Quality` and review; repository files do not activate those settings.
 

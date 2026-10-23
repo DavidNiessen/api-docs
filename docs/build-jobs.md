@@ -1,6 +1,6 @@
 # Durable build jobs
 
-The PostgreSQL adapter exposes a typed `buildJobs` repository and the management server provides authenticated source/job HTTP routes. The separate worker executable and Studio build controls are still pending; installing the server does not start queued source builds. Use the existing operator-only [isolated build runner](isolated-builds.md) for executable builds.
+The PostgreSQL adapter exposes a typed `buildJobs` repository and the management server provides authenticated source/job HTTP routes. A [separate Linux worker](build-worker.md) claims explicitly prepared sources and runs restricted Docker builds; installing the server alone does not start queued work. Studio build controls remain pending. The operator-only [isolated build runner](isolated-builds.md) is also available directly.
 
 ## Approved sources
 
@@ -46,7 +46,7 @@ Values must be positive integers with consistent global/project bounds. Lowering
 
 `complete` checks aggregate source identity, the approved image, current tool version and duration, then atomically registers the artifact and records success/audit. It does not publish the artifact or change the project's active publication. Activation still requires the existing publication authorization and expected-pointer flow.
 
-The repository is an internal trusted port. It does not authenticate actors, authorize project membership, execute Docker, verify filesystem artifacts or prove a worker's receipt. Its caller must enforce those boundaries. The future worker must use `expectedSourceDigest` before any plugin/MDX execution, verify and stage the immutable artifact, and only then call completion. Keep the Docker socket and worker credentials away from the request server and source workload.
+The repository is an internal trusted port. It does not authenticate actors, authorize project membership, execute Docker, verify filesystem artifacts or prove a worker's receipt. Its caller must enforce those boundaries. The separate worker uses `expectedSourceDigest` before any plugin/MDX execution, verifies and stages the immutable artifact, and only then calls completion. Keep the Docker socket and worker credentials away from the request server and source workload.
 
 `sources(projectId, { after, activeOnly })` and `jobs(projectId, after)` return at most 100 entries plus `nextCursor`. Continue with that cursor for complete history. Ordering is creation time and UUID descending; cursor lookups remain within the project. Job/source reads contain only their documented fields, ISO UTC dates and bounded result metadata.
 
@@ -85,4 +85,4 @@ This adapter requires database schema version **2**. Run the matching schema-own
 
 Keep the application image matched to the database schema. An older version 1 runtime will refuse a version 2 database; restore a compatible recovery set for a schema rollback. No automatic down-migration is provided. See the [deployment and recovery runbook](deployment.md).
 
-Acceptance tests use actual PostgreSQL concurrent claims, lock interleavings, expirations, capacity limits, cancellation, revocation, idempotency, pagination and upgrade rollback. `TEST_DATABASE_URL` must refer to a disposable schema-owner fixture. The runtime-grant acceptance case additionally needs `CREATEROLE` or a test superuser to create/drop its isolated runtime identity; production migration roles do not require that test-only permission. HTTP acceptance additionally checks role/token/origin isolation, strict request budgets, cancellation fencing, real staged-byte verification, receipt mismatches and publication separation. Complete workflow acceptance with the worker and Docker remains pending.
+Acceptance tests use actual PostgreSQL concurrent claims, lock interleavings, expirations, capacity limits, cancellation, revocation, idempotency, pagination and upgrade rollback. `TEST_DATABASE_URL` must refer to a disposable schema-owner fixture. The runtime-grant acceptance case additionally needs `CREATEROLE` or a test superuser to create/drop its isolated runtime identity; production migration roles do not require that test-only permission. HTTP acceptance additionally checks role/token/origin isolation, strict request budgets, cancellation fencing, real staged-byte verification, receipt mismatches and publication separation. The separate [worker/Docker harness](build-worker.md#acceptance) covers actual source execution, cancellation, killed-process cleanup and recovery through the HTTP API.

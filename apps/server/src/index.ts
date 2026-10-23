@@ -118,10 +118,26 @@ export async function createServer(options: ServerOptions) {
   });
   app.decorateRequest('principal', undefined);
   await app.register(cookie);
+  const rateLane = (request: FastifyRequest) => {
+    const route = request.routeOptions.url;
+    const authorization = request.headers.authorization;
+    if (
+      request.method === 'POST' &&
+      (route === '/api/build-workers/claim' ||
+        /^\/api\/projects\/:project\/builds\/:job\/(?:heartbeat|complete|fail)$/.test(
+          route ?? '',
+        )) &&
+      authorization?.startsWith('Bearer ') &&
+      authorization.length <= 1024 &&
+      equalSecret(authorization.slice(7), options.rootToken)
+    )
+      return 'worker';
+    return request.url.startsWith('/docs/') ? 'reader' : 'management';
+  };
   await app.register(rateLimit, {
-    max: (request) => (request.url.startsWith('/docs/') ? 12000 : 300),
-    keyGenerator: (request) =>
-      `${request.ip}:${request.url.startsWith('/docs/') ? 'reader' : 'management'}`,
+    max: (request) =>
+      ({ reader: 12000, worker: 1200, management: 300 })[rateLane(request)],
+    keyGenerator: (request) => `${request.ip}:${rateLane(request)}`,
     timeWindow: '1 minute',
     allowList: (request) =>
       !request.url.startsWith('/api/') &&
@@ -129,6 +145,9 @@ export async function createServer(options: ServerOptions) {
       !request.headers.authorization &&
       !request.headers.cookie,
   });
+  // Instance authentication hooks run before route hooks. Charge rejected tokens
+  // here too; the plugin's request marker prevents the route hook charging twice.
+  app.addHook('onRequest', app.rateLimit());
   const relayRateGate = relay
     ? app.createRateLimit({
         max: relay.perMinute,
