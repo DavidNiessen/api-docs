@@ -30,6 +30,10 @@ jobs:
   browser:
     name: ${{ matrix.browser }} reader, mock demo and Studio
     runs-on: ubuntu-24.04
+    container:
+      # Playwright 1.64.1 / Ubuntu 24.04, Linux amd64; update with the npm pin.
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:d65108d1a8095d8b0c4a5e32bf1807a40a5ce90ff0c78473e1116b1c243235e8
+      options: --shm-size=1g
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -42,13 +46,12 @@ jobs:
           POSTGRES_USER: apidocs
           POSTGRES_DB: apidocs
           POSTGRES_PASSWORD: isolated-ci-fixture
-        ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U apidocs"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       PLAYWRIGHT_BROWSER: ${{ matrix.browser }}
-      TEST_DATABASE_URL: postgresql://apidocs:isolated-ci-fixture@127.0.0.1:5432/apidocs
+      TEST_DATABASE_URL: postgresql://apidocs:isolated-ci-fixture@postgres:5432/apidocs
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -69,14 +72,17 @@ jobs:
       - run: npm run build
       - run: npm run demo:build
       - run: npm run demo:pages
-      - name: Install the selected engine and required host libraries
-        timeout-minutes: 8
+      - name: Verify the pinned engine and host libraries
+        timeout-minutes: 2
         run: |
-          if test "$PLAYWRIGHT_BROWSER" = chromium; then
-            npx playwright install chromium
-          else
-            npx playwright install --with-deps "$PLAYWRIGHT_BROWSER"
-          fi
+          node --input-type=module <<'NODE'
+          import { browserOptions } from './tests/helpers/browser-config.ts';
+          import * as engines from 'playwright';
+          const { browserName, launchOptions } = browserOptions();
+          const browser = await engines[browserName].launch({ ...launchOptions, timeout: 30000 });
+          try { console.log(`${browserName}: ${browser.version()}`); }
+          finally { await browser.close(); }
+          NODE
       - name: Reader and real API playground journeys
         run: npm run test:e2e -- --output=.api-docs/browser-results/reader
       - name: Static mock demo journeys
