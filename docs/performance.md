@@ -12,6 +12,12 @@ Release rehearsal repeats both compiler and reader budgets after applying the ca
 
 The prepared source is intentionally dirty because metadata was advanced without creating a release commit. These receipts validate an unpublished rehearsal; repeat release acceptance against the reviewed final commit before publishing. Measurements and public fixture screenshots are retained for 28 days. Lab interaction timings remain distinct from field INP, and this gate does not establish sustained server throughput or production capacity.
 
+## Prepared candidate hosted results
+
+[Release rehearsal 39995916569](https://github.com/DavidNiessen/api-docs/actions/runs/39995916569) passed all jobs at source `36ee79b`, preparing unpublished version `0.2.0`. Both reports identify that tool/publication version, source commit and intentionally dirty prepared tree. The 10,000-operation/50,000-schema-node compiler fixture completed in **57.79 seconds**, with **944.5 MiB** peak RSS, **4.92 ms** warm search p95 and **161.03 ms** incremental guide p95. The verified full-build artifact is `24e5de26161b73d62abb1fb891f83a497577004dafbf70e03187c88797327b8b`.
+
+Ten cold mobile samples per guide/endpoint route reported LCP p95 **876/868 ms**, maximum CLS **0**, search-dialog interaction p95 **57.6/67.6 ms**, and calculated initial JavaScript gzip **127,643 bytes**. Reader artifact `bc5a60499538c13656a893cb7e35edc9eade70eea9c09b17a94a139976000ffb` passed the source/version/profile/sample/summary checks. All existing budgets passed. These shared-runner lab results are not a controlled comparison or field INP, and the prepared working tree is not an approved signed distribution.
+
 ## Recorded baseline
 
 A cloud Linux run on 22 October 2026 used Node 24.19.0 with four reported available CPUs, a 1536 MiB V8 old-space limit, and an OpenAPI 3.1 fixture with 10,000 operations and 50,000 schema nodes.
