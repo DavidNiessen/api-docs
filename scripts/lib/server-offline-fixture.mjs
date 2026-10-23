@@ -246,6 +246,8 @@ export async function verifyOfflineInstall(source) {
         image,
       );
     assert.deepEqual(await tags(), originalTags);
+    // Import verification has finished; avoid retaining a second full image set during startup.
+    await rm(archive);
 
     await command(process.execPath, [
       resolve('scripts/init-deployment.mjs'),

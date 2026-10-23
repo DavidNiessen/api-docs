@@ -100,12 +100,14 @@ Artifacts must remain immutable after staging. These checks establish content in
 
 ## Disposable server-container acceptance
 
-Build the default server target and test its immutable image with a local Linux Docker daemon and cgroup v2. Cache the exact PostgreSQL digest from `deploy/compose.yaml` first. Run from the repository root after `npm ci --ignore-scripts && npm run build`:
+Build the default server target and test its immutable image with a local Linux Docker daemon and cgroup v2. Cache the exact PostgreSQL digest from `deploy/compose.yaml` first. A full Git checkout is required to build the recorded historical upgrade baseline. Run from the repository root after `npm ci --ignore-scripts && npm run build`:
 
 ```sh
 docker build --target server --iidfile /tmp/api-docs-server.id .
+mkdir -p .api-docs
+node scripts/build-upgrade-baseline.mjs > .api-docs/upgrade-baseline-evidence.json
 docker pull caddy:2.11.7-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
-SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent
+SERVER_BASELINE_IMAGE="$(cat .api-docs/upgrade-baseline.id)" SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent
 ```
 
 The harness uses the shipped Compose file with a unique project, fresh credentials, an unpublished loopback port and owned volumes/networks. It refuses external resource reuse and does not select an existing deployment. A fixture is compiled offline inside that exact server image, then published only to the disposable installation. Acceptance verifies schema/runtime role grants, UID 1000, a read-only root, no capabilities, seccomp, no new privileges and explicit test limits (512 MiB, two CPUs, 128 PIDs). These limits are test overrides; choose production capacity for your workload.
@@ -131,3 +133,13 @@ Before restoration, incomplete/corrupt sets must fail without creating target co
 Both source and target cleanup are checked before the JSON receipt reports success. The prepared release gate requires at least nine recovery checks, the selected server image, matching artifact identity and verified target cleanup. No existing deployment, external volume or production credential is selected. This exercises a small single-host fixture with cached images; site-specific recovery time/point objectives, major PostgreSQL upgrades, encrypted off-host storage and full air-gapped installation remain operator acceptance work.
 
 Hosted [Quality 40002181064](https://github.com/DavidNiessen/api-docs/actions/runs/40002181064) and [release rehearsal 40003175317](https://github.com/DavidNiessen/api-docs/actions/runs/40003175317) passed every required job at `3f6cb48`. The prepared `0.2.0` image `sha256:18902b0cbff8e2ab23803ed3c28009bc00bade4e276764130731f12e2428514e` passed the same source/target image and artifact checks, nine recovery checks and both cleanup checks. The restored fixture artifact was `6e8eee1229e2e7424d8e85e5446c8eb4b2c433a407ad97a07aa5d7e4c709b607`. This is recorded single-host rehearsal evidence, not a signed or approved release.
+
+### Automated schema upgrade and rollback rehearsal
+
+The baseline builder exports historical commit `ff2c87f874357792fb9ac575f8002e9e88d0f94e` from local Git history and builds its original server Dockerfile and lockfile, retaining the immutable image ID and source label. It never downloads a mutable source branch or changes the current checkout's prepared version. This is a pre-release schema-1 compatibility fixture, not a supported public release. Its old dependencies are used only in disposable local acceptance.
+
+Container acceptance starts that actual older server in a separate owned Compose project and publishes the current verified artifact privately. It creates a scoped viewer token and editor role, hashes all durable schema-1 project/role/artifact/publication/token/audit rows and invokes the real backup CLI. The new runtime must refuse the unmigrated database. A deliberately conflicting queue table makes the new migration fail; its transaction must retain schema 1, all prior rows and no partially created source table.
+
+After the conflict is removed, the matching migration must apply schema 2, preserve every recorded row and grant queue access while retaining append-only audit and read-only migration history. The new server must serve the same private files and publication idempotently. The old executable must refuse schema 2. Finally, the original deployment is removed and its pre-upgrade recovery set is restored into a different fresh project with the older image and new secrets. The old runtime must then serve the same publication and scoped token on schema 1; the old root credential must fail.
+
+The ten-check receipt binds both image IDs, the historical source commit, artifact, metadata checksum, recovery-file checksums, schema sequence and private-file coverage. Cleanup of both projects is required. Quality and prepared release rehearsal build the baseline independently and require the result. This exercises the first schema transition on PostgreSQL 17; it does not validate PostgreSQL major upgrades, arbitrary older versions, live traffic migration, multi-replica operation or the site's recovery objectives. Production operators must retain a tested compatible image and pre-upgrade recovery set, pause writers and verify a fresh rollback before switching traffic.

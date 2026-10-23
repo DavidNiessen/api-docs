@@ -20,9 +20,16 @@ import { assertOwnedCompose } from './lib/compose-fixtures.mjs';
 import { verifyServerRecovery } from './lib/server-recovery-fixture.mjs';
 import { verifyServerProxy } from './lib/server-proxy-fixture.mjs';
 import { verifyOfflineInstall } from './lib/server-offline-fixture.mjs';
+import { verifyServerUpgrade } from './lib/server-upgrade-fixture.mjs';
 
 assert.equal(process.platform, 'linux', 'Use a local Linux Docker daemon.');
 const requestedImage = process.env.SERVER_TEST_IMAGE;
+const baselineImage = process.env.SERVER_BASELINE_IMAGE;
+assert.match(
+  baselineImage ?? '',
+  /^sha256:[a-f0-9]{64}$/,
+  'Build the historical server with scripts/build-upgrade-baseline.mjs and set SERVER_BASELINE_IMAGE to its immutable ID.',
+);
 assert.match(
   requestedImage ?? '',
   /^(?:sha256:[a-f0-9]{64}|[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64})$/,
@@ -596,6 +603,23 @@ try {
     artifactId,
   });
   report = {
+    upgrade: await verifyServerUpgrade({
+      project,
+      image,
+      baselineImage,
+      environment,
+      docker,
+      step,
+      sanitize,
+      secretValues,
+      store,
+      slug,
+      expected,
+      privateRoot,
+      privateMarker,
+      paths,
+      artifactId,
+    }),
     offline,
     proxy,
     recovery,
@@ -622,7 +646,17 @@ try {
   if (composeOwned) {
     try {
       console.error(
-        sanitize(await compose('logs', '--no-color', '--tail', '40', 'docs')),
+        sanitize(
+          await compose(
+            'logs',
+            '--no-color',
+            '--tail',
+            '20',
+            'db',
+            'migrate',
+            'docs',
+          ),
+        ),
       );
     } catch {
       console.error('Container logs were unavailable.');

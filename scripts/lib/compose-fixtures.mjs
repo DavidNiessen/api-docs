@@ -9,7 +9,7 @@ export function assertOwnedCompose(
 ) {
   assert.match(
     project,
-    /^api-docs-(?:runtime|restore|offline)-[a-f0-9]{16}$/,
+    /^api-docs-(?:runtime|restore|offline|upgrade|rollback)-[a-f0-9]{16}$/,
     'Use a unique owned fixture project',
   );
   assert.equal(configuration.name, project);

@@ -64,10 +64,24 @@ test('refuses project names without the fixture nonce format before cleanup can 
     'api-docs-runtime',
     'api-docs-restore-test',
     'api-docs-offline-test',
+    'api-docs-upgrade-test',
+    'api-docs-rollback-test',
   ])
     assert.throws(() =>
       assertOwnedCompose({ ...configuration, name }, name, image),
     );
+});
+
+test('upgrade and rollback projects require the same owned resources and private listeners', () => {
+  for (const kind of ['upgrade', 'rollback']) {
+    const name = `api-docs-${kind}-${'d'.repeat(16)}`;
+    const value = JSON.parse(
+      JSON.stringify(configuration).replaceAll(project, name),
+    );
+    assertOwnedCompose(value, name, image);
+    value.volumes.database.external = true;
+    assert.throws(() => assertOwnedCompose(value, name, image));
+  }
 });
 
 test('offline fixtures accept only their selected immutable imported database image', () => {

@@ -235,7 +235,7 @@ jobs:
     name: Prepared isolated builds
     needs: plan
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:17-alpine@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
@@ -276,10 +276,12 @@ jobs:
         run: ISOLATED_BUILD_IMAGE="$(cat /tmp/api-docs-builder.id)" npm run test:build-worker --silent > .api-docs/build-worker-evidence.json
       - name: Build shipped server from this checkout
         run: docker build --target server --iidfile /tmp/api-docs-server.id .
+      - name: Build recorded schema-1 upgrade baseline
+        run: node scripts/build-upgrade-baseline.mjs > .api-docs/upgrade-baseline-evidence.json
       - name: Verify fresh Compose installation, private content and outage recovery
         run: |
           docker pull caddy:2.11.7-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
-          SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent > .api-docs/server-container-evidence.json
+          SERVER_BASELINE_IMAGE="$(cat .api-docs/upgrade-baseline.id)" SERVER_TEST_IMAGE="$(cat /tmp/api-docs-server.id)" npm run test:server-container --silent > .api-docs/server-container-evidence.json
       - name: Install the checksum-pinned inventory scanner
         run: node scripts/install-inventory-tool.mjs
       - name: Inventory the tested server image and verify its receipt
@@ -346,6 +348,19 @@ jobs:
           assert.match(server.offline.archiveSha256, /^[a-f0-9]{64}$/);
           assert.match(server.offline.databaseImage, /^sha256:[a-f0-9]{64}$/);
           assert.match(server.offline.databaseReference, /^postgres:17-alpine@sha256:[a-f0-9]{64}$/);
+          const baseline = JSON.parse(await readFile('.api-docs/upgrade-baseline-evidence.json', 'utf8'));
+          const { upgradeBaselineCommit } = await import('./scripts/lib/server-upgrade-fixture.mjs');
+          assert.equal(baseline.baselineCommit, upgradeBaselineCommit);
+          assert.equal(server.upgrade.baselineCommit, upgradeBaselineCommit);
+          assert.equal(server.upgrade.baselineImage, baseline.image);
+          assert.equal(server.upgrade.serverImage, serverImage);
+          assert.equal(server.upgrade.artifactId, server.artifactId);
+          assert.equal(server.upgrade.schemaBefore, 1);
+          assert.equal(server.upgrade.schemaAfter, 2);
+          assert.equal(server.upgrade.schemaRestored, 1);
+          assert.equal(server.upgrade.cleanupVerified, true);
+          assert(server.upgrade.checks.length >= 10 && server.upgrade.privateFiles >= 8);
+          assert.match(server.upgrade.metadataSha256, /^[a-f0-9]{64}$/);
           const inventory = JSON.parse(await readFile('.api-docs/container-inventory-evidence.json', 'utf8'));
           assert.equal(inventory.toolVersion, toolVersion);
           assert.equal(inventory.resolvedImage, serverImage);
@@ -360,6 +375,7 @@ jobs:
             .api-docs/isolated-build-evidence.json
             .api-docs/build-worker-evidence.json
             .api-docs/server-container-evidence.json
+            .api-docs/upgrade-baseline-evidence.json
             .api-docs/container-inventory-evidence.json
             .api-docs/container-candidates/**/server.cdx.json
             .api-docs/container-candidates/**/report.json
