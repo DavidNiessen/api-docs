@@ -7,6 +7,7 @@ export interface SpecSource {
   path: string;
   version?: string;
   content: string;
+  references?: string;
 }
 
 /** Bound source text before and after every hook, without interpreting OpenAPI here. */
@@ -20,7 +21,8 @@ export function validateSpecSources(value: unknown): SpecSource[] {
       typeof source !== 'object' ||
       Array.isArray(source) ||
       Object.keys(source).some(
-        (key) => !['id', 'path', 'version', 'content'].includes(key),
+        (key) =>
+          !['id', 'path', 'version', 'content', 'references'].includes(key),
       ) ||
       typeof source.id !== 'string' ||
       !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(source.id) ||
@@ -33,6 +35,11 @@ export function validateSpecSources(value: unknown): SpecSource[] {
         (typeof source.version !== 'string' ||
           !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(source.version) ||
           source.version.length > 1024)) ||
+      (source.references !== undefined &&
+        (typeof source.references !== 'string' ||
+          source.references.length > 1024 ||
+          !/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(source.references) ||
+          source.references.split('/').includes('..'))) ||
       typeof source.content !== 'string' ||
       Buffer.byteLength(source.content) > 16 * 1024 * 1024
     )

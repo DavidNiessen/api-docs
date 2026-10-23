@@ -8,6 +8,9 @@ import {
   record,
   text,
 } from './source.js';
+import { loadReferenceSnapshot } from './reference-snapshot.js';
+import { bundleReferenceSources } from './reference-bundle.js';
+import { join } from 'node:path';
 import { normalizeSpec } from './normalize.js';
 export { configSchema, parseConfig } from './config.js';
 export {
@@ -23,6 +26,20 @@ export { resolveSchema, exampleFor } from '@api-docs/contracts';
 export { diffApi } from './diff.js';
 export type { ContractChange } from './diff.js';
 export { checkExamples } from './examples.js';
+export {
+  downloadReferenceSnapshot,
+  loadReferenceSnapshot,
+  parseReferencePolicy,
+  parseReferenceManifest,
+  referenceDigest,
+} from './reference-snapshot.js';
+export type {
+  ReferencePolicy,
+  ReferenceManifest,
+  ReferenceDocument,
+  ReferenceSnapshot,
+  ReferenceSnapshotOptions,
+} from './reference-snapshot.js';
 export { downloadSpec } from './remote.js';
 export type { RemoteSpecOptions, RemoteSpecSnapshot } from './remote.js';
 export {
@@ -34,10 +51,30 @@ export type { OutboundRequestOptions, OutboundResponse } from './outbound.js';
 
 export async function loadSpec(
   root: string,
-  input: { id: string; path: string; version?: string },
+  input: { id: string; path: string; version?: string; references?: string },
   options: { source?: string } = {},
 ): Promise<ApiDocument> {
   const filename = await confinedPath(root, input.path);
+  if (input.references !== undefined) {
+    try {
+      const snapshot = await loadReferenceSnapshot(root, input.references);
+      if (
+        filename !==
+        join(snapshot.directory, snapshot.manifest.documents[0]!.path)
+      )
+        throw new Error('Snapshot root does not match the configured spec');
+      const bundled = await bundleReferenceSources(
+        snapshot.manifest.root,
+        snapshot.sources,
+        options.source,
+      );
+      return normalizeSpec(record(bundled), input);
+    } catch {
+      throw new Error(
+        'Frozen reference snapshot failed integrity or OpenAPI validation',
+      );
+    }
+  }
   const source = options.source ?? (await readTextFile(filename));
   const parsed = record(parseSource(source, input.path));
   if (!/^3\.(0|1)\.\d+$/.test(text(parsed.openapi)))

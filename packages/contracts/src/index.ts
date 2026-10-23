@@ -169,7 +169,7 @@ export interface ProjectConfig {
   assets?: string;
   siteUrl?: string;
   seo?: { index: boolean; socialImage?: string };
-  specs: { id: string; path: string; version?: string }[];
+  specs: { id: string; path: string; version?: string; references?: string }[];
   guides: string;
   theme: Theme;
   links: { label: string; href: string }[];

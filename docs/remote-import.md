@@ -1,6 +1,6 @@
 # Importing remote OpenAPI snapshots
 
-`api-docs import-spec` explicitly downloads a self-contained OpenAPI 3.0/3.1 YAML or JSON document, validates it, and saves its original bytes inside a project. Builds, doctor and preview continue using local files; they never fetch a configured URL automatically. Relative/remote external references must be bundled or vendored first. Local fragment references, including recursive schemas, are supported.
+`api-docs import-spec` explicitly downloads a self-contained OpenAPI 3.0/3.1 YAML or JSON document, validates it, and saves its original bytes inside a project. Builds, doctor and preview continue using local files; they never fetch a configured URL automatically. For relative or remote external references, use [pinned reference snapshots](reference-snapshots.md) or bundle the document first. Local fragment references, including recursive schemas, are supported.
 
 Create the destination parent directory, then import from an exact allowed origin:
 

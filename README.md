@@ -40,7 +40,7 @@ node packages/cli/dist/main.js build my-docs
 node packages/cli/dist/main.js serve my-docs/.api-docs/site
 ```
 
-Edit `docs.config.yaml`, point it to your YAML or JSON OpenAPI document, and add Markdown guides. Copy the generated `.api-docs/site` folder to any static host. See the [CLI reference](docs/cli.md), [OpenAPI compatibility](docs/openapi-compatibility.md), [guide authoring](docs/authoring.md), and [branding and SEO](docs/customization.md), and [deprecations and migration guidance](docs/lifecycle.md), and [core reader UI translations](docs/internationalization.md).
+Edit `docs.config.yaml`, point it to your YAML or JSON OpenAPI document, and add Markdown guides. Copy the generated `.api-docs/site` folder to any static host. Multi-file remote specs can use [pinned offline reference snapshots](docs/reference-snapshots.md). See the [CLI reference](docs/cli.md), [OpenAPI compatibility](docs/openapi-compatibility.md), [guide authoring](docs/authoring.md), and [branding and SEO](docs/customization.md), and [deprecations and migration guidance](docs/lifecycle.md), and [core reader UI translations](docs/internationalization.md).
 
 ## Repository checks
 

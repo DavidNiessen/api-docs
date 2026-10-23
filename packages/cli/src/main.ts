@@ -9,7 +9,14 @@ import {
   auditDocumentation,
   checkProjectPluginConformance,
 } from '@api-docs/compiler';
-import { loadSpec, diffApi } from '@api-docs/spec';
+import {
+  confinedPath,
+  readTextFile,
+  parseSource,
+  parseReferencePolicy,
+  loadSpec,
+  diffApi,
+} from '@api-docs/spec';
 import {
   lifecycleReport,
   isCalendarDate,
@@ -21,6 +28,7 @@ import {
   stageArtifact,
   createDevelopmentBuilder,
   importRemoteSpec,
+  vendorRemoteSpec,
   buildIsolatedSite,
 } from './index.js';
 const program = new Command()
@@ -110,6 +118,85 @@ program
       });
       console.log(
         `Imported ${result.bytes} bytes to ${result.path} (SHA-256 ${result.sha256}).`,
+      );
+    },
+  );
+program
+  .command('vendor-spec <policy> [project]')
+  .description(
+    'Download a pinned external-reference snapshot for offline builds',
+  )
+  .requiredOption(
+    '--allow-origin <origin>',
+    'exact operator-approved origin (repeatable)',
+    (value: string, previous: string[]) => [...previous, value],
+    [],
+  )
+  .option(
+    '-o, --output <directory>',
+    'project-relative snapshot directory',
+    'spec-snapshots',
+  )
+  .option('--allow-http', 'explicitly permit HTTP for approved sources')
+  .option(
+    '--allow-private-network',
+    'explicitly permit eligible private/loopback addresses',
+  )
+  .option(
+    '--bearer-env <url=name>',
+    'bind a bearer environment variable to one exact source URL (repeatable)',
+    (value: string, previous: string[]) => [...previous, value],
+    [],
+  )
+  .action(
+    async (
+      policyFile: string,
+      project = '.',
+      options: {
+        allowOrigin: string[];
+        output: string;
+        allowHttp?: boolean;
+        allowPrivateNetwork?: boolean;
+        bearerEnv: string[];
+      },
+    ) => {
+      const policy = parseReferencePolicy(
+        parseSource(
+          await readTextFile(
+            await confinedPath(project, policyFile),
+            64 * 1024,
+          ),
+          policyFile,
+        ),
+      );
+      const credentials: Record<string, string> = {};
+      for (const binding of options.bearerEnv) {
+        const separator = binding.lastIndexOf('='),
+          url = binding.slice(0, separator),
+          name = binding.slice(separator + 1);
+        if (
+          separator < 1 ||
+          !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ||
+          !policy.sources.some((source) => source.url === url) ||
+          Object.hasOwn(credentials, url)
+        )
+          throw new Error('Invalid exact-source bearer environment binding');
+        const token = process.env[name];
+        if (!token?.trim())
+          throw new Error(
+            'Source bearer environment variable is missing or empty',
+          );
+        credentials[url] = token;
+      }
+      const result = await vendorRemoteSpec(project, policy, {
+        allowedOrigins: options.allowOrigin,
+        output: options.output,
+        allowHttp: options.allowHttp === true,
+        allowPrivateNetwork: options.allowPrivateNetwork === true,
+        credentials,
+      });
+      console.log(
+        `Vendored ${result.sources} pinned sources (${result.bytes} bytes). Configure path: ${result.path}, references: ${result.references}.`,
       );
     },
   );

@@ -100,6 +100,7 @@ try {
           'public-types',
           'cli-init',
           'remote-spec-import-and-isolated-validation',
+          'pinned-reference-cli-worker-and-offline-build',
           'trusted-mdx-and-plugin-workers',
           'doctor-strict',
           'artifact-verification',

@@ -41,6 +41,8 @@ import { renderDocument } from '@api-docs/reader/render';
 import { searchAssets } from './search-assets.js';
 import { confinedPath, readTextFile } from '@api-docs/spec';
 import { activateDirectory } from './activate.js';
+export { vendorRemoteSpec } from './vendor-spec.js';
+export type { VendorSpecOptions } from './vendor-spec.js';
 export { importRemoteSpec } from './import-spec.js';
 export type { ImportSpecOptions } from './import-spec.js';
 export { buildIsolatedSite } from './isolation.js';

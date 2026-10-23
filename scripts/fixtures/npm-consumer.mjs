@@ -12,6 +12,8 @@ import { createStaticServer } from '@api-docs/cli';
 import { verifyArtifact } from '@api-docs/compiler';
 import {
   downloadSpec,
+  loadSpec,
+  loadReferenceSnapshot,
   parseConfig,
   requestAllowedOrigin,
 } from '@api-docs/spec';
@@ -264,7 +266,7 @@ const typedReaderExtension=defineTypedReaderExtension({id:'typed-reader',version
 await writeFile(
   'types.mts',
   typeImports.join('\n') +
-    `\nimport { definePlugin } from '@api-docs/plugin-sdk';\nimport type { ThemePatch, BuildPluginContext, SpecSource, SnippetInput, SnippetSample } from '@api-docs/plugin-sdk';\nimport type { SiteData } from '@api-docs/contracts';\nimport { createExpressDocs } from '@api-docs/node/express';\nimport { apiDocsPlugin } from '@api-docs/node/fastify';\nimport { buildSite } from '@api-docs/cli';\nconst plugin = definePlugin({ name: 'installed-types', version: '1.0.0', pluginApi: '1', capabilities: ['source', 'theme', 'transform', 'snippets'], loadSpec: (source: Readonly<SpecSource>) => source.content, theme: (theme, context: BuildPluginContext): ThemePatch => ({ radius: context.signal.aborted ? theme.radius : 12 }), transform: (site: SiteData) => site, generateSnippets: ({operation}: SnippetInput): SnippetSample[] => [{id:'sdk', label:'SDK', language:'javascript', code:operation.id}] });\nvoid [plugin, createExpressDocs, apiDocsPlugin, buildSite];\n`,
+    `\nimport { definePlugin } from '@api-docs/plugin-sdk';\nimport type { ThemePatch, BuildPluginContext, SpecSource, SnippetInput, SnippetSample } from '@api-docs/plugin-sdk';\nimport type { SiteData } from '@api-docs/contracts';\nimport { createExpressDocs } from '@api-docs/node/express';\nimport { apiDocsPlugin } from '@api-docs/node/fastify';\nimport { buildSite } from '@api-docs/cli';\nconst plugin = definePlugin({ name: 'installed-types', version: '1.0.0', pluginApi: '1', capabilities: ['source', 'theme', 'transform', 'snippets'], loadSpec: (source: Readonly<SpecSource>) => source.content, theme: (theme, context: BuildPluginContext): ThemePatch => ({ radius: context.signal.aborted ? theme.radius : 12 }), transform: (site: SiteData) => site, generateSnippets: ({operation}: SnippetInput): SnippetSample[] => [{id:'sdk', label:'SDK', language:'javascript', code:operation.id}] });\nconst pinnedSource: SpecSource = { id: 'pinned', path: 'source-0.yaml', content: '', references: 'snapshot.json' };\nvoid [plugin, pinnedSource, createExpressDocs, apiDocsPlugin, buildSite];\n`,
 );
 await exec(process.execPath, [
   'node_modules/typescript/bin/tsc',
@@ -303,6 +305,13 @@ const importedSource = Buffer.from(
 const importedDigest = createHash('sha256')
   .update(importedSource)
   .digest('hex');
+const pinnedRoot = Buffer.from(
+  'openapi: 3.1.0\ninfo: {title: Installed pinned API, version: v1}\npaths: {}\ncomponents:\n  schemas:\n    Item: {$ref: "./models.yaml#/Item"}\n',
+);
+const pinnedModel = Buffer.from(
+  'Item: {type: object, properties: {id: {type: string}}}\n',
+);
+let pinnedSpec;
 const sourceServer = createServer(async (request, response) => {
   if (request.method === 'POST') {
     const chunks = [];
@@ -310,7 +319,9 @@ const sourceServer = createServer(async (request, response) => {
     response
       .writeHead(201, { 'Content-Type': 'application/octet-stream' })
       .end(Buffer.concat(chunks));
-  } else response.end(importedSource);
+  } else if (request.url === '/pinned/openapi.yaml') response.end(pinnedRoot);
+  else if (request.url === '/pinned/models.yaml') response.end(pinnedModel);
+  else response.end(importedSource);
 });
 await new Promise((resolve, reject) => {
   sourceServer.once('error', reject);
@@ -352,10 +363,71 @@ try {
   ]);
   assert(imported.stdout.includes(importedDigest));
   assert.deepEqual(await readFile('docs/downloaded.json'), importedSource);
+  await mkdir('frozen');
+  await writeFile(
+    'frozen/policy.json',
+    JSON.stringify({
+      schemaVersion: 1,
+      root: origin + '/pinned/openapi.yaml',
+      sources: [
+        {
+          url: origin + '/pinned/openapi.yaml',
+          sha256: createHash('sha256').update(pinnedRoot).digest('hex'),
+        },
+        {
+          url: origin + '/pinned/models.yaml',
+          sha256: createHash('sha256').update(pinnedModel).digest('hex'),
+        },
+      ],
+    }),
+  );
+  const vendored = await exec(process.execPath, [
+    cli,
+    'vendor-spec',
+    'policy.json',
+    'frozen',
+    '--allow-origin',
+    origin,
+    '--allow-http',
+    '--allow-private-network',
+  ]);
+  const digest = vendored.stdout.match(/spec-snapshots\/([a-f0-9]{64})\//)?.[1];
+  assert(digest, 'Installed CLI did not produce a reference snapshot');
+  assert(!vendored.stdout.includes(origin));
+  pinnedSpec = {
+    id: 'pinned',
+    path: `spec-snapshots/${digest}/source-0.yaml`,
+    references: `spec-snapshots/${digest}/snapshot.json`,
+  };
+  const cached = await loadReferenceSnapshot(
+    join(root, 'frozen'),
+    pinnedSpec.references,
+  );
+  assert.equal(cached.manifest.documents.length, 2);
+  assert.deepEqual(await readFile(join('frozen', pinnedSpec.path)), pinnedRoot);
 } finally {
   sourceServer.closeAllConnections();
   await new Promise((resolve) => sourceServer.close(resolve));
 }
+// The source server is closed: the physically installed loader and CLI must use only pinned bytes.
+assert(pinnedSpec);
+assert.equal(
+  (await loadSpec(join(root, 'frozen'), pinnedSpec)).title,
+  'Installed pinned API',
+);
+await writeFile(
+  'frozen/docs.config.yaml',
+  JSON.stringify({ name: 'Frozen consumer', specs: [pinnedSpec] }),
+);
+await exec(process.execPath, [cli, 'build', 'frozen']);
+const frozenManifest = await verifyArtifact(
+  join(root, 'frozen/.api-docs/site'),
+);
+assert(
+  !Object.keys(frozenManifest.files).some((file) =>
+    file.startsWith('spec-snapshots/'),
+  ),
+);
 await exec(process.execPath, [cli, 'doctor', 'docs', '--strict']);
 const config = join(root, 'docs/docs.config.yaml');
 await writeFile(
