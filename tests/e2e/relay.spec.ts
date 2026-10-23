@@ -211,7 +211,9 @@ test('closing the modal cancels a pending relay exchange without an automatic re
     (request) => request.url() === endpoint,
   );
   await page.keyboard.press('Escape');
-  expect((await failed).failure()?.errorText).toContain('ERR_ABORTED');
+  expect((await failed).failure()?.errorText).toMatch(
+    /ERR_ABORTED|NS_BINDING_ABORTED|cancelled/i,
+  );
   release();
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   await expect(playground.getByLabel('Request transport')).toHaveValue(

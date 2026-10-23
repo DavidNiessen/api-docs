@@ -1,3 +1,4 @@
+import { browserOptions } from './tests/helpers/browser-config.js';
 import { defineConfig } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
 if (!process.env.TEST_DATABASE_URL)
@@ -7,14 +8,14 @@ export default defineConfig({
   testDir: './tests/studio',
   workers: 1,
   retries: 0,
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: 'playwright-studio-report', open: 'never' }],
+  ],
   use: {
     baseURL: 'http://127.0.0.1:8082',
-    launchOptions: {
-      ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-        : {}),
-      args: ['--no-sandbox'],
-    },
+    ...browserOptions(),
+    trace: 'retain-on-failure',
   },
   webServer: {
     command: 'node apps/server/dist/main.js',

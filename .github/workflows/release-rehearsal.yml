@@ -66,7 +66,7 @@ jobs:
           NODE
 
   source:
-    name: Prepared source and browser
+    name: Prepared source and npm consumers
     needs: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -101,8 +101,6 @@ jobs:
           cache: false
       - run: npm run test:go-snippets
       - run: npm run test:packages
-      - run: npx playwright install chromium
-      - run: npm run test:e2e
       - name: Retain unpublished rehearsal artifacts
         if: always() && steps.prepare.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -115,14 +113,12 @@ jobs:
             .api-docs/npm-candidates/**/consumer-result.json
             .api-docs/npm-candidates/**/consumer-package-lock.json
             .api-docs/npm-candidates/**/consumer-sbom.cdx.json
-            playwright-report/
-            test-results/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
 
   server:
-    name: Prepared server and Studio
+    name: Prepared server integration
     needs: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -157,8 +153,17 @@ jobs:
           baseline: ${{ inputs.baseline }}
       - run: npm run build
       - run: npm run test:integration
-      - run: npx playwright install chromium
-      - run: npm run test:studio
+
+  browsers:
+    name: Prepared browser compatibility
+    needs: plan
+    uses: ./.github/workflows/browser-compatibility.yml
+    with:
+      prepare: true
+      version: ${{ inputs.version }}
+      date: ${{ inputs.date }}
+      initial: ${{ inputs.initial }}
+      baseline: ${{ inputs.baseline }}
 
   java:
     name: Prepared Java ${{ matrix.java }} / Boot ${{ matrix.boot }}
@@ -389,7 +394,7 @@ jobs:
   result:
     name: Rehearsal result
     if: always()
-    needs: [plan, source, server, java, isolated-builds, performance]
+    needs: [plan, source, server, browsers, java, isolated-builds, performance]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -398,6 +403,7 @@ jobs:
           PLAN_RESULT: ${{ needs.plan.result }}
           SOURCE_RESULT: ${{ needs.source.result }}
           SERVER_RESULT: ${{ needs.server.result }}
+          BROWSER_RESULT: ${{ needs.browsers.result }}
           JAVA_RESULT: ${{ needs.java.result }}
           ISOLATED_RESULT: ${{ needs.isolated-builds.result }}
           PERFORMANCE_RESULT: ${{ needs.performance.result }}
@@ -405,6 +411,7 @@ jobs:
           test "$PLAN_RESULT" = success
           test "$SOURCE_RESULT" = success
           test "$SERVER_RESULT" = success
+          test "$BROWSER_RESULT" = success
           test "$JAVA_RESULT" = success
           test "$ISOLATED_RESULT" = success
           test "$PERFORMANCE_RESULT" = success

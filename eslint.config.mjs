@@ -10,6 +10,7 @@ export default defineConfig([
     '**/target/',
     'playwright-report/',
     'playwright-pages-report/',
+    'playwright-studio-report/',
     'test-results/',
     '**/.api-docs/**',
   ]),

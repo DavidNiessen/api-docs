@@ -24,6 +24,8 @@ Do not alternate managers in the same `node_modules`; use a fresh checkout or re
 
 Run `npm run format` to apply formatting. `npm run check` verifies Prettier, ESLint, Markdown, strict TypeScript, compiler tests, and a production build. Browser tests run with `npm run demo:build && npm run test:e2e` after `npx playwright install chromium`. For a system Chromium install, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to its executable path.
 
+`PLAYWRIGHT_BROWSER` selects `chromium` (default), `firefox` or `webkit` for the reader, Pages demo and Studio suites. Install the selected Playwright engine and its host libraries first, for example `npx playwright install --with-deps firefox`, then run `PLAYWRIGHT_BROWSER=firefox npm run test:e2e`. Chromium executable overrides apply only to Chromium. Build the mock site with `npm run demo:pages` before `npm run test:pages`. Studio additionally requires a disposable `TEST_DATABASE_URL` initialized with `DATABASE_URL="$TEST_DATABASE_URL" node apps/server/dist/migrate.js`; run it with `npm run test:studio`. Each Studio group uses fresh server rate limits and keeps separate reports and failure traces under `.api-docs/studio-test/`.
+
 If the managed environment's default npm cache is not writable, prefix installation with `npm_config_cache=/workspace/.npm-cache`; keep this machine-specific path out of portable repository configuration.
 
 ## Pull requests and commits
@@ -52,6 +54,8 @@ PR_TITLE='docs(product): clarify release scope' npm run check:pr-title
 The `Repository quality` workflow runs on branch pushes, PRs (including title edits), merge queue candidates, and manual dispatch. Its stable job name is `Quality`. It installs locked tooling and runs the same checks as local development; PR events also validate the title. It uses read-only permissions and retains validation artifacts. Its required Static mock demo job builds and tests the [local-only Pages demo](docs/pages-demo.md). A separate Pages workflow deploys the exact tested artifact only after a successful quality run for a push to master; only its deployment job receives Pages write/OIDC permissions.
 
 The required pnpm job starts from a fresh checkout, installs the pinned manager and frozen lockfile, audits dependencies, and runs formatting, ESLint, types, tooling tests, source tests and production builds. The existing npm source/browser and installed-consumer jobs remain required as well.
+
+The read-only **Browser compatibility** workflow runs daily and on manual dispatch. It tests the reader/playground, local mock demo and Studio on pinned Chromium, Firefox and WebKit engines. Release rehearsal reuses this matrix after preparing the candidate metadata and requires every engine to pass. PR quality keeps its representative Chromium checks. These automated engine journeys do not establish real-device/iOS coverage or replace independent accessibility review.
 
 The aggregate also requires the Linux Docker [isolated-build harness](docs/isolated-builds.md#validation), which builds an approved worker and checks resource enforcement, artifact parity, cancellation and cleanup after parent death. Its PostgreSQL/API/worker acceptance also runs actual queued Docker builds, cancellation and killed-worker recovery after the real hard deadline. Run both harnesses locally when changing the runner, worker or image; see [worker acceptance](docs/build-worker.md#acceptance).
 

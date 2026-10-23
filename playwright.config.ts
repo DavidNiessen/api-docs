@@ -1,3 +1,4 @@
+import { browserOptions } from './tests/helpers/browser-config.js';
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
@@ -7,13 +8,7 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    browserName: 'chromium',
-    launchOptions: {
-      ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-        : {}),
-      args: ['--no-sandbox'],
-    },
+    ...browserOptions(),
     trace: 'retain-on-failure',
   },
   webServer: [

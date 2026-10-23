@@ -10,3 +10,4 @@ test-results/
 .api-docs/
 
 playwright-pages-report/
+playwright-studio-report/

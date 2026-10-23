@@ -1,3 +1,4 @@
+import { browserOptions } from './tests/helpers/browser-config.js';
 import { readFileSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
 const deployed = process.env.PAGES_DEMO_URL;
@@ -27,13 +28,7 @@ export default defineConfig({
   ],
   use: {
     baseURL: address.href,
-    browserName: 'chromium',
-    launchOptions: {
-      ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
-        : {}),
-      args: ['--no-sandbox'],
-    },
+    ...browserOptions(),
     trace: 'retain-on-failure',
     serviceWorkers: 'block',
   },

@@ -317,7 +317,18 @@ test('settings tolerate blocked/corrupt storage, follow the system, and fit comp
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Toggle navigation' }).click();
   const sidebar = page.locator('.sidebar');
-  await expect(sidebar).toHaveCSS('scrollbar-width', 'thin');
+  // Some native/headless platforms suppress scrollbars even for `thin`.
+  // Compare against the platform's resolved value instead of overriding it.
+  const nativeThin = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.cssText =
+      'scrollbar-width:thin;overflow:scroll;width:20px;height:20px';
+    document.body.append(probe);
+    const width = getComputedStyle(probe).scrollbarWidth;
+    probe.remove();
+    return width;
+  });
+  await expect(sidebar).toHaveCSS('scrollbar-width', nativeThin);
   await page.emulateMedia({ forcedColors: 'active' });
   await expect(sidebar).toHaveCSS('scrollbar-color', 'auto');
 });

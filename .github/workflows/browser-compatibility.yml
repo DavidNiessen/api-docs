@@ -1,0 +1,97 @@
+name: Browser compatibility
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '43 4 * * *'
+  workflow_call:
+    inputs:
+      prepare:
+        description: Test unpublished prepared release metadata
+        type: boolean
+        default: false
+      version:
+        type: string
+        default: ''
+      date:
+        type: string
+        default: ''
+      initial:
+        type: boolean
+        default: true
+      baseline:
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    name: ${{ matrix.browser }} reader, mock demo and Studio
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
+        env:
+          POSTGRES_USER: apidocs
+          POSTGRES_DB: apidocs
+          POSTGRES_PASSWORD: isolated-ci-fixture
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U apidocs"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PLAYWRIGHT_BROWSER: ${{ matrix.browser }}
+      TEST_DATABASE_URL: postgresql://apidocs:isolated-ci-fixture@127.0.0.1:5432/apidocs
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/prepare-release
+        if: inputs.prepare
+        with:
+          version: ${{ inputs.version }}
+          date: ${{ inputs.date }}
+          initial: ${{ inputs.initial }}
+          baseline: ${{ inputs.baseline }}
+      - run: npm run build
+      - run: npm run demo:build
+      - run: npm run demo:pages
+      - name: Install the selected engine and its system libraries
+        run: npx playwright install --with-deps "$PLAYWRIGHT_BROWSER"
+      - name: Reader and real API playground journeys
+        run: npm run test:e2e -- --output=.api-docs/browser-results/reader
+      - name: Static mock demo journeys
+        run: npm run test:pages -- --output=.api-docs/browser-results/pages
+      - name: Initialize the isolated Studio fixture database
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: node apps/server/dist/migrate.js
+      - name: Studio journeys with fresh server rate limits per group
+        run: npm run test:studio
+      - name: Retain browser reports and failure traces
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-${{ matrix.browser }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            playwright-pages-report/
+            .api-docs/browser-results/
+            .api-docs/studio-test/reports/
+            .api-docs/studio-test/results/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
