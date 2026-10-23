@@ -314,10 +314,64 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  performance:
+    name: Prepared ${{ matrix.scenario }} performance
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [compiler, browser]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: ./.github/actions/prepare-release
+        with:
+          version: ${{ inputs.version }}
+          date: ${{ inputs.date }}
+          initial: ${{ inputs.initial }}
+          baseline: ${{ inputs.baseline }}
+      - run: npm run build
+      - name: Prepare the matching browser publication
+        if: matrix.scenario == 'browser'
+        run: |
+          npm run demo:build
+          npx playwright install chromium
+      - name: Enforce candidate performance budgets
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        run: |
+          if test "$SCENARIO" = compiler; then
+            npm run benchmark
+          else
+            npm run benchmark:browser
+          fi
+          node scripts/check-prepared-performance.mjs "$SCENARIO"
+      - name: Retain prepared measurements and public fixture screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: prepared-performance-${{ matrix.scenario }}-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          retention-days: 28
+          if-no-files-found: error
+          path: |
+            .api-docs/benchmark-report.json
+            .api-docs/browser-benchmark/**/report.json
+            .api-docs/browser-benchmark/**/*-mobile.png
+
   result:
     name: Rehearsal result
     if: always()
-    needs: [plan, source, server, java, isolated-builds]
+    needs: [plan, source, server, java, isolated-builds, performance]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -328,9 +382,11 @@ jobs:
           SERVER_RESULT: ${{ needs.server.result }}
           JAVA_RESULT: ${{ needs.java.result }}
           ISOLATED_RESULT: ${{ needs.isolated-builds.result }}
+          PERFORMANCE_RESULT: ${{ needs.performance.result }}
         run: |
           test "$PLAN_RESULT" = success
           test "$SOURCE_RESULT" = success
           test "$SERVER_RESULT" = success
           test "$JAVA_RESULT" = success
           test "$ISOLATED_RESULT" = success
+          test "$PERFORMANCE_RESULT" = success

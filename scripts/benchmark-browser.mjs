@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { createStaticServer } from '@api-docs/cli';
 import { verifyArtifact } from '@api-docs/compiler';
+import { toolVersion } from '@api-docs/contracts';
 const count = Number(process.argv[2] ?? 10);
 if (!Number.isInteger(count) || count < 5 || count > 30)
   throw new Error('Choose 5–30 cold samples per route');
@@ -22,6 +23,11 @@ const profile = {
 };
 const publication = await verifyArtifact(
   resolve('examples/demo/.api-docs/site'),
+);
+assert.equal(
+  publication.compilerVersion,
+  toolVersion,
+  'Rebuild the demo with the current compiler.',
 );
 const app = await createStaticServer(resolve('examples/demo/.api-docs/site'));
 let browser;
@@ -204,6 +210,8 @@ try {
     });
   }
   const report = {
+    toolVersion,
+    artifactCompilerVersion: publication.compilerVersion,
     timestamp: new Date().toISOString(),
     commit: execFileSync('git', ['rev-parse', 'HEAD'], {
       encoding: 'utf8',

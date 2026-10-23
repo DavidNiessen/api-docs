@@ -4,6 +4,14 @@ Performance numbers describe measured fixtures, not a universal service guarante
 
 The latest hosted reader and 10k compiler budgets pass. Indexed endpoint lookup brought the full compiler run back under its unchanged 120-second ceiling; the observed results and earlier failed run are recorded below.
 
+## Prepared candidate acceptance
+
+Release rehearsal repeats both compiler and reader budgets after applying the candidate version in a fresh checkout. Reports record the measured `toolVersion`, publication `artifactCompilerVersion`, source commit, dirty-tree status and artifact digest. The browser benchmark rejects a demo built by a different compiler version before measuring it. Rebuild the demo after version preparation; a benchmark from an older publication does not validate the candidate.
+
+`node scripts/check-prepared-performance.mjs compiler` and `browser` enforce the full-size release evidence. Compiler acceptance requires 10,000 operations/50,000 schema nodes, 100 warm searches, 20 incremental updates and the existing time/memory ceilings. Reader acceptance requires ten cold samples on each guide/endpoint route with the existing mobile viewport, fourfold CPU slowdown, 150 ms latency and bandwidth profile, plus the existing LCP/CLS/interaction/JavaScript ceilings. Missing artifacts, mismatched versions/commits, reduced fixtures, weaker declared profiles/budgets and nonfinite measurements fail. Reader p95/max summaries must also agree with the retained raw samples. The browser checker requires one report directory in its fresh checkout to avoid silently selecting historical results.
+
+The prepared source is intentionally dirty because metadata was advanced without creating a release commit. These receipts validate an unpublished rehearsal; repeat release acceptance against the reviewed final commit before publishing. Measurements and public fixture screenshots are retained for 28 days. Lab interaction timings remain distinct from field INP, and this gate does not establish sustained server throughput or production capacity.
+
 ## Recorded baseline
 
 A cloud Linux run on 22 October 2026 used Node 24.19.0 with four reported available CPUs, a 1536 MiB V8 old-space limit, and an OpenAPI 3.1 fixture with 10,000 operations and 50,000 schema nodes.

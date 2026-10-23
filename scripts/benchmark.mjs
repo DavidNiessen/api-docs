@@ -2,6 +2,8 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { execFileSync } from 'node:child_process';
+import assert from 'node:assert/strict';
+import { toolVersion } from '@api-docs/contracts';
 import { createDevelopmentBuilder } from '@api-docs/cli';
 import { createSearchIndex, search } from '@api-docs/search';
 const count = Number(process.argv[2] ?? 10000);
@@ -61,6 +63,7 @@ await writeFile(resolve(root, 'guides/overview.md'), guide);
 const builder = createDevelopmentBuilder(root);
 const start = performance.now();
 const built = await builder.build();
+assert.equal(built.manifest.compilerVersion, toolVersion);
 const duration = performance.now() - start;
 const index = createSearchIndex(built.site);
 const samples = [];
@@ -91,6 +94,8 @@ for (let update = 0; update < 20; update++) {
 }
 incremental.sort((a, b) => a - b);
 const report = {
+  toolVersion,
+  artifactCompilerVersion: built.manifest.compilerVersion,
   commit: execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
   }).trim(),
