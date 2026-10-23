@@ -1,0 +1,158 @@
+.builds-workspace {
+  min-width: 0;
+}
+.build-controls,
+.build-source-heading,
+.build-row-actions,
+.build-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.build-controls > p {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #596979;
+}
+.builds-workspace .build-controls > button {
+  flex-shrink: 0;
+}
+.build-source-heading {
+  justify-content: space-between;
+}
+.build-checkbox,
+.build-trust-controls > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.build-checkbox input,
+.build-trust-controls input {
+  width: auto;
+  accent-color: #148567;
+}
+.build-trust-controls {
+  display: grid;
+  gap: 12px;
+}
+.builds-workspace textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 130px;
+  border: 1px solid #dce3e9;
+  border-radius: 7px;
+  padding: 12px;
+  font:
+    12px/1.7 ui-monospace,
+    monospace;
+  resize: vertical;
+}
+.builds-workspace textarea:focus-visible {
+  outline: 2px solid #13765d;
+  outline-offset: 2px;
+}
+.builds-workspace code {
+  overflow-wrap: anywhere;
+}
+.builds-workspace pre {
+  padding: 16px;
+  background: #f5f8fa;
+  border: 1px solid #e0e7ec;
+  border-radius: 8px;
+  max-height: 320px;
+  overflow: auto;
+  font:
+    12px/1.7 ui-monospace,
+    monospace;
+}
+.build-source {
+  padding: 16px 0;
+  border-bottom: 1px solid #e6ebee;
+}
+.build-source > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.build-source p {
+  color: #596979;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.build-source > summary strong {
+  overflow-wrap: anywhere;
+}
+.source-approval > summary {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 650;
+}
+.source-approval > p {
+  margin: 16px 0;
+  line-height: 1.7;
+  font-size: 13px;
+  color: #596979;
+}
+.build-row-actions > button,
+.build-pagination > button {
+  padding: 7px 9px;
+  border: 1px solid #dce3e9;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.build-pagination {
+  justify-content: space-between;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #596979;
+}
+.build-state-running,
+.build-state-queued {
+  background: #eaf1ff;
+  color: #244b85;
+}
+.build-state-succeeded {
+  background: #e8f6f0;
+  color: #13604a;
+}
+.build-state-failed {
+  background: #fbecec;
+  color: #9b2f3e;
+}
+.build-state-cancelled {
+  background: #edf0f3;
+  color: #526170;
+}
+.build-read-only {
+  color: #596979;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pending-build-action {
+  border-left: 3px solid #93651c;
+}
+@media (max-width: 600px) {
+  .builds-workspace .build-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .build-pagination {
+    gap: 8px;
+  }
+}
+
+.builds-workspace p,
+.builds-workspace small {
+  overflow-wrap: anywhere;
+}
+.build-source > summary strong {
+  min-width: 0;
+}
+.build-source > summary .badge {
+  flex-shrink: 0;
+}

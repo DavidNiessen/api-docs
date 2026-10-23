@@ -1,4 +1,12 @@
 import type { BuildPolicy, SourceSnapshotInfo } from '@api-docs/contracts';
+export interface ProjectBuildCapabilities {
+  projectId: string;
+  approveSource: boolean;
+  enqueue: boolean;
+  cancel: boolean;
+  revokeSource: boolean;
+  publish: boolean;
+}
 export type BuildJobState =
   'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 export type BuildJobErrorCode =

@@ -43,7 +43,8 @@ button:disabled {
   cursor: wait;
 }
 button:focus-visible,
-a:focus-visible {
+a:focus-visible,
+.table-scroll:focus-visible {
   outline: 2px solid #13765d;
   outline-offset: 4px;
 }
@@ -88,7 +89,7 @@ header {
 header > button {
   margin-left: auto;
   font-size: 12px;
-  color: #667585;
+  color: #596979;
 }
 .studio-brand {
   display: flex;
@@ -112,14 +113,14 @@ header > button {
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0;
-  color: #667585;
+  color: #596979;
   border: 1px solid #e3e9ed;
   padding: 4px 6px;
   border-radius: 5px;
 }
 .self-hosted {
   font-size: 11px;
-  color: #667585;
+  color: #596979;
   border-left: 1px solid #e3e9ed;
   padding-left: 22px;
 }
@@ -141,12 +142,12 @@ aside {
   font-size: 10px;
   letter-spacing: 1.1px;
   font-weight: 600;
-  color: #81909f;
+  color: #596979;
   margin: 0 12px 19px;
 }
 .project-picker {
   font-size: 10px;
-  color: #667585;
+  color: #596979;
   padding: 0 9px 25px;
 }
 .project-picker select {
@@ -165,7 +166,7 @@ nav button {
   text-align: left;
   border-radius: 6px;
   font-size: 12px;
-  color: #667585;
+  color: #596979;
 }
 nav button > span {
   font-size: 16px;
@@ -208,7 +209,7 @@ nav button:hover {
 }
 .identity small {
   font-size: 9px;
-  color: #81909f;
+  color: #596979;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -241,7 +242,7 @@ h1 {
 }
 p {
   font-size: 13px;
-  color: #687888;
+  color: #596979;
   line-height: 1.8;
 }
 h2 {
@@ -301,7 +302,7 @@ h2 {
 }
 .stat-card > span {
   font-size: 11px;
-  color: #687888;
+  color: #596979;
 }
 .stat-card > strong {
   font-size: 25px;
@@ -311,7 +312,7 @@ h2 {
 }
 .stat-card > small {
   font-size: 10px;
-  color: #81909f;
+  color: #596979;
 }
 .form-grid {
   display: grid;
@@ -364,7 +365,7 @@ table {
 }
 th {
   text-align: left;
-  color: #81909f;
+  color: #596979;
   font-weight: 500;
   font-size: 10px;
   text-transform: uppercase;
@@ -382,7 +383,7 @@ td {
 td small {
   display: block;
   font-size: 9px;
-  color: #81909f;
+  color: #596979;
   margin-top: 5px;
 }
 .badge {
@@ -390,7 +391,7 @@ td small {
   border-radius: 5px;
   padding: 4px 7px;
   background: #f1f4f6;
-  color: #667585;
+  color: #596979;
   font-size: 9px;
 }
 .badge.live {
@@ -464,7 +465,7 @@ code {
 .login > small {
   display: block;
   font-size: 10px;
-  color: #81909f;
+  color: #596979;
   line-height: 1.8;
 }
 .login > a {
@@ -472,7 +473,7 @@ code {
 }
 footer {
   font-size: 10px;
-  color: #81909f;
+  color: #596979;
   margin-top: 32px;
   text-align: center;
 }

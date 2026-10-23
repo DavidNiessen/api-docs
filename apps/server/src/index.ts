@@ -248,6 +248,12 @@ export async function createServer(options: ServerOptions) {
         status < 500 ? typed.message : 'The request could not be completed',
     });
   });
+  const assignedRole = async (request: FastifyRequest, project: Project) =>
+    request.principal &&
+    !request.principal.root &&
+    !request.principal.tokenProjectId
+      ? repository.role(project.id, request.principal.subject)
+      : undefined;
   const needProject = async (
     request: FastifyRequest,
     projectId: string,
@@ -256,12 +262,7 @@ export async function createServer(options: ServerOptions) {
   ): Promise<Project> => {
     const project = await repository.project(projectId);
     if (!project) fail(404, 'Project not found');
-    const assigned =
-      request.principal &&
-      !request.principal.root &&
-      !request.principal.tokenProjectId
-        ? await repository.role(project.id, request.principal.subject)
-        : undefined;
+    const assigned = await assignedRole(request, project);
     if (
       !can(
         request.principal,
@@ -283,6 +284,18 @@ export async function createServer(options: ServerOptions) {
       artifactRoot: options.artifactRoot,
       needProject,
       requireRoot,
+      capabilities: async (request, project) => {
+        const assigned = await assignedRole(request, project);
+        const scope = { ...project, visibility: 'private' as const };
+        return {
+          projectId: project.id,
+          approveSource: request.principal?.root === true,
+          enqueue: can(request.principal, scope, assigned, 'editor'),
+          cancel: can(request.principal, scope, assigned, 'editor'),
+          revokeSource: can(request.principal, scope, assigned, 'admin'),
+          publish: can(request.principal, scope, assigned, 'publisher'),
+        };
+      },
     });
   if (relay)
     await registerRelay(

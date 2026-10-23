@@ -173,6 +173,7 @@ it('keeps build metadata private even on public documentation and rechecks scope
   const source = await approve();
   const job = await enqueue(source.id);
   for (const suffix of [
+    '/build-capabilities',
     '/build-sources',
     `/build-sources/${source.id}`,
     '/builds',
@@ -193,9 +194,10 @@ it('keeps build metadata private even on public documentation and rechecks scope
       /key_hash|request_hash|lease_token|settled_lease|hostPath/,
     );
   }
-  expect(
-    (await app.inject(`/api/projects/${other.id}/builds`)).statusCode,
-  ).toBe(401);
+  for (const suffix of ['/builds', '/build-capabilities'])
+    expect(
+      (await app.inject(`/api/projects/${other.id}${suffix}`)).statusCode,
+    ).toBe(401);
   expect(
     (
       await app.inject({
@@ -231,6 +233,14 @@ it('keeps embedded repositories without a queue usable and leaves build routes u
   try {
     expect((await server.inject('/health/ready')).statusCode).toBe(200);
     expect((await server.inject('/api/me')).json().builds).toBe(false);
+    expect(
+      (
+        await server.inject({
+          url: path() + '/build-capabilities',
+          headers: auth,
+        })
+      ).statusCode,
+    ).toBe(404);
     expect(
       (await server.inject({ url: path() + '/builds', headers: auth }))
         .statusCode,
@@ -778,4 +788,99 @@ it('returns admission errors as 429 without breaking idempotent retries', async 
     await server.close();
     await limited.close();
   }
+});
+
+it('reports project-scoped build controls from current operator, token and assigned permissions', async () => {
+  const publisher = await credential('publisher');
+  for (const [headers, expected] of [
+    [
+      viewer.headers,
+      {
+        approveSource: false,
+        enqueue: false,
+        cancel: false,
+        revokeSource: false,
+        publish: false,
+      },
+    ],
+    [
+      editor.headers,
+      {
+        approveSource: false,
+        enqueue: true,
+        cancel: true,
+        revokeSource: false,
+        publish: false,
+      },
+    ],
+    [
+      publisher.headers,
+      {
+        approveSource: false,
+        enqueue: true,
+        cancel: true,
+        revokeSource: false,
+        publish: true,
+      },
+    ],
+    [
+      admin.headers,
+      {
+        approveSource: false,
+        enqueue: true,
+        cancel: true,
+        revokeSource: true,
+        publish: true,
+      },
+    ],
+    [
+      auth,
+      {
+        approveSource: true,
+        enqueue: true,
+        cancel: true,
+        revokeSource: true,
+        publish: true,
+      },
+    ],
+  ] as const) {
+    const response = await app.inject({
+      url: path() + '/build-capabilities',
+      headers,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ projectId: project.id, ...expected });
+    expect(response.headers['cache-control']).toBe('no-store');
+  }
+  expect(
+    (
+      await app.inject({
+        url: path() + '/build-capabilities?role=admin',
+        headers: viewer.headers,
+      })
+    ).statusCode,
+  ).toBe(400);
+  const subject = 'https://id.example.test|build-controls-' + randomUUID();
+  const session = randomBytes(32).toString('base64url');
+  await repository.createSession(
+    createHash('sha256').update(session).digest('hex'),
+    subject,
+    new Date(Date.now() + 60000),
+  );
+  await repository.setRole(project.id, subject, 'editor', 'root');
+  const headers = { cookie: 'docs_session=' + session };
+  expect(
+    (await app.inject({ url: path() + '/build-capabilities', headers })).json()
+      .enqueue,
+  ).toBe(true);
+  await repository.setRole(project.id, subject, 'viewer', 'root');
+  expect(
+    (await app.inject({ url: path() + '/build-capabilities', headers })).json()
+      .enqueue,
+  ).toBe(false);
+  await repository.setRole(project.id, subject, null, 'root');
+  expect(
+    (await app.inject({ url: path() + '/build-capabilities', headers }))
+      .statusCode,
+  ).toBe(403);
 });

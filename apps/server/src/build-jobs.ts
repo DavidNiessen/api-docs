@@ -6,7 +6,12 @@ import {
   readSourceSnapshotInfo,
 } from '@api-docs/contracts';
 import { BuildInputError, BuildLeaseLostError } from '@api-docs/domain';
-import type { BuildJobRepository, Project, Role } from '@api-docs/domain';
+import type {
+  BuildJobRepository,
+  Project,
+  Role,
+  ProjectBuildCapabilities,
+} from '@api-docs/domain';
 import { verifyProjectArtifact } from './artifacts.js';
 
 const uuid = z.string().regex(/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i);
@@ -83,6 +88,10 @@ interface BuildRoutes {
     allowPublic?: boolean,
   ) => Promise<Project>;
   requireRoot: (request: FastifyRequest) => void;
+  capabilities: (
+    request: FastifyRequest,
+    project: Project,
+  ) => Promise<ProjectBuildCapabilities>;
 }
 /** No source access or Docker privileges in the HTTP process. */
 export function registerBuildJobs(app: FastifyInstance, options: BuildRoutes) {
@@ -91,6 +100,11 @@ export function registerBuildJobs(app: FastifyInstance, options: BuildRoutes) {
   const project = (request: FastifyRequest<{ Params: Params }>, role: Role) =>
     options.needProject(request, request.params.project, role, false);
   const base = '/api/projects/:project';
+  app.get<{ Params: Params }>(base + '/build-capabilities', async (request) => {
+    const current = await project(request, 'viewer');
+    read(emptyInput, request.query);
+    return options.capabilities(request, current);
+  });
   app.get<{ Params: Params }>(base + '/build-sources', async (request) => {
     const current = await project(request, 'viewer');
     const query = read(sourceListInput, request.query);

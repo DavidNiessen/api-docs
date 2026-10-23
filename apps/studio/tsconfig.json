@@ -5,8 +5,11 @@
     "outDir": "dist/types",
     "jsx": "react-jsx"
   },
-  "include": ["src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
+    {
+      "path": "../../packages/contracts"
+    },
     {
       "path": "../../packages/domain"
     }

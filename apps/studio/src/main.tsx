@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import type { BuildAction } from './Builds.js';
+import { createStudioApi } from './api.js';
 import { createRoot } from 'react-dom/client';
 import type { Project, Publication } from '@api-docs/domain';
 import './styles.css';
 import './island-layout.css';
 import '../../shared/scrollbars.css';
+const Builds = lazy(() => import('./Builds.js'));
 function Studio() {
   const [sidebarWidth, setSidebarWidth] = useState(240);
   useEffect(() => {
@@ -17,10 +20,18 @@ function Studio() {
   }, []);
   const [token, setToken] = useState('');
   const [connected, setConnected] = useState(false);
+  const [buildsAvailable, setBuildsAvailable] = useState(false);
+  const [pendingBuildActions, setPendingBuildActions] = useState<
+    Record<string, BuildAction | undefined>
+  >({});
+  const [artifactDraft, setArtifactDraft] = useState('');
   const [oidc, setOidc] = useState(false);
   const [subject, setSubject] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selected, setSelected] = useState('');
+  const selectedProject = useRef(selected);
+  selectedProject.current = selected;
+  useEffect(() => setArtifactDraft(''), [selected]);
   const [tab, setTab] = useState('Overview');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -29,28 +40,7 @@ function Studio() {
   const [audit, setAudit] = useState<Record<string, unknown>[]>([]);
   const [issuedToken, setIssuedToken] = useState('');
   const project = projects.find((item) => item.id === selected);
-  async function api<T>(
-    path: string,
-    method = 'GET',
-    payload?: unknown,
-  ): Promise<T> {
-    const response = await fetch(path, {
-      method,
-      credentials: 'same-origin',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(payload === undefined
-          ? {}
-          : { 'Content-Type': 'application/json' }),
-      },
-      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-      redirect: 'error',
-    });
-    const data = (await response.json()) as T & { error?: string };
-    if (!response.ok)
-      throw new Error(data.error ?? `Request failed (${response.status})`);
-    return data;
-  }
+  const api = useMemo(() => createStudioApi(token), [token]);
   async function work(task: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -70,10 +60,13 @@ function Studio() {
   }
   async function connect() {
     await work(async () => {
-      const me = await api<{ subject: string | null; oidc: boolean }>(
-        '/api/me',
-      );
+      const me = await api<{
+        subject: string | null;
+        oidc: boolean;
+        builds?: boolean;
+      }>('/api/me');
       setOidc(me.oidc);
+      setBuildsAvailable(me.builds === true);
       if (!me.subject)
         throw new Error(
           'Sign in with your identity provider or enter an operator/project token.',
@@ -83,12 +76,12 @@ function Studio() {
       await refresh();
       setToken('');
       setConnected(true);
+      setTab('Overview');
     });
   }
   useEffect(() => {
-    void fetch('/api/me')
-      .then((response) => response.json())
-      .then((me: { subject: string | null; oidc: boolean }) => {
+    void api<{ subject: string | null; oidc: boolean }>('/api/me')
+      .then((me) => {
         setOidc(me.oidc);
         if (me.subject) void connect();
       })
@@ -143,6 +136,9 @@ function Studio() {
                 await api('/auth/logout', 'POST');
                 setToken('');
                 setConnected(false);
+                setBuildsAvailable(false);
+                setPendingBuildActions({});
+                setArtifactDraft('');
                 setProjects([]);
                 setSelected('');
                 setSubject('');
@@ -220,29 +216,34 @@ function Studio() {
               </select>
             </label>
             <nav>
-              {['Overview', 'Publications', 'Access control', 'Audit log'].map(
-                (name) => (
-                  <button
-                    type="button"
-                    key={name}
-                    className={tab === name ? 'selected' : ''}
-                    aria-label={name}
-                    onClick={() => setTab(name)}
-                  >
-                    <span>
+              {[
+                'Overview',
+                ...(buildsAvailable ? ['Builds'] : []),
+                'Publications',
+                'Access control',
+                'Audit log',
+              ].map((name) => (
+                <button
+                  type="button"
+                  key={name}
+                  className={tab === name ? 'selected' : ''}
+                  aria-label={name}
+                  onClick={() => setTab(name)}
+                >
+                  <span>
+                    {
                       {
-                        {
-                          Overview: '◈',
-                          Publications: '↗',
-                          'Access control': '⊙',
-                          'Audit log': '≡',
-                        }[name]
-                      }
-                    </span>
-                    {name}
-                  </button>
-                ),
-              )}
+                        Overview: '◈',
+                        Builds: '⚒',
+                        Publications: '↗',
+                        'Access control': '⊙',
+                        'Audit log': '≡',
+                      }[name]
+                    }
+                  </span>
+                  {name}
+                </button>
+              ))}
             </nav>
             <label className="studio-panel-size">
               <span>
@@ -291,6 +292,8 @@ function Studio() {
                     {
                       Overview:
                         'Your documentation, from source to production.',
+                      Builds:
+                        'Review approved sources, follow build progress, and prepare a release.',
                       Publications:
                         'Publish confidently. Roll back without losing history.',
                       'Access control':
@@ -445,6 +448,48 @@ function Studio() {
                 </section>
               </>
             )}
+            {tab === 'Builds' &&
+              buildsAvailable &&
+              (project ? (
+                <Suspense fallback={<p role="status">Loading builds…</p>}>
+                  <Builds
+                    key={project.id}
+                    project={project}
+                    api={api}
+                    pending={pendingBuildActions[project.id]}
+                    onPending={(action) =>
+                      setPendingBuildActions((previous) => {
+                        const next = { ...previous };
+                        if (action) next[project.id] = action;
+                        else delete next[project.id];
+                        return next;
+                      })
+                    }
+                    onReviewArtifact={async (artifactId, signal) => {
+                      const data = await api<Project[]>(
+                        '/api/projects',
+                        'GET',
+                        undefined,
+                        signal,
+                      );
+                      if (
+                        signal.aborted ||
+                        selectedProject.current !== project.id
+                      )
+                        return;
+                      setProjects(data);
+                      setArtifactDraft(artifactId);
+                      setTab('Publications');
+                    }}
+                  />
+                </Suspense>
+              ) : (
+                <section className="panel">
+                  <p>
+                    Select a project to review its build sources and history.
+                  </p>
+                </section>
+              ))}
             {tab === 'Publications' && (
               <>
                 <section className="panel">
@@ -465,6 +510,10 @@ function Studio() {
                       Artifact SHA-256
                       <input
                         name="artifact"
+                        value={artifactDraft}
+                        onChange={(event) =>
+                          setArtifactDraft(event.target.value)
+                        }
                         required
                         pattern="[a-f0-9]{64}"
                         placeholder="64-character verified artifact id"

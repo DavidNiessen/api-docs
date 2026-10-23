@@ -207,6 +207,9 @@ importers:
 
   apps/studio:
     dependencies:
+      '@api-docs/contracts':
+        specifier: 0.1.0
+        version: link:../../packages/contracts
       '@api-docs/domain':
         specifier: 0.1.0
         version: link:../../packages/domain

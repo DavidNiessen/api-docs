@@ -1,6 +1,6 @@
 # Durable build jobs
 
-The PostgreSQL adapter exposes a typed `buildJobs` repository and the management server provides authenticated source/job HTTP routes. A [separate Linux worker](build-worker.md) claims explicitly prepared sources and runs restricted Docker builds; installing the server alone does not start queued work. Studio build controls remain pending. The operator-only [isolated build runner](isolated-builds.md) is also available directly.
+The PostgreSQL adapter exposes a typed `buildJobs` repository and the management server provides authenticated source/job HTTP routes. A [separate Linux worker](build-worker.md) claims explicitly prepared sources and runs restricted Docker builds; installing the server alone does not start queued work. [Studio build controls](studio-builds.md) provide source approval, queueing, cancellation and explicit publication review. The operator-only [isolated build runner](isolated-builds.md) is also available directly.
 
 ## Approved sources
 
@@ -52,24 +52,25 @@ The repository is an internal trusted port. It does not authenticate actors, aut
 
 ## Management HTTP API
 
-Routes are available when the server repository provides `buildJobs`; `/api/me` reports the boolean `builds` capability. The PostgreSQL adapter enables this capability. Embedded/custom repositories without that port retain ordinary serving without build routes. All build metadata requires authenticated project membership, including on public documentation. Every request rechecks the current session/token and project role before repository operations or idempotent replay. Session mutations require the configured origin; bearer clients retain ordinary token authentication.
+Routes are available when the server repository provides `buildJobs`; `/api/me` reports the boolean `builds` capability. The PostgreSQL adapter enables this capability. Embedded/custom repositories without that port retain ordinary serving without build routes. All build metadata requires authenticated project membership, including on public documentation. Every request rechecks the current session/token and project role before repository operations or idempotent replay. Session mutations require the configured origin; bearer clients retain ordinary token authentication. The [Studio Builds tab](studio-builds.md) consumes these routes and the current project-bound capability flags; those flags do not replace authorization on mutation endpoints.
 
 In the following paths, `:project` is a project ID or slug; `:source` and `:job` are UUIDs.
 
-| Method and path                                            | Minimum authorization | Behavior                                                                      |
-| ---------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------- |
-| `GET /api/projects/:project/build-sources`                 | Viewer                | Paginated approval history; optional `after` and `activeOnly=true` or `false` |
-| `GET /api/projects/:project/build-sources/:source`         | Viewer                | One approval, including its revocation state                                  |
-| `POST /api/projects/:project/build-sources`                | Operator              | Approve a source and executable policy                                        |
-| `POST /api/projects/:project/build-sources/:source/revoke` | Admin                 | Revoke and cancel unfinished jobs                                             |
-| `GET /api/projects/:project/builds`                        | Viewer                | Paginated job history; optional `after` cursor                                |
-| `GET /api/projects/:project/builds/:job`                   | Viewer                | Public job state and aggregate result                                         |
-| `POST /api/projects/:project/builds`                       | Editor                | Enqueue an approved source                                                    |
-| `POST /api/projects/:project/builds/:job/cancel`           | Editor                | Cancel queued/running work                                                    |
-| `POST /api/build-workers/claim`                            | Operator              | Claim one allowed source, returning `{lease: null}` when unavailable          |
-| `POST /api/projects/:project/builds/:job/heartbeat`        | Operator              | Renew ownership; return `{owned: false}` when no longer owned                 |
-| `POST /api/projects/:project/builds/:job/complete`         | Operator              | Verify staged artifact and settle success                                     |
-| `POST /api/projects/:project/builds/:job/fail`             | Operator              | Settle a controlled terminal failure                                          |
+| Method and path                                            | Minimum authorization | Behavior                                                                                      |
+| ---------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
+| `GET /api/projects/:project/build-capabilities`            | Viewer                | Current project-bound approval, enqueue, cancellation, revocation and publication permissions |
+| `GET /api/projects/:project/build-sources`                 | Viewer                | Paginated approval history; optional `after` and `activeOnly=true` or `false`                 |
+| `GET /api/projects/:project/build-sources/:source`         | Viewer                | One approval, including its revocation state                                                  |
+| `POST /api/projects/:project/build-sources`                | Operator              | Approve a source and executable policy                                                        |
+| `POST /api/projects/:project/build-sources/:source/revoke` | Admin                 | Revoke and cancel unfinished jobs                                                             |
+| `GET /api/projects/:project/builds`                        | Viewer                | Paginated job history; optional `after` cursor                                                |
+| `GET /api/projects/:project/builds/:job`                   | Viewer                | Public job state and aggregate result                                                         |
+| `POST /api/projects/:project/builds`                       | Editor                | Enqueue an approved source                                                                    |
+| `POST /api/projects/:project/builds/:job/cancel`           | Editor                | Cancel queued/running work                                                                    |
+| `POST /api/build-workers/claim`                            | Operator              | Claim one allowed source, returning `{lease: null}` when unavailable                          |
+| `POST /api/projects/:project/builds/:job/heartbeat`        | Operator              | Renew ownership; return `{owned: false}` when no longer owned                                 |
+| `POST /api/projects/:project/builds/:job/complete`         | Operator              | Verify staged artifact and settle success                                                     |
+| `POST /api/projects/:project/builds/:job/fail`             | Operator              | Settle a controlled terminal failure                                                          |
 
 Approval bodies contain `{label, revision?, snapshot, policy, idempotencyKey}`. The `snapshot` is the source metadata from `source-info`, and `policy` follows the contract above. Source paths, environment variables, remote checkouts and arbitrary logs are not accepted. Enqueue bodies contain `{sourceId, idempotencyKey}`. Cancel/revoke take an empty or absent body.
 
