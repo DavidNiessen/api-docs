@@ -41,17 +41,28 @@ jobs:
           java-version: '21'
       - name: Check formatting and lint
         run: npm run check
+      - name: Set up first-party Go snippet toolchain
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.3'
+          cache: false
       - name: Build demo publication
         run: npm run demo:build
       - name: Execute generated snippets in all five languages
         run: npm run test:snippets
+      - name: Execute first-party Go plugin snippets
+        run: npm run test:go-snippets
       - name: Verify installed npm archive consumers
         id: packages
         run: npm run test:packages
       - name: Validate authored examples offline
         run: node packages/cli/dist/main.js doctor examples/demo --strict
       - name: Check first-party plugin conformance
-        run: node packages/cli/dist/main.js plugin-check release-label.mjs examples/plugins --trust-plugins
+        run: |
+          node packages/cli/dist/main.js plugin-check release-label.mjs examples/plugins --trust-plugins
+          node packages/cli/dist/main.js plugin-check brand-theme.mjs examples/plugins --trust-plugins
+          node packages/cli/dist/main.js plugin-check deployment.mjs examples/source-plugin --trust-plugins
+          node packages/cli/dist/main.js plugin-check go.mjs examples/snippet-plugin --trust-plugins
       - name: Install browser
         run: npx playwright install --with-deps chromium
       - name: Test reader and API playground

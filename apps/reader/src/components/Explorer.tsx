@@ -37,6 +37,13 @@ import { useCredentials } from '../use-credentials.js';
 const ResponseEditor = lazy(() =>
   import('./ResponseEditor.js').catch(() => ({ default: ResponseFallback })),
 );
+const snippetLanguages: readonly SnippetLanguage[] = [
+  'cURL',
+  'JavaScript',
+  'TypeScript',
+  'Python',
+  'Java',
+];
 function ResponseFallback({ body }: { body: string }) {
   return (
     <div className="response-editor">
@@ -145,7 +152,10 @@ export function Explorer({
     ),
   ];
   const [accept, setAccept] = useState(responseTypes[0] ?? '*/*');
-  const [language, setLanguage] = useState<SnippetLanguage>('cURL');
+  const [language, setLanguage] = useState('cURL');
+  const staticSample = operation.codeSamples?.find(
+    (sample) => language === `plugin:${sample.plugin}:${sample.id}`,
+  );
   const mediaTypes = Object.keys(operation.requestBody?.content ?? {});
   const [contentType, setContentType] = useState(
     mediaTypes[0] ?? 'application/json',
@@ -375,43 +385,63 @@ export function Explorer({
       if (controller.current === abort) setBusy(false);
     }
   }
+  const exampleCode =
+    staticSample?.code ??
+    (preview.request
+      ? generateSnippet(
+          redactRequest(
+            preview.request,
+            credentials,
+            (isJsonMediaType(contentType) ||
+              isMultipartMediaType(contentType)) &&
+              requestMedia
+              ? {
+                  schema: requestMedia.schema,
+                  schemas: api.schemas,
+                  openapiVersion: api.openapiVersion,
+                }
+              : undefined,
+          ),
+          snippetLanguages.find((item) => item === language) ?? 'cURL',
+        )
+      : '');
   const snippet = (
     <>
       <div className="snippet-controls">
         <select
           aria-label="Code language"
           value={language}
-          onChange={(event) =>
-            setLanguage(event.target.value as SnippetLanguage)
-          }
+          onChange={(event) => setLanguage(event.target.value)}
         >
-          {['cURL', 'JavaScript', 'TypeScript', 'Python', 'Java'].map(
-            (item) => (
-              <option key={item}>{item}</option>
-            ),
-          )}
+          {snippetLanguages.map((item) => (
+            <option key={item}>{item}</option>
+          ))}
+          {(operation.codeSamples ?? []).map((sample) => (
+            <option
+              key={`${sample.plugin}:${sample.id}`}
+              value={`plugin:${sample.plugin}:${sample.id}`}
+            >
+              {sample.label} (build-time)
+            </option>
+          ))}
         </select>
-        <span>Example</span>
+        <span>{staticSample ? 'Build-time example' : 'Example'}</span>
+        <CopyButton
+          text={exampleCode}
+          label="Copy request example"
+          disabled={!exampleCode}
+        />
       </div>
-      {preview.request ? (
+      {staticSample && (
+        <p className="static-sample-notice">
+          Generated when these docs were built. Playground inputs do not change
+          this example.
+        </p>
+      )}
+      {staticSample || preview.request ? (
         <CodeBlock
-          code={generateSnippet(
-            redactRequest(
-              preview.request,
-              credentials,
-              (isJsonMediaType(contentType) ||
-                isMultipartMediaType(contentType)) &&
-                requestMedia
-                ? {
-                    schema: requestMedia.schema,
-                    schemas: api.schemas,
-                    openapiVersion: api.openapiVersion,
-                  }
-                : undefined,
-            ),
-            language,
-          )}
-          language={language}
+          code={exampleCode}
+          language={staticSample?.language ?? language}
         />
       ) : (
         <p className="preview-error">{preview.error}</p>
@@ -433,7 +463,7 @@ export function Explorer({
             Try now <Icon name="arrow" size={14} />
           </button>
         </div>
-        {preview.request ? (
+        {preview.request || operation.codeSamples?.length ? (
           snippet
         ) : (
           <p className="preview-hint">

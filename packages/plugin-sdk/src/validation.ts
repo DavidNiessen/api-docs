@@ -14,6 +14,35 @@ const media = z
   })
   .strict();
 const content = z.record(z.string(), media);
+const codeSamples = z
+  .array(
+    z
+      .object({
+        plugin: name.regex(
+          /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/,
+        ),
+        id: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
+        label: z.string().min(1).max(40),
+        language: z.string().regex(/^[a-zA-Z][a-zA-Z0-9+#._-]{0,39}$/),
+        code: z
+          .string()
+          .min(1)
+          .max(256 * 1024)
+          .refine((code) => Buffer.byteLength(code) <= 256 * 1024),
+      })
+      .strict(),
+  )
+  .max(16)
+  .refine(
+    (samples) =>
+      new Set(samples.map((sample) => `${sample.plugin}:${sample.id}`)).size ===
+      samples.length,
+  );
+export function validateCodeSamples(value: unknown) {
+  const parsed = codeSamples.safeParse(value);
+  if (!parsed.success) throw new Error('Invalid generated code samples');
+  return parsed.data;
+}
 const parameter = z
   .object({
     name,
@@ -32,6 +61,7 @@ const parameter = z
   .strict();
 const operation = z
   .object({
+    codeSamples: codeSamples.optional(),
     kind: z.enum(['endpoint', 'webhook', 'callback']).optional(),
     callback: z
       .object({ operationId: name, name, expression: name })
@@ -195,6 +225,7 @@ export function validatePluginSite(value: unknown): SiteData {
     );
   const site = result.data as unknown as SiteData;
   const identities = new Set<string>();
+  let sampleBytes = 0;
   for (const api of site.apis) {
     const key = `${api.id}:${api.version}`;
     if (identities.has(key))
@@ -203,6 +234,10 @@ export function validatePluginSite(value: unknown): SiteData {
     const slugs = new Set<string>(),
       ids = new Set<string>();
     for (const operation of api.operations) {
+      for (const sample of operation.codeSamples ?? [])
+        sampleBytes += Buffer.byteLength(sample.code);
+      if (sampleBytes > 16 * 1024 * 1024)
+        throw new Error('Generated code samples exceed 16 MiB total');
       if (slugs.has(operation.slug) || ids.has(operation.id))
         throw new Error('Invalid plugin output: duplicate operation identity');
       slugs.add(operation.slug);

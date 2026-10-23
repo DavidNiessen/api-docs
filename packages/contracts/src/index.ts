@@ -49,6 +49,7 @@ export interface OperationLifecycle {
   };
 }
 export interface Operation {
+  codeSamples?: CodeSample[];
   kind?: OperationKind;
   lifecycle?: OperationLifecycle;
   callback?: { operationId: string; name: string; expression: string };
@@ -71,6 +72,14 @@ export interface Operation {
   security: Record<string, string[]>[];
   servers: string[];
   source: string;
+}
+/** Reviewed static build output, independent of live playground inputs. */
+export interface CodeSample {
+  plugin: string;
+  id: string;
+  label: string;
+  language: string;
+  code: string;
 }
 export interface SecurityScheme {
   type: string;

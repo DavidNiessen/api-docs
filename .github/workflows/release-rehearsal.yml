@@ -95,6 +95,11 @@ jobs:
       - run: npm run check
       - run: npm run demo:build
       - run: npm run test:snippets
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - run: npm run test:go-snippets
       - run: npm run test:packages
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

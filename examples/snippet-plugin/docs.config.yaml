@@ -1,0 +1,6 @@
+name: Go code example plugin
+specs:
+  - id: service
+    path: openapi.yaml
+plugins:
+  - go.mjs

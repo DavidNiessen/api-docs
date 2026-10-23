@@ -1,6 +1,6 @@
 # Trusted build plugins
 
-The current experimental SDK supports typed `loadSpec`, `theme` and `transform` hooks. Framework serving adapters are separate native integrations; see [integration instructions](integrations.md). Custom browser components and dynamic snippet/search hooks remain roadmap work.
+The current experimental SDK supports typed `loadSpec`, `theme`, `transform` and build-time `generateSnippets` hooks. Framework serving adapters are separate native integrations; see [integration instructions](integrations.md). Custom browser components and dynamic browser snippet/search hooks remain roadmap work.
 
 Start from [the runnable release-label example](../examples/plugins/release-label.mjs):
 
@@ -11,9 +11,11 @@ node packages/cli/dist/main.js plugin-check brand-theme.mjs examples/plugins --t
 node packages/cli/dist/main.js build examples/plugins --trust-plugins
 node packages/cli/dist/main.js plugin-check deployment.mjs examples/source-plugin --trust-plugins
 node packages/cli/dist/main.js build examples/source-plugin --trust-plugins
+node packages/cli/dist/main.js plugin-check go.mjs examples/snippet-plugin --trust-plugins
+node packages/cli/dist/main.js build examples/snippet-plugin --trust-plugins
 ```
 
-The conformance command substitutes the specified plugin for the fixture's configured plugin list and compiles the complete project twice. Each compilation runs source hooks in a fresh worker, validates/normalizes OpenAPI and then runs theme/graph hooks in a separate fresh worker. It checks metadata, graph shape, route identity, declared input hashes, configuration and identical JSON output. It fails rather than certifying nondeterministic output. Repeatability on one fixture is useful evidence, not a security audit or proof across every project.
+The conformance command substitutes the specified plugin for the fixture's configured plugin list and compiles the complete project twice. Each compilation runs source hooks in a fresh worker, validates/normalizes OpenAPI and then runs theme/graph hooks followed by snippet generation in a separate fresh worker. It checks metadata, graph shape, route identity, declared input hashes, configuration and identical JSON output. It fails rather than certifying nondeterministic output. Repeatability on one fixture is useful evidence, not a security audit or proof across every project.
 
 ## Public contract
 
@@ -89,6 +91,43 @@ The hook receives a separate theme snapshot; mutations to that snapshot are disc
 
 The compiler and `plugin-check` apply the same strict configuration validation, including token types/ranges, safe asset paths and 4.5:1 text contrast. Invalid output fails before replacing a previous publication. Both hooks share the plugin's abort deadline and diagnostic context. Theme plugins use the same fresh worker, declared-input fingerprinting and explicit trust boundary as transforms. SDK callers using `applyPlugins`/`runPluginFiles` directly must still validate the resulting project configuration, as described below.
 
+### Build-time code examples
+
+`generateSnippets({ api, operation }, context)` requires `capabilities: ['snippets']` and returns a `SnippetSample[]`. Generation runs after **all** graph transforms, in configured plugin order, against the final normalized operations. The API metadata/schema snapshot is deeply frozen and shared across that API's invocations; the individual operation is a separate clone without existing samples. Returned samples are namespaced by plugin name and id. Return an empty array for operations the generator does not support.
+
+```js
+export default definePlugin({
+  name: '@example/company-sdk',
+  version: '1.0.0',
+  pluginApi: '1',
+  capabilities: ['snippets'],
+  generateSnippets({ operation }) {
+    if (operation.id !== 'listProjects') return [];
+    return [
+      {
+        id: 'list-projects',
+        label: 'Company SDK',
+        language: 'typescript',
+        code: 'const projects = await client.projects.list();',
+      },
+    ];
+  },
+});
+```
+
+Samples have a stable lowercase `id`, a label of at most 40 characters, a language identifier and nonempty code text. Each hook may return at most eight samples per operation; the combined result allows 16 per operation, 256 KiB UTF-8 per sample and 16 MiB across the site. Unknown fields, duplicate identities, oversized output and hook failures fail the build. Samples are plain text, never executable reader modules. The reader offers selection and full copying with a **Build-time example** notice; changing playground inputs does not regenerate them. The five built-in languages continue to serialize the current redacted request. No end-user credentials are passed into build plugins.
+
+[The first-party Go plugin](../examples/snippet-plugin/go.mjs) uses the public normalized model and explorer serializer, redacts credential placeholders and sensitive JSON fields, then emits standalone `net/http` code. It covers ordinary JSON requests and parameter examples; it returns no sample for inbound operations or non-JSON request media such as multipart. Its declared helper is fingerprinted. The generated client has a 30-second timeout, refuses redirects, limits response capture to 2 MiB and reports non-2xx failures. All plugin output is published: reviewed authors remain responsible for avoiding secrets from specs, configuration, files and environment access.
+
+```sh
+# After npm run build, with a real Go >=1.23 toolchain on PATH:
+npm run test:go-snippets
+# Or select an installed toolchain explicitly:
+GO_EXECUTABLE=/path/to/go npm run test:go-snippets
+```
+
+Nine executable checks cover precise serialized bytes, Unicode/escaping, empty responses, media/headers/query handling, HTTP failures, redirect refusal and actual public-plugin output. Compilation uses the standard library with module/toolchain downloads disabled. CI pins Go 1.27.3. This verifies the included generator on its fixtures; it does not certify arbitrary third-party SDK behavior. Browser-executed generators that react to live form changes remain future work and would require a separate trust design.
+
 Entries must be compiled JavaScript (`.js`, `.mjs`, `.cjs`) inside the project. List helpers, configuration files and applicable lockfiles in `inputs`, relative to the project root. Entry files are always included. Paths are canonicalized and may not escape through traversal or symlinks. Inputs are regular files of at most 16 MiB each, with at most 128 declared inputs per plugin and 32 plugin files per invocation. Combined source reads are limited to 64 MiB per invocation, including repeated declarations. The generated manifest records plugin name/version, file hashes and a combined source digest. Changed declared files invalidate artifact identity even if the declared package version remains unchanged. Inputs that change during execution fail verification.
 
 Each invocation starts a fresh process, including its module cache, so changing an imported helper takes effect on the next full development rebuild. Undeclared inputs are not fingerprinted automatically: declare all files affecting output, avoid network/time/randomness, and never treat an undeclared dependency as cacheable.
@@ -101,4 +140,4 @@ The dedicated output pipe separates protocol data from plugin stdout/stderr. Arb
 
 **This is a trusted-code resource boundary, not a security sandbox.** The worker inherits the build user's filesystem, environment and network access. Capability declarations document intended behavior and do not enforce OS permissions. Review imports as well as entry files. Run untrusted or hosted builds in a separately restricted container/OS environment without host credentials, with source/output mounts and network/CPU/memory policies. The management server still accepts operator-staged artifacts, rather than executing uploaded plugins.
 
-The SDK exports `runPluginFiles` / `checkPluginConformance` for graph/theme tooling and `runSourcePluginFiles` / `checkSourcePluginConformance` for bounded source-text tooling. The latter validates source identities, byte limits and diagnostics; callers must still validate/normalize OpenAPI. The compiler exports `checkProjectPluginConformance` for the complete pipeline, which the CLI uses. Compiler/CLI callers also validate project configuration and sanitize guide HTML. Advanced callers can choose bounded worker options (`timeoutMs`, `maxBytes`, `heapMiB`). `applyPlugins` remains an in-process helper for already trusted code; its abort timeout is cooperative and cannot stop synchronous loops. Use the file runner for compiler lifecycle guarantees.
+The SDK exports `runPluginFiles` / `checkPluginConformance` for graph/theme/snippet tooling and `runSourcePluginFiles` / `checkSourcePluginConformance` for bounded source-text tooling. The latter validates source identities, byte limits and diagnostics; callers must still validate/normalize OpenAPI. The compiler exports `checkProjectPluginConformance` for the complete pipeline, which the CLI uses. Compiler/CLI callers also validate project configuration and sanitize guide HTML. Advanced callers can choose bounded worker options (`timeoutMs`, `maxBytes`, `heapMiB`). `applyPlugins` remains an in-process helper for already trusted code; its abort timeout is cooperative and cannot stop synchronous loops. Use the file runner for compiler lifecycle guarantees.

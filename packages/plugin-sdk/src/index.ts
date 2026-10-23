@@ -1,11 +1,25 @@
-import type { Diagnostic, SiteData, Theme } from '@api-docs/contracts';
+import type {
+  Diagnostic,
+  SiteData,
+  Theme,
+  ApiDocument,
+  Operation,
+  CodeSample,
+} from '@api-docs/contracts';
 import { validatePluginSite } from './validation.js';
 import { applyThemePatch } from './theme.js';
 import type { ThemePatch } from './theme.js';
 import type { SpecSource } from './sources.js';
+import { applySnippetPlugins } from './snippets.js';
 export type { SpecSource } from './sources.js';
 export type { ThemePatch } from './theme.js';
-export type BuildPluginCapability = 'transform' | 'theme' | 'source';
+export type BuildPluginCapability =
+  'transform' | 'theme' | 'source' | 'snippets';
+export interface SnippetInput {
+  api: Readonly<Omit<ApiDocument, 'operations'>>;
+  operation: Omit<Operation, 'codeSamples'>;
+}
+export type SnippetSample = Omit<CodeSample, 'plugin'>;
 export interface BuildPluginContext {
   signal: AbortSignal;
   diagnostic: (message: Diagnostic) => void;
@@ -16,6 +30,10 @@ export interface BuildPlugin {
   pluginApi: '1';
   inputs?: string[];
   capabilities?: readonly BuildPluginCapability[];
+  generateSnippets?: (
+    input: Readonly<SnippetInput>,
+    context: BuildPluginContext,
+  ) => Promise<SnippetSample[]> | SnippetSample[];
   loadSpec?: (
     source: Readonly<SpecSource>,
     context: BuildPluginContext,
@@ -46,6 +64,9 @@ export function definePlugin(plugin: BuildPlugin): BuildPlugin {
     (plugin.loadSpec !== undefined &&
       (typeof plugin.loadSpec !== 'function' ||
         !plugin.capabilities?.includes('source'))) ||
+    (plugin.generateSnippets !== undefined &&
+      (typeof plugin.generateSnippets !== 'function' ||
+        !plugin.capabilities?.includes('snippets'))) ||
     (plugin.inputs !== undefined &&
       (!Array.isArray(plugin.inputs) ||
         plugin.inputs.length > 128 ||
@@ -55,13 +76,14 @@ export function definePlugin(plugin: BuildPlugin): BuildPlugin {
     (plugin.capabilities !== undefined &&
       (!Array.isArray(plugin.capabilities) ||
         plugin.capabilities.length < 1 ||
-        plugin.capabilities.length > 3 ||
+        plugin.capabilities.length > 4 ||
         new Set(plugin.capabilities).size !== plugin.capabilities.length ||
         plugin.capabilities.some(
           (capability) =>
             capability !== 'transform' &&
             capability !== 'theme' &&
-            capability !== 'source',
+            capability !== 'source' &&
+            capability !== 'snippets',
         ) ||
         (plugin.transform !== undefined &&
           !plugin.capabilities.includes('transform'))))
@@ -130,5 +152,5 @@ export async function applyPlugins(
       clearTimeout(timer);
     }
   }
-  return current;
+  return applySnippetPlugins(current, plugins, timeout);
 }

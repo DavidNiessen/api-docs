@@ -29,6 +29,21 @@ for (let index = 0; index < 52; index++)
     },
   };
 await writeFile(file, JSON.stringify(spec));
-const built = await buildSite(root.pathname);
+for (const filename of ['go.mjs', 'go-code.mjs'])
+  await cp(
+    new URL(`../examples/snippet-plugin/${filename}`, import.meta.url),
+    new URL(filename, root),
+  );
+await writeFile(
+  new URL('plain-text.mjs', root),
+  `export default { name: 'plain-text', version: '1.0.0', pluginApi: '1', capabilities: ['snippets'], generateSnippets({ operation }) { return operation.id === 'listWidgets' ? [{ id: 'escaped', label: 'Escaped text', language: 'text', code: '<script>window.sampleExecuted = true</script>\\n<img src=x onerror="window.sampleExecuted=true">' }] : []; } };`,
+);
+const config = new URL('docs.config.yaml', root);
+await writeFile(
+  config,
+  (await readFile(config, 'utf8')) +
+    '\nplugins:\n  - go.mjs\n  - plain-text.mjs\n',
+);
+const built = await buildSite(root.pathname, { trustPlugins: true });
 const server = await createStaticServer(built.directory);
 await server.listen({ host: '127.0.0.1', port: 4176 });

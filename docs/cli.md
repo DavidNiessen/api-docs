@@ -82,4 +82,4 @@ After the initial verified build, `dev` reuses its API graph for plain Markdown 
 
 ## Plugin conformance
 
-`plugin-check <file> [project] --trust-plugins` substitutes one reviewed plugin for the fixture's configured plugins and compiles the complete project twice. Source hooks run before ordinary OpenAPI validation, followed by theme/graph hooks in fresh workers. The check fails on invalid metadata/output, changed declared inputs or nondeterminism. Use `--trust-content` separately when its guides contain reviewed MDX.
+`plugin-check <file> [project] --trust-plugins` substitutes one reviewed plugin for the fixture's configured plugins and compiles the complete project twice. Source hooks run before ordinary OpenAPI validation, followed by theme/graph hooks and build-time snippet generation in fresh workers. The check fails on invalid metadata/output, changed declared inputs or nondeterminism. Use `--trust-content` separately when its guides contain reviewed MDX.

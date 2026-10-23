@@ -1189,6 +1189,7 @@ h3 {
 }
 .snippet-controls {
   display: flex;
+  gap: 8px;
   align-items: center;
   padding: 13px 16px 8px;
   justify-content: space-between;
@@ -1196,10 +1197,18 @@ h3 {
   color: var(--muted);
 }
 .snippet-controls select {
+  min-width: 0;
+  max-width: 50%;
   background: var(--bg);
   font-size: 10px;
   padding: 5px 8px;
   border-color: var(--border);
+}
+.static-sample-notice {
+  margin: 4px 16px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
 }
 .code-block {
   background: #151b23;

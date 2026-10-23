@@ -26,6 +26,7 @@
     "demo:serve": "node packages/cli/dist/main.js serve examples/demo/.api-docs/site --port 3000",
     "test:e2e": "playwright test",
     "test:snippets": "node scripts/test-snippets.mjs",
+    "test:go-snippets": "node scripts/test-go-snippets.mjs",
     "test:java-matrix": "node scripts/test-java-matrix.mjs",
     "release:pack": "node scripts/pack-npm.mjs",
     "test:packages": "node scripts/test-packages.mjs",
