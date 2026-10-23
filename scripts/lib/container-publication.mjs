@@ -102,6 +102,38 @@ export async function inspectGhcrManifest(
   return { exists: true, digest, image: manifest.config.digest };
 }
 
+/** The advertised version tag and digest must both resolve to the accepted public image. */
+export async function verifyPublicGhcrImage(
+  candidate,
+  digest,
+  { request = releaseRequest } = {},
+) {
+  assert.match(digest, digestPattern);
+  const token = await ghcrAuthorization(candidate.repository, { request });
+  const tagged = await inspectGhcrManifest(
+    candidate.repository,
+    candidate.tag,
+    token,
+    { request },
+  );
+  assert(tagged.exists, 'The advertised container version is not public.');
+  assert.equal(
+    tagged.digest,
+    digest,
+    'The advertised container version changed after publication.',
+  );
+  assert.equal(tagged.image, candidate.image);
+  const immutable = await inspectGhcrManifest(
+    candidate.repository,
+    digest,
+    token,
+    { request },
+  );
+  assert(immutable.exists);
+  assert.equal(immutable.image, candidate.image);
+  return immutable;
+}
+
 export async function loadContainerPublication(root, context, plan) {
   assert.equal(plan.policyApproved, true);
   for (const key of [
@@ -245,7 +277,11 @@ export async function publishContainerArchive(
       );
       const target = `${candidate.repository}:${candidate.tag}`;
       await run(config, ['image', 'tag', candidate.image, target], { env });
-      await run(config, ['image', 'push', target], { env });
+      await run(
+        config,
+        ['image', 'push', '--platform', 'linux/amd64', target],
+        { env },
+      );
       remote = await inspectGhcrManifest(
         candidate.repository,
         candidate.tag,

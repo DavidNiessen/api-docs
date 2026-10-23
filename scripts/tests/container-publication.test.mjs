@@ -9,6 +9,7 @@ import {
   inspectGhcrManifest,
   probePublishedContainer,
   publishContainerArchive,
+  verifyPublicGhcrImage,
 } from '../lib/container-publication.mjs';
 
 const image = 'sha256:' + 'a'.repeat(64);
@@ -151,6 +152,8 @@ test('container publication loads the exact archive, pushes the tested config an
     },
   });
   assert.equal(result.reused, false);
+  const push = calls.find((args) => args[1] === 'push');
+  assert.deepEqual(push.slice(2, 4), ['--platform', 'linux/amd64']);
   assert.deepEqual(
     calls.map((args) => (args[0] === 'login' ? 'login' : args[1])),
     ['login', 'load', 'inspect', 'inspect', 'tag', 'push'],
@@ -163,6 +166,29 @@ test('container publication loads the exact archive, pushes the tested config an
     !(await readFile(receiptPath, 'utf8')).includes(
       'unit-test-publisher-token',
     ),
+  );
+});
+
+test('public container acceptance checks the advertised tag as well as its immutable digest', async () => {
+  const requested = [];
+  const request = async (url, options) => {
+    requested.push(url);
+    if (url.includes('/token?')) {
+      assert.deepEqual(options.headers, {});
+      return auth;
+    }
+    return manifest();
+  };
+  const digest = manifest().contentDigest;
+  assert.equal(
+    (await verifyPublicGhcrImage(candidate, digest, { request })).image,
+    image,
+  );
+  assert(requested.some((url) => url.endsWith('/manifests/0.2.0')));
+  assert(requested.some((url) => url.endsWith('/manifests/' + digest)));
+  await assert.rejects(
+    verifyPublicGhcrImage(candidate, 'sha256:' + 'f'.repeat(64), { request }),
+    /changed after publication/,
   );
 });
 

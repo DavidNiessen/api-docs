@@ -74,7 +74,7 @@ export async function inspectMavenPublication(
   let existing = 0;
   for (const file of candidate.files) {
     const result = await request(`${mavenRegistry}/${file.path}`, {
-      maximum: file.bytes,
+      maximum: Math.max(file.bytes, 64 * 1024),
     });
     if (result.status === 404) continue;
     assert.equal(result.status, 200, `Cannot inspect Maven file ${file.name}.`);

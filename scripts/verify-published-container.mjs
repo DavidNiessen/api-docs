@@ -5,12 +5,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import {
-  ghcrAuthorization,
-  inspectGhcrManifest,
   loadContainerPublication,
   probePublishedContainer,
   promotionPredicateType,
   runReleaseDocker,
+  verifyPublicGhcrImage,
 } from './lib/container-publication.mjs';
 import { releaseSource } from './lib/release-assets.mjs';
 import { readRegularFile } from './lib/read-regular-file.mjs';
@@ -38,12 +37,7 @@ assert.equal(receipt.containerRepository, candidate.repository);
 assert.equal(receipt.archiveSha256, candidate.archive.sha256);
 assert.match(receipt.digest, /^sha256:[a-f0-9]{64}$/);
 // Deliberately request an anonymous pull token, even when GH_TOKEN is set for attestation reads.
-const authorization = await ghcrAuthorization(candidate.repository);
-const remote = await inspectGhcrManifest(
-  candidate.repository,
-  receipt.digest,
-  authorization,
-);
+const remote = await verifyPublicGhcrImage(candidate, receipt.digest);
 assert(remote.exists, 'The published image must be publicly accessible.');
 assert.equal(remote.image, candidate.image);
 const config = await mkdtemp(join(tmpdir(), 'ad-public-oci-'));

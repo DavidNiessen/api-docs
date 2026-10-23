@@ -17,6 +17,12 @@ Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**Public distribution checks now cover two registry edge cases.** Maven can return a bounded HTML 404 page larger than a small POM without being mistaken for a corrupt existing version. Container pushes explicitly select the tested Linux/amd64 platform, and anonymous acceptance verifies both the advertised version tag and immutable digest so a moved tag cannot pass through a valid older digest.
+
+All **166 tooling tests** pass locally, including regression cases for both behaviors. The ordinary hosted push and PR Quality runs passed every job for the prepared `eb66189` tree; its full browser/performance matrix is running. This release-only transport increment needs its own hosted checks. Clean-tag producer signing, protected registry acceptance and maintainer launch decisions remain pending; approximately **97%, pre-release**.
+
+## Previous prepared-candidate increment
+
 **An unpublished `0.2.0-candidate.1` is prepared for clean-tag acceptance.** Saved source-bound planning and a preview aligned all 16 npm packages, both lockfiles, runtime identity and three Java POMs, then generated the initial changelog from conventional commits. No tag, registry distribution or GitHub release has been published by this preparation. Names remain provisional and source publication policy stays disabled.
 
 The prepared tree passes release-mode alignment, frozen pnpm policy/lockfile checks, formatting/lint, all **164 tooling** and **1,049 source tests**, all **12 installed npm components**, and baseline Java 21/Spring Boot 3.5.16 MVC/WebFlux consumers (**8 tests, no skips**, plus both offline compilations). The full hosted matrix, actual clean-tag keyless verification and protected registry acceptance remain pending. Hosted [Quality 40039470302](https://github.com/DavidNiessen/api-docs/actions/runs/40039470302) passed every job at `bb02e9d`, confirming the subprocess-input fix before this prepared-version increment. The estimate stays approximately **97%, pre-release**.

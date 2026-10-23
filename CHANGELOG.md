@@ -89,6 +89,7 @@
 
 ### Fixes
 
+- **release:** accept bounded missing-file registry responses and verify public container version tags against the tested digest.
 - **publishing:** address artifacts by generated content and provenance ([ef72b17](https://github.com/DavidNiessen/api-docs/commit/ef72b17a74f33d6c4501e9aa64da09bcff776e4c))
 - **security:** remove vulnerable tooling and gate dependency audits ([dadab1b](https://github.com/DavidNiessen/api-docs/commit/dadab1b1a7709fa5bb354ee7c92f044a705177ff))
 - **security:** validate manifests and bound artifact file reads ([85b50b5](https://github.com/DavidNiessen/api-docs/commit/85b50b541b5691afb975076867e5f6af1867a5f7))

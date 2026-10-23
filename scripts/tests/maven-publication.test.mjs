@@ -4,6 +4,7 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { releaseRequest } from '../lib/release-http.mjs';
 import {
   inspectMavenPublication,
   inspectMavenPublicKey,
@@ -84,6 +85,22 @@ test('Maven reuse requires every actual public file to match and refuses partial
     }),
     /Cannot inspect/,
   );
+});
+
+test('a missing small Maven file can return a bounded larger HTML error page without being mistaken for corruption', async () => {
+  assert(bytes.length < 1024);
+  const state = await inspectMavenPublication(
+    { files },
+    {
+      request: (url, options) =>
+        releaseRequest(url, {
+          ...options,
+          fetchImpl: async () =>
+            new Response('x'.repeat(1024), { status: 404 }),
+        }),
+    },
+  );
+  assert.equal(state.exists, false);
 });
 
 test('actual ephemeral OpenPGP signatures bind the exact copied Maven bytes and checksum bundle', async (t) => {
