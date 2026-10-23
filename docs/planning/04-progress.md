@@ -17,6 +17,12 @@ Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an eng
 
 ## Latest completed increment
 
+**The npm transport now promotes exact tested archives and has a separate fresh public-registry consumer verifier.** It preflights all immutable versions, rejects conflicting or unprovenanced existing bytes, orders workspace dependencies, disables lifecycle scripts and keeps token values out of arguments, files and receipts. Public verification starts with an empty cache, requires registry integrity/signatures/provenance, then runs audit, offline reinstall and the installed CLI/type/adapter journeys. The current workflow remains read-only; publishing integration, actual registry acceptance, Maven/container transports and owner launch decisions remain pending.
+
+All **141 tooling tests** pass, including new conflict, archive-integrity, credential-cleanup, redaction and bounded registry HTTP cases. A real read-only npm registry request also passes through the session proxy. These results do not claim a registry write, public installation of this project's packages or completed cryptographic release acceptance. Completion remains approximately **97%, pre-release**.
+
+## Previous publication-plan increment
+
 **Publication plans now verify successful candidate identity and authentic producer bytes before listing destinations and blockers.** A read-only tag workflow checks the exact upstream candidate workflow/attempt and remote tag, shares signature/hash verification with candidate acceptance, and evaluates public namespace, signing and launch-review decisions. It keeps policy decisions separate from publication approval. A further approval-check mode validates the actual reviewer/tag environment configuration. Dependency ordering is checked against all public workspaces. See [publication plans](../publication-plans.md).
 
 All **136 tooling cases** pass, including eight new policy/verification cases and expanded release-source workflow-identity checks. Tests cover command constraints and failure handling; actual GitHub OIDC/signature acceptance still requires a clean-tag run. Registry transports, published installation and protected release approval remain pending; the estimate stays approximately **97%, pre-release**.
