@@ -1,5 +1,6 @@
 /** Stable reader message IDs. Values are plain text with named placeholders. */
 export const defaultUiMessages = Object.freeze({
+  'locale.content': 'Page content: {language}',
   'locale.choose': 'Documentation language',
   'locale.coverage':
     '{translated} of {total} core UI labels translated. Other labels use English.',
@@ -79,6 +80,7 @@ export const defaultUiMessages = Object.freeze({
 export type UiMessageKey = keyof typeof defaultUiMessages;
 export type UiMessages = Partial<Record<UiMessageKey, string>>;
 export interface UiConfiguration {
+  guides?: Record<string, string>;
   messages: Record<string, UiMessages>;
 }
 type Names<Text extends string> =

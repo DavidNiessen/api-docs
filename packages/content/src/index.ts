@@ -152,6 +152,11 @@ const frontmatter = z
     order: z.number().finite().min(-1_000_000).max(1_000_000).default(100),
   })
   .strict();
+export interface GuideReadBudget {
+  entries: number;
+  bytes: number;
+  guides: number;
+}
 export async function loadGuides(
   root: string,
   directory: string,
@@ -159,19 +164,24 @@ export async function loadGuides(
     trustContent?: boolean;
     basePath?: string;
     only?: ReadonlySet<string>;
+    budget?: GuideReadBudget;
+    /** Prefix documentation links while keeping shared media at basePath. */
+    localePrefix?: string;
   } = {},
 ): Promise<Guide[]> {
   const guides: Guide[] = [];
   const slugs = new Set<string>();
-  let entries = 0,
-    bytes = 0;
+  const budget = options.budget ?? { entries: 0, bytes: 0, guides: 0 };
+  for (const key of ['entries', 'bytes', 'guides'] as const)
+    if (!Number.isSafeInteger(budget[key]) || budget[key] < 0)
+      throw new Error('Invalid guide read budget');
   const walk = async (path: string, depth = 0): Promise<void> => {
     if (depth > 24)
       throw new Error('Guide directory nesting exceeds 24 levels');
     const children = await readdir(path, { withFileTypes: true });
     for (const child of children.sort((a, b) => a.name.localeCompare(b.name))) {
       if (child.name.startsWith('.')) continue;
-      if (++entries > 25000)
+      if (++budget.entries > 25000)
         throw new Error('Guide directory exceeds 25000 entries');
       if (child.isSymbolicLink())
         throw new Error(`Guide symlinks are not supported: ${child.name}`);
@@ -182,15 +192,15 @@ export async function loadGuides(
       }
       if (!/\.mdx?$/.test(child.name)) continue;
       if (options.only && !options.only.has(file)) continue;
-      if (guides.length >= 10000) throw new Error('Guide count exceeds 10000');
+      if (budget.guides >= 10000) throw new Error('Guide count exceeds 10000');
       const mdx = child.name.endsWith('.mdx');
       if (mdx && !options.trustContent)
         throw new Error(
           `${relative(root, file)}: MDX executes code. Review it and use --trust-content to opt in.`,
         );
       const raw = await readTextFile(file, 2 * 1024 * 1024);
-      bytes += Buffer.byteLength(raw);
-      if (bytes > 64 * 1024 * 1024)
+      budget.bytes += Buffer.byteLength(raw);
+      if (budget.bytes > 64 * 1024 * 1024)
         throw new Error('Guide sources exceed 64 MiB total');
       const match = /^---\r?\n((?:[^\r\n]*\r?\n)*?)---(?:\r?\n|$)/.exec(raw);
       let authored: unknown = {};
@@ -257,12 +267,15 @@ export async function loadGuides(
               .map(slugify)
               .join('/');
             return (
-              withBase(options.basePath ?? '', `/guides/${route}/`) +
-              (index < 0 ? '' : url.slice(index))
+              withBase(
+                (options.basePath ?? '') + (options.localePrefix ?? ''),
+                `/guides/${route}/`,
+              ) + (index < 0 ? '' : url.slice(index))
             );
           },
         },
       );
+      budget.guides++;
       guides.push({
         order: meta.order,
         slug,

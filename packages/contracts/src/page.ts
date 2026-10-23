@@ -1,5 +1,10 @@
 import type { ApiDocument, Operation, Schema, SiteData } from './index.js';
 import { guideHref, operationHref } from './index.js';
+import {
+  guidesForLocale,
+  pageContentLocale,
+  guideAlternates,
+} from './guide-translations.js';
 import { localeRoute } from './locale.js';
 import { lifecycleContext } from './lifecycle-pages.js';
 export function normalizePagePath(path: string): string {
@@ -64,10 +69,11 @@ function navigationOperation(operation: Operation): Operation {
 export function createPageData(site: SiteData, inputPath: string): SiteData {
   const path = normalizePagePath(inputPath);
   if (site.pagePath === path) return site;
-  const contentPath = localeRoute(site.config, path).contentPath;
+  const { locale, contentPath } = localeRoute(site.config, path);
+  const guides = guidesForLocale(site, locale);
   const activeGuide =
-    site.guides.find((guide) => guideHref(guide) === contentPath) ??
-    (contentPath === '/' ? site.guides[0] : undefined);
+    guides.find((guide) => guideHref(guide) === contentPath) ??
+    (contentPath === '/' ? guides[0] : undefined);
   const activeApi =
     site.apis.find((api) =>
       api.operations.some(
@@ -113,8 +119,15 @@ export function createPageData(site: SiteData, inputPath: string): SiteData {
     site.navigationTotal ??
     site.guides.length +
       site.apis.reduce((total, api) => total + api.operations.length, 0);
+  const { guideTranslations: allTranslations, ...shared } = site;
+  const alternates = guideAlternates(site, path);
   return {
-    ...site,
+    ...shared,
+    contentLocale: pageContentLocale(site, path),
+    ...(allTranslations && Object.hasOwn(allTranslations, locale)
+      ? { searchLocale: locale }
+      : {}),
+    ...(alternates.length ? { pageTranslations: alternates } : {}),
     pagePath: path,
     lifecycle: lifecycleContext(
       site,
@@ -130,7 +143,7 @@ export function createPageData(site: SiteData, inputPath: string): SiteData {
         Math.min(site.guides.length, 100) +
           apis.reduce((total, api) => total + api.operations.length, 0),
     apis,
-    guides: site.guides
+    guides: guides
       .filter((guide, index) => index < 100 || guide === activeGuide)
       .map((guide) =>
         guide === activeGuide

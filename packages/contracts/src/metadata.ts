@@ -1,10 +1,17 @@
 import { guideHref, operationHref, normalizePagePath } from './index.js';
 import type { SiteData } from './index.js';
+import {
+  guidesForLocale,
+  pageContentLocale,
+  guideAlternates,
+} from './guide-translations.js';
 import { localeRoute } from './locale.js';
 import { lifecycleContext } from './lifecycle-pages.js';
 export function pageMetadata(site: SiteData, inputPath: string) {
   const path = normalizePagePath(inputPath);
   const { locale, contentPath } = localeRoute(site.config, path);
+  const guides = guidesForLocale(site, locale);
+  const contentLocale = pageContentLocale(site, path);
   const lifecycle =
     site.pagePath === path
       ? site.lifecycle?.page
@@ -12,8 +19,8 @@ export function pageMetadata(site: SiteData, inputPath: string) {
         ? lifecycleContext(site, contentPath).page
         : undefined;
   const guide =
-    site.guides.find((guide) => guideHref(guide) === contentPath) ??
-    (contentPath === '/' ? site.guides[0] : undefined);
+    guides.find((guide) => guideHref(guide) === contentPath) ??
+    (contentPath === '/' ? guides[0] : undefined);
   const operation =
     site.apis
       .flatMap((api) => api.operations.map((operation) => ({ api, operation })))
@@ -23,6 +30,7 @@ export function pageMetadata(site: SiteData, inputPath: string) {
     (contentPath === '/' && !guide ? site.apis[0]?.operations[0] : undefined);
   const found = Boolean(lifecycle || guide || operation || contentPath === '/');
   return {
+    alternates: guideAlternates(site, path),
     title:
       (lifecycle ? 'Deprecations' : undefined) ??
       guide?.title ??
@@ -40,12 +48,17 @@ export function pageMetadata(site: SiteData, inputPath: string) {
       .slice(0, 320),
     robots:
       found && site.config.seo?.index !== false
-        ? locale === site.config.defaultLocale
+        ? locale === contentLocale
           ? 'index,follow'
           : 'noindex,follow'
         : 'noindex,nofollow',
     ...(found && site.config.siteUrl
-      ? { canonical: site.config.siteUrl + site.config.basePath + contentPath }
+      ? {
+          canonical:
+            site.config.siteUrl +
+            site.config.basePath +
+            (locale === contentLocale ? path : contentPath),
+        }
       : {}),
     ...(site.config.seo?.socialImage && site.config.siteUrl
       ? {

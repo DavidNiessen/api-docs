@@ -39,6 +39,15 @@ export function renderDocument(
     options.status !== 404 && metadata.canonical
       ? `<link rel="canonical" href="${escape(metadata.canonical)}"><meta property="og:url" content="${escape(metadata.canonical)}">`
       : '';
+  const alternates =
+    options.status !== 404 && site.config.siteUrl
+      ? metadata.alternates
+          .map(
+            (item) =>
+              `<link rel="alternate" hreflang="${escape(item.locale)}" href="${escape(site.config.siteUrl! + site.config.basePath + item.href)}" data-doc-locale>`,
+          )
+          .join('')
+      : '';
   const image = metadata.image
     ? `<meta property="og:image" content="${escape(metadata.image)}">`
     : '';
@@ -48,5 +57,5 @@ export function renderDocument(
   const stylesheet = site.config.theme.stylesheet
     ? `<link rel="stylesheet" href="${site.config.basePath}/media/${escape(site.config.theme.stylesheet)}">`
     : '';
-  return `<!doctype html><html lang="${escape(localeRoute(site.config, path).locale)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="description" content="${escape(metadata.description)}"><meta name="robots" content="${options.status === 404 ? 'noindex,nofollow' : metadata.robots}"><meta property="og:type" content="website"><meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(metadata.description)}"><meta name="twitter:card" content="${metadata.image ? 'summary_large_image' : 'summary'}">${canonical}${image}${favicon}<meta name="generator" content="api-docs ${toolVersion}"><title>${escape(title)}</title><link rel="stylesheet" href="${site.config.basePath}/assets/reader.css">${stylesheet}</head><body><div id="root">${markup}</div><script type="application/json" id="docs-data">${encoded}</script><script type="module" src="${site.config.basePath}/assets/reader.js"></script></body></html>`;
+  return `<!doctype html><html lang="${escape(localeRoute(site.config, path).locale)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="description" content="${escape(metadata.description)}"><meta name="robots" content="${options.status === 404 ? 'noindex,nofollow' : metadata.robots}"><meta property="og:type" content="website"><meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(metadata.description)}"><meta name="twitter:card" content="${metadata.image ? 'summary_large_image' : 'summary'}">${canonical}${alternates}${image}${favicon}<meta name="generator" content="api-docs ${toolVersion}"><title>${escape(title)}</title><link rel="stylesheet" href="${site.config.basePath}/assets/reader.css">${stylesheet}</head><body><div id="root">${markup}</div><script type="application/json" id="docs-data">${encoded}</script><script type="module" src="${site.config.basePath}/assets/reader.js"></script></body></html>`;
 }

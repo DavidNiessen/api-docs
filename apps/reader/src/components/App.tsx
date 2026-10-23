@@ -154,6 +154,7 @@ export function App({
     ? { ...site.config, theme: themeDraft }
     : site.config;
   const { locale, prefix, contentPath } = localeRoute(config, path);
+  const contentLocale = site.contentLocale ?? config.defaultLocale;
   const ui = useMemo(
     () => createUiTranslation(locale, config.i18n),
     [locale, config.i18n],
@@ -230,6 +231,17 @@ export function App({
   useEffect(() => {
     const metadata = pageMetadata(site, path);
     document.title = `${metadata.title} · ${config.name}`;
+    for (const link of document.querySelectorAll('link[data-doc-locale]'))
+      link.remove();
+    if (config.siteUrl)
+      for (const alternate of metadata.alternates) {
+        const link = document.createElement('link');
+        link.rel = 'alternate';
+        link.hreflang = alternate.locale;
+        link.href = config.siteUrl + config.basePath + alternate.href;
+        link.dataset.docLocale = '';
+        document.head.append(link);
+      }
     for (const [selector, value] of [
       ['meta[name="description"]', metadata.description],
       ['meta[name="robots"]', metadata.robots],
@@ -326,9 +338,16 @@ export function App({
         }
       }
       void (async () => {
-        const response = await fetch(href('/search-manifest.json'), {
-          credentials: 'same-origin',
-        });
+        const response = await fetch(
+          href(
+            site.searchLocale
+              ? `/search/${site.searchLocale}/catalog.json`
+              : '/search-manifest.json',
+          ),
+          {
+            credentials: 'same-origin',
+          },
+        );
         if (!response.ok) throw new Error('Search unavailable');
         const manifest = (await response.json()) as {
           schemaVersion: number;
@@ -341,10 +360,17 @@ export function App({
         )
           throw new Error('Invalid search manifest');
         const index: ReturnType<typeof createSearchIndex> = [];
+        const shardRoot = site.searchLocale
+          ? `search/${site.searchLocale}/`
+          : 'search/';
         for (let offset = 0; offset < manifest.shards.length; offset += 4) {
           const batch = await Promise.all(
             manifest.shards.slice(offset, offset + 4).map(async (file) => {
-              if (!/^search\/\d+\.json$/.test(file))
+              if (
+                typeof file !== 'string' ||
+                !file.startsWith(shardRoot) ||
+                !/^\d+\.json$/.test(file.slice(shardRoot.length))
+              )
                 throw new Error('Invalid search shard path');
               const response = await fetch(href('/' + file), {
                 credentials: 'same-origin',
@@ -512,6 +538,7 @@ export function App({
                   : '/'
               }
               ui={ui}
+              contentLocale={contentLocale}
             />
             {site.config.explorer?.credentialReuse !== false &&
               credentialSession.hasRemembered() && (
@@ -760,12 +787,12 @@ export function App({
           }
           tabIndex={-1}
         >
-          {locale !== config.defaultLocale && (
+          {locale !== contentLocale && (
             <aside className="locale-fallback" role="note">
               <Icon name="info" size={16} />
               <p>
                 {t('locale.fallback', {
-                  language: localeName(config.defaultLocale),
+                  language: localeName(contentLocale),
                   locale: localeName(locale),
                 })}
               </p>
@@ -779,10 +806,7 @@ export function App({
             />
           ) : activeOperation && activeApi ? (
             <>
-              <article
-                lang={config.defaultLocale}
-                className="article api-article"
-              >
+              <article lang={contentLocale} className="article api-article">
                 <div className="breadcrumb">
                   {t('navigation.api')}
                   <Icon name="chevron" size={12} />
@@ -904,10 +928,7 @@ export function App({
             </>
           ) : activeGuide ? (
             <>
-              <article
-                lang={config.defaultLocale}
-                className="article guide-article"
-              >
+              <article lang={contentLocale} className="article guide-article">
                 <div className="breadcrumb">
                   {t('navigation.docs')}
                   <Icon name="chevron" size={12} />
@@ -984,7 +1005,7 @@ export function App({
               </aside>
             </>
           ) : (
-            <article lang={config.defaultLocale} className="article">
+            <article lang={contentLocale} className="article">
               <div className="eyebrow">404</div>
               <h1>{t('navigation.notFound')}</h1>
               <p>{t('navigation.notFoundHelp')}</p>

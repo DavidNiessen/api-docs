@@ -64,3 +64,7 @@ Tabs support click, Left/Right, Home/End and standard tab focus. Every panel rem
 ## Portable guide links
 
 Link to another guide with `[Authentication](authentication.md#heading-authentication)` or a nested relative `.md`/`.mdx` path. Compilation rewrites it to the generated URL under `basePath`. Use the actual generated heading id, which begins with `heading-`. Root-relative links and `/media/` image paths receive the publication prefix once. Run [doctor](doctor.md) to check local destinations, fragments, images and explicit exceptions without network requests.
+
+## Translated guides
+
+Use [authored guide variants](internationalization.md#author-translated-guides) to map the same relative guide paths to project-local language directories. Missing variants fall back per page, with language status and localized search. Markdown/MDX trust, sanitization and shared source budgets apply to every locale.

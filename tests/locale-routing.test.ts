@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import { parse, stringify } from 'yaml';
 import {
   localeRoute,
   localePaths,
@@ -31,6 +32,10 @@ beforeAll(async () => {
     recursive: true,
     filter: (path) => !path.includes('.api-docs'),
   });
+  const configPath = join(root, 'docs.config.yaml');
+  const authored = parse(await readFile(configPath, 'utf8'));
+  delete authored.i18n.guides;
+  await writeFile(configPath, stringify(authored));
   built = await buildSite(root);
 });
 afterAll(async () => {

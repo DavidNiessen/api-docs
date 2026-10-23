@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
-import { lstat, readFile, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -336,11 +336,16 @@ const config = join(root, 'docs/docs.config.yaml');
 await writeFile(
   config,
   (await readFile(config, 'utf8')) +
-    '\nbasePath: /reference\nplugins:\n  - plugin.mjs\n',
+    '\nbasePath: /reference\nplugins:\n  - plugin.mjs\nlocales: [en, de]\ni18n:\n  guides:\n    de: translations/de\n',
 );
 await writeFile(
   'docs/plugin.mjs',
   `import { definePlugin } from '@api-docs/plugin-sdk';\nexport default definePlugin({ name: 'installed-consumer', version: '1.0.0', pluginApi: '1', capabilities: ['source', 'theme', 'transform', 'snippets'], loadSpec: (source) => source.content.replace('title: My API', 'title: Installed source API'), theme: () => ({ radius: 12, colors: { light: { surface: '#f4f8f6' } } }), transform: (site) => { if (site.config.theme.radius !== 12 || site.apis[0].title !== 'Installed source API') throw new Error('Source/theme hooks did not precede transform'); return { ...site, config: { ...site.config, name: 'Packaged consumer' }, apis: site.apis.map((api, i) => i ? api : { ...api, operations: api.operations.map((op, j) => j ? op : { ...op, lifecycle: { sunsetOn: '2028-01-01', message: 'Packaged lifecycle metadata' } }) }) }; }, generateSnippets({operation}) { return [{id:'sdk', label:'Installed SDK', language:'javascript', code:'console.log('+JSON.stringify(operation.id)+');'}]; } });\n`,
+);
+await mkdir('docs/translations/de', { recursive: true });
+await writeFile(
+  'docs/translations/de/installed.md',
+  '---\ntitle: Installierte Pakete\n---\n\n## Lokale Übersetzung\n\nDie installierten Komponenten unterstützen übersetzte Anleitungen.\n',
 );
 await writeFile(
   'docs/guides/installed.mdx',
@@ -374,6 +379,21 @@ const manifest = await verifyArtifact(directory);
 assert.equal(manifest.compilerVersion, version);
 const installedSite = JSON.parse(
   await readFile(join(directory, 'site.json'), 'utf8'),
+);
+const translatedPage = JSON.parse(
+  await readFile(join(directory, 'de/guides/installed/page-data.json'), 'utf8'),
+);
+assert.equal(translatedPage.contentLocale, 'de');
+assert.equal(translatedPage.guideTranslations, undefined);
+assert(
+  (
+    await readFile(join(directory, 'de/guides/installed/index.html'), 'utf8')
+  ).includes('<title>Installierte Pakete · Packaged consumer</title>'),
+);
+assert(
+  (await readFile(join(directory, 'search/de/catalog.json'), 'utf8')).includes(
+    'search/de/0.json',
+  ),
 );
 assert.equal(installedSite.config.theme.radius, 12);
 assert.equal(installedSite.config.theme.colors.light.surface, '#f4f8f6');
@@ -457,6 +477,15 @@ try {
   const response = await staticServer.inject('/reference/');
   assert.equal(response.statusCode, 200);
   assert(response.body.includes('Packaged consumer'));
+  const localized = await staticServer.inject(
+    '/reference/de/guides/installed/',
+  );
+  assert.equal(localized.statusCode, 200);
+  assert(localized.body.includes('Lokale Übersetzung'));
+  assert.equal(
+    (await staticServer.inject('/reference/search/de/catalog.json')).statusCode,
+    200,
+  );
   for (const url of unlistedPaths) {
     for (const method of ['GET', 'HEAD']) {
       const rejected = await staticServer.inject({ url, method });

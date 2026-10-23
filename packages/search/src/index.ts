@@ -1,13 +1,16 @@
-import { guideHref, operationHref } from '@api-docs/contracts';
+import { guideHref, operationHref, guidesForLocale } from '@api-docs/contracts';
 import type {
   SearchDocument,
   SearchResult,
   SiteData,
 } from '@api-docs/contracts';
 
-export function createSearchIndex(site: SiteData): SearchDocument[] {
+export function createSearchIndex(
+  site: SiteData,
+  locale = site.config.defaultLocale,
+): SearchDocument[] {
   return [
-    ...site.guides.map((guide) => ({
+    ...guidesForLocale(site, locale).map((guide) => ({
       id: guide.slug,
       title: guide.title,
       text: guide.text,

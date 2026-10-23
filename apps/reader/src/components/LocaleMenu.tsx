@@ -7,10 +7,12 @@ export function LocaleMenu({
   config,
   path,
   ui,
+  contentLocale,
 }: {
   config: ProjectConfig;
   path: string;
   ui: UiTranslation;
+  contentLocale: string;
 }) {
   const t = useUi();
   if (config.locales.length < 2) return null;
@@ -34,6 +36,7 @@ export function LocaleMenu({
             {locale === ui.locale && <Icon name="check" size={14} />}
           </a>
         ))}
+        <p>{t('locale.content', { language: localeName(contentLocale) })}</p>
         <p>
           {t('locale.coverage', { translated: ui.translated, total: ui.total })}
         </p>

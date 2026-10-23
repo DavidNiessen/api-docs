@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import type { SiteData } from '@api-docs/contracts';
-import { lifecycleIssues } from '@api-docs/contracts';
+import {
+  validateGuideTranslations,
+  lifecycleIssues,
+} from '@api-docs/contracts';
 import type { OperationLifecycle } from '@api-docs/contracts';
 const text = z.string().max(2 * 1024 * 1024);
 const name = z.string().min(1).max(1024);
@@ -115,6 +118,40 @@ const operation = z
     source: text,
   })
   .strict();
+const guideSchema = z
+  .object({
+    sourceBytes: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(2 * 1024 * 1024)
+      .optional(),
+    links: z
+      .array(z.object({ url: text, kind: z.enum(['link', 'image']) }).strict())
+      .max(10_000)
+      .optional(),
+    anchors: z.array(name).max(10_000).optional(),
+    order: z.number().finite(),
+    slug: z.string().regex(/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/),
+    title: name,
+    description: text,
+    group: name,
+    html: text,
+    text,
+    source: text,
+    headings: z
+      .array(
+        z
+          .object({
+            id: name,
+            text,
+            level: z.number().int().min(1).max(6),
+          })
+          .strict(),
+      )
+      .max(10_000),
+  })
+  .strict();
 const schema = z
   .object({
     schemaVersion: z.literal(1),
@@ -160,48 +197,14 @@ const schema = z
           .strict(),
       )
       .max(128),
-    guides: z
-      .array(
-        z
-          .object({
-            sourceBytes: z
-              .number()
-              .int()
-              .nonnegative()
-              .max(2 * 1024 * 1024)
-              .optional(),
-            links: z
-              .array(
-                z
-                  .object({ url: text, kind: z.enum(['link', 'image']) })
-                  .strict(),
-              )
-              .max(10_000)
-              .optional(),
-            anchors: z.array(name).max(10_000).optional(),
-            order: z.number().finite(),
-            slug: z.string().regex(/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/),
-            title: name,
-            description: text,
-            group: name,
-            html: text,
-            text,
-            source: text,
-            headings: z
-              .array(
-                z
-                  .object({
-                    id: name,
-                    text,
-                    level: z.number().int().min(1).max(6),
-                  })
-                  .strict(),
-              )
-              .max(10_000),
-          })
-          .strict(),
+    guides: z.array(guideSchema).max(10_000),
+    guideTranslations: z
+      .record(
+        z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/),
+        z.array(guideSchema).max(10000),
       )
-      .max(10_000),
+      .refine((value) => Object.keys(value).length <= 16)
+      .optional(),
     diagnostics: z
       .array(
         z
@@ -252,5 +255,6 @@ export function validatePluginSite(value: unknown): SiteData {
     new Set(site.guides.map((guide) => guide.slug)).size !== site.guides.length
   )
     throw new Error('Invalid plugin output: duplicate guide route');
+  validateGuideTranslations(site);
   return site;
 }

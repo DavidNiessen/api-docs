@@ -171,7 +171,15 @@ export const configSchema = z
           .refine(
             (value) => Object.keys(value).length <= 16,
             'At most 16 UI locales are supported',
-          ),
+          )
+          .prefault({}),
+        guides: z
+          .record(z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/), safePath)
+          .refine(
+            (value) => Object.keys(value).length <= 16,
+            'At most 16 guide locales are supported',
+          )
+          .optional(),
       })
       .strict()
       .optional(),
@@ -287,6 +295,32 @@ export const configSchema = z
               path: ['theme', 'colors', mode, foreground],
               message: `${foreground} must reach 4.5:1 contrast against ${background}`,
             });
+    }
+    const guideRoot = (value: string) =>
+      value
+        .split('/')
+        .filter((part) => part && part !== '.')
+        .join('/');
+    const defaultRoot = guideRoot(config.guides);
+    for (const [locale, path] of Object.entries(config.i18n?.guides ?? {})) {
+      if (!config.locales.includes(locale) || locale === config.defaultLocale)
+        context.addIssue({
+          code: 'custom',
+          path: ['i18n', 'guides', locale],
+          message: 'Guide roots must use a configured non-default locale',
+        });
+      const root = guideRoot(path);
+      if (
+        root === defaultRoot ||
+        root.startsWith(defaultRoot + '/') ||
+        defaultRoot.startsWith(root + '/')
+      )
+        context.addIssue({
+          code: 'custom',
+          path: ['i18n', 'guides', locale],
+          message:
+            'Translated guide roots must not overlap the default guide directory',
+        });
     }
     for (const [locale, messages] of Object.entries(
       config.i18n?.messages ?? {},

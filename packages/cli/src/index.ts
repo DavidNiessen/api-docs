@@ -32,10 +32,12 @@ import {
   lifecycleRoutes,
   localePaths,
   localeRoute,
+  pageContentLocale,
+  pageMetadata,
 } from '@api-docs/contracts';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
 import { renderDocument } from '@api-docs/reader/render';
-import { createSearchIndex } from '@api-docs/search';
+import { searchAssets } from './search-assets.js';
 import { confinedPath, readTextFile } from '@api-docs/spec';
 import { activateDirectory } from './activate.js';
 export { importRemoteSpec } from './import-spec.js';
@@ -128,7 +130,15 @@ export async function buildSite(
       const destination = join(stage, path, 'index.html');
       await mkdir(dirname(destination), { recursive: true });
       const page = createPageData(site, path);
-      await writeFile(destination, renderDocument(page, path, { title }));
+      await writeFile(
+        destination,
+        renderDocument(page, path, {
+          title:
+            page.contentLocale === site.config.defaultLocale
+              ? title
+              : pageMetadata(page, path).title,
+        }),
+      );
       await writeFile(
         join(dirname(destination), 'page-data.json'),
         JSON.stringify(page),
@@ -142,22 +152,10 @@ export async function buildSite(
       }),
     );
     await writeFile(join(stage, 'site.json'), JSON.stringify(site));
-    const index = createSearchIndex(site);
-    await writeFile(join(stage, 'search.json'), JSON.stringify(index));
-    await mkdir(join(stage, 'search'), { recursive: true });
-    const shards: string[] = [];
-    for (let offset = 0; offset < index.length; offset += 500) {
-      const file = `search/${offset / 500}.json`;
-      shards.push(file);
-      await writeFile(
-        join(stage, file),
-        JSON.stringify(index.slice(offset, offset + 500)),
-      );
+    for (const [file, value] of searchAssets(site)) {
+      await mkdir(dirname(join(stage, file)), { recursive: true });
+      await writeFile(join(stage, file), value);
     }
-    await writeFile(
-      join(stage, 'search-manifest.json'),
-      JSON.stringify({ schemaVersion: 1, records: index.length, shards }),
-    );
     for (const [from, to] of Object.entries(site.config.redirects)) {
       if (pages.has(from) || pages.has(`${from}/`))
         throw new Error(`Redirect overwrites an existing page: ${from}`);
@@ -198,7 +196,7 @@ export async function buildSite(
           .filter(
             (path) =>
               localeRoute(site.config, path).locale ===
-              site.config.defaultLocale,
+              pageContentLocale(site, path),
           )
           .map(
             (path) =>
@@ -415,13 +413,7 @@ export function createDevelopmentBuilder(
     }
     const serialized = JSON.stringify(next);
     updates.set('site.json', serialized);
-    const index = createSearchIndex(next);
-    updates.set('search.json', JSON.stringify(index));
-    for (let offset = 0; offset < index.length; offset += 500)
-      updates.set(
-        `search/${offset / 500}.json`,
-        JSON.stringify(index.slice(offset, offset + 500)),
-      );
+    for (const [file, value] of searchAssets(next)) updates.set(file, value);
     const files = { ...prior.manifest.files };
     for (const [file, value] of updates) {
       if (!Object.hasOwn(files, file))

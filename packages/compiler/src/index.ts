@@ -27,6 +27,8 @@ import { loadPublicAssets } from './assets.js';
 export { loadPublicAssets } from './assets.js';
 export { auditDocumentation } from './doctor.js';
 import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
+import { loadTranslatedGuides } from './translated-guides.js';
+import { validateGuideTranslations } from '@api-docs/contracts';
 import { toolVersion } from '@api-docs/contracts';
 
 export async function compileProject(
@@ -88,6 +90,7 @@ export async function compileProject(
   if (new Set(identities).size !== identities.length)
     throw new Error('Duplicate API id/version after spec loading');
   const assets = await loadPublicAssets(root, config);
+  const guideBudget = { entries: 0, bytes: 0, guides: 0 };
   let site: SiteData = {
     assetMetadata: [...assets].map(([path, value]) => ({
       path,
@@ -99,12 +102,19 @@ export async function compileProject(
     guides: await loadGuides(root, config.guides, {
       trustContent: options.trustContent ?? false,
       basePath: config.basePath,
+      budget: guideBudget,
     }),
     diagnostics: [
       ...(sourceExecution?.diagnostics ?? []),
       ...apis.flatMap((api) => api.diagnostics),
     ],
   };
+  await loadTranslatedGuides(
+    root,
+    site,
+    options.trustContent ?? false,
+    guideBudget,
+  );
   if (pluginsEnabled) {
     const execution = await runPluginFiles(root, config.plugins, site);
     if (
@@ -128,7 +138,11 @@ export async function compileProject(
         'Invalid plugin project configuration. Review the configuration contract.',
       );
     }
-    for (const guide of site.guides) {
+    validateGuideTranslations(site);
+    for (const guide of [
+      ...site.guides,
+      ...Object.values(site.guideTranslations ?? {}).flat(),
+    ]) {
       const safe = await renderMarkdown(guide.html, true);
       guide.html = safe.html;
       guide.text = safe.text;
@@ -167,6 +181,8 @@ export async function compileGuideUpdate(
 ): Promise<SiteData | undefined> {
   if (
     !changes.length ||
+    Object.keys(site.config.i18n?.guides ?? {}).length > 0 ||
+    !!site.guideTranslations ||
     site.config.plugins.length ||
     site.guides.some(
       (guide) =>

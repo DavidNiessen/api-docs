@@ -1,6 +1,7 @@
 ---
 title: Einstieg
 group: Anleitungen
+order: 1
 ---
 
 ## Projekte erkunden

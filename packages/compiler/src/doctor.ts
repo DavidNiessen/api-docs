@@ -8,6 +8,8 @@ import {
   lifecycleReport,
   lifecycleRoutes,
   localePaths,
+  guidesForLocale,
+  localizePath,
 } from '@api-docs/contracts';
 import type {
   Diagnostic,
@@ -122,23 +124,28 @@ export async function auditDocumentation(
   const routes = new Map<string, Set<string> | undefined>();
   for (const route of lifecycleRoutes(site))
     routes.set(normalize(withBase(base, route)), new Set(['main-content']));
+  const defaultGuides = new Set(site.guides);
   const guideMetadata = new Map<
-    string,
+    SiteData['guides'][number],
     {
       links: NonNullable<SiteData['guides'][number]['links']>;
       anchors: string[];
     }
   >();
-  for (const guide of site.guides) {
+  for (const guide of [
+    ...site.guides,
+    ...Object.values(site.guideTranslations ?? {}).flat(),
+  ]) {
     const data =
       guide.links && guide.anchors
         ? { links: guide.links, anchors: guide.anchors }
         : await renderMarkdown(guide.html, true);
-    guideMetadata.set(guide.slug, data);
-    routes.set(
-      normalize(withBase(base, guideHref(guide))),
-      new Set(['main-content', ...data.anchors]),
-    );
+    guideMetadata.set(guide, data);
+    if (defaultGuides.has(guide))
+      routes.set(
+        normalize(withBase(base, guideHref(guide))),
+        new Set(['main-content', ...data.anchors]),
+      );
   }
   for (const api of site.apis) {
     const examples = await checkExamples(api);
@@ -215,6 +222,21 @@ export async function auditDocumentation(
     for (const localized of localePaths(site.config, page))
       routes.set(normalize(withBase(base, localized)), anchors);
   }
+  for (const locale of Object.keys(site.guideTranslations ?? {})) {
+    const guides = guidesForLocale(site, locale);
+    for (const guide of guides)
+      routes.set(
+        normalize(
+          withBase(base, localizePath(site.config, guideHref(guide), locale)),
+        ),
+        new Set(['main-content', ...guideMetadata.get(guide)!.anchors]),
+      );
+    if (guides[0])
+      routes.set(
+        normalize(withBase(base, localizePath(site.config, '/', locale))),
+        new Set(['main-content', ...guideMetadata.get(guides[0])!.anchors]),
+      );
+  }
   for (const asset of site.assetMetadata ?? [])
     routes.set(normalize(withBase(base, `/media/${asset.path}`)), undefined);
   routes.set(normalize(withBase(base, '/robots.txt')), undefined);
@@ -251,8 +273,18 @@ export async function auditDocumentation(
   }[] = site.guides.map((guide) => ({
     href: withBase(base, guideHref(guide)),
     source: guide.source,
-    links: guideMetadata.get(guide.slug)!.links,
+    links: guideMetadata.get(guide)!.links,
   }));
+  for (const [locale, guides] of Object.entries(site.guideTranslations ?? {}))
+    for (const guide of guides)
+      linkGroups.push({
+        href: withBase(
+          base,
+          localizePath(site.config, guideHref(guide), locale),
+        ),
+        source: guide.source,
+        links: guideMetadata.get(guide)!.links,
+      });
   // Replacement and link checks are independent of today's date.
   const lifecycle = lifecycleReport(site, { asOf: '1970-01-01' });
   for (const entry of lifecycle.entries) {

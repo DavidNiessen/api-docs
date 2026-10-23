@@ -8,8 +8,11 @@ specs:
   - id: api
     path: openapi.yaml
 i18n:
+  guides:
+    en: translations/en
   messages:
     de:
+      locale.content: 'Seiteninhalt: {language}'
       locale.choose: Sprache der Dokumentation
       locale.coverage: '{translated} von {total} zentralen UI-Texten übersetzt. Weitere Texte verwenden Englisch.'
       locale.fallback: 'Der Inhalt wird auf {language} angezeigt. Sprache der Oberfläche: {locale}.'

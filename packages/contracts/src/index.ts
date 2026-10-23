@@ -173,6 +173,12 @@ export interface ProjectConfig {
   plugins: string[];
 }
 export interface SiteData {
+  /** Full compiler graph only; omitted from route-scoped payloads. */
+  guideTranslations?: Record<string, Guide[]>;
+  /** Language of the active authored content in route-scoped payloads. */
+  contentLocale?: string;
+  searchLocale?: string;
+  pageTranslations?: { locale: string; href: string }[];
   /** Route-scoped render data; absent from the compiler's full graph. */
   pagePath?: string;
   lifecycle?: import('./lifecycle-pages.js').LifecycleContext;
@@ -316,3 +322,10 @@ export {
   localePaths,
   localeName,
 } from './locale.js';
+
+export {
+  guidesForLocale,
+  pageContentLocale,
+  guideAlternates,
+  validateGuideTranslations,
+} from './guide-translations.js';

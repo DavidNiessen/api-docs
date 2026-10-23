@@ -1,16 +1,39 @@
 # Reader languages and UI translations
 
-Projects can customize the core reader labels without JavaScript plugins or remote translation services. `defaultLocale` selects the HTML language and the UI message catalog. The current increment covers navigation/search, theme actions, playground/URL-bar actions, response-editor controls, clipboard feedback and the page footer. Advanced request-form, schema, lifecycle, authentication and administration wording still uses English. Configured locales generate reader routes and a language menu. Documentation content currently comes from the default-locale sources; alternate UI languages display an explicit content-fallback notice. Source files are never translated automatically.
+Projects can customize the core reader labels without JavaScript plugins or remote translation services. `defaultLocale` selects the HTML language and the UI message catalog. The current increment covers navigation/search, theme actions, playground/URL-bar actions, response-editor controls, clipboard feedback and the page footer. Advanced request-form, schema, lifecycle, authentication and administration wording still uses English. Configured locales generate reader routes and a language menu. Guides can have authored locale variants. Missing guide variants and API content use the default-locale sources with an explicit fallback notice when the UI language differs. Source files are never translated automatically.
 
 ## Locale routes and content fallback
 
-Default-language URLs stay unchanged. With `basePath: /docs`, `defaultLocale: en` and `locales: [en, de]`, a guide remains at `/docs/guides/start/`; its German UI is at `/docs/de/guides/start/`. The prefixed route selects German messages and displays the same source content with an explicit English-content fallback notice. The content article retains its source-language attribute. The default locale does not get a redundant prefix.
+Default-language URLs stay unchanged. With `basePath: /docs`, `defaultLocale: en` and `locales: [en, de]`, a guide remains at `/docs/guides/start/`; its German UI is at `/docs/de/guides/start/`. The prefixed route selects German messages and the matching authored guide variant. A missing variant displays the English source with an explicit fallback notice. The content article retains its source-language attribute. The default locale does not get a redundant prefix.
 
 The header language menu uses ordinary links, so it works without JavaScript and starts a fresh reader instance. Switching languages keeps the current guide, operation or lifecycle page, drops URL queries/fragments and clears playground drafts, responses and remembered API credentials. It does not acquire credentials or issue an API request. Subsequent reader navigation and search-result links retain the selected locale. Authored links inside source content retain their authored destinations.
 
-All generated locale HTML/page-data routes belong to the same verified artifact and hosting allowlist. Assets, search shards, `site.json` and the OAuth callback keep their existing unprefixed locations under `basePath`; a locale prefix does not grant access to additional files. Search uses the shared source-language corpus while mapping result navigation to the selected UI language. Incremental guide updates regenerate every locale variant and match clean builds. The existing artifact ceilings of 100,000 routes and 200,000 files still apply after expansion.
+All generated locale HTML/page-data routes belong to the same verified artifact and hosting allowlist. Assets, search shards, `site.json` and the OAuth callback keep their existing unprefixed locations under `basePath`; a locale prefix does not grant access to additional files. Without authored guide variants, search uses the shared source-language corpus. A configured guide locale gets `search/<locale>/catalog.json` and inventoried shards containing its resolved translated/fallback guides plus source API descriptions. Search-result links retain the selected UI language. Projects without guide variants retain incremental updates across all locale routes; translated projects currently use a full development rebuild for every source edit. The existing artifact ceilings of 100,000 routes and 200,000 files still apply after expansion.
 
-Alternate routes currently contain source-language fallback content. They use `noindex,follow`, canonicalize to the default-language page and stay out of the sitemap. They are not advertised as fully translated SEO alternates. The verified generic 404 document uses the default language; unknown locale/page paths remain 404s and their language-menu links lead to a valid localized home page.
+Routes showing source-language fallback content use `noindex,follow`, canonicalize to the default-language page and stay out of the sitemap. They are not advertised as fully translated SEO alternates. Authored guide variants use their own canonical URL and index policy, enter the sitemap and expose reciprocal `hreflang` links only for available source/translated guide pages. These metadata links also update during SPA navigation. The verified generic 404 document uses the default language; unknown locale/page paths remain 404s and their language-menu links lead to a valid localized home page.
+
+## Author translated guides
+
+```yaml
+locales: [en, de]
+defaultLocale: en
+guides: guides
+i18n:
+  guides:
+    de: translations/de
+```
+
+Keep the default guide at `guides/start.md` and its German variant at `translations/de/start.md`. Relative paths and slugs identify the same page; translated titles, descriptions, groups, headings and body text can differ. The default guide ordering remains stable. A missing `translations/de/authentication.md` resolves to `guides/authentication.md` with the fallback notice. The language menu reports the current page's content language separately from core UI message coverage.
+
+Guide roots must be existing project-local directories for configured non-default locales, and must not overlap the default guide directory. Paths remain confined to the project. Orphan or duplicate translated slugs fail the build. Content locales use exact configured identifiers; UI message catalogs can additionally use their base-language fallback. The `messages` map defaults to empty when only guide roots are configured.
+
+Default and translated sources share the existing limits: 25,000 directory entries, 10,000 total guide instances, 64 MiB of source text and 2 MiB per guide. Symlink refusal, Markdown sanitization and explicit `--trust-content` for MDX apply to translated roots too. Trusted graph plugins may supply or transform guide variants; duplicate/orphan/undeclared variants and budgets are validated, and their HTML is sanitized through the same compiler boundary.
+
+Relative Markdown links between translated files retain the locale prefix. They can point at a missing variant when its default-language page exists. Doctor checks the actual localized anchors and validates translated links. Shared media stays under the publication's ordinary `/media/` path; authored absolute destinations retain their declared meaning.
+
+`site.json` contains the full multilingual graph. Per-page payloads contain only the resolved navigation and active guide body, content language, search locale and small alternate-link metadata. Other locale bodies are omitted. Search assets are generated one corpus at a time. Failed builds retain the prior artifact. Development rebuilds are deliberately full for projects with guide roots so edits cannot leave stale translated pages or search data.
+
+The [example](../examples/localized/) has a German source introduction with an English variant and a German authentication page that still falls back in English UI. OpenAPI descriptions and advanced product wording are not automatically translated.
 
 ## Configure messages
 
@@ -66,3 +89,7 @@ Full text direction/layout acceptance and independent linguistic/accessibility r
 ## Public route helpers
 
 `localeRoute(config, path)` returns the selected locale, prefix and source `contentPath`. `localizePath(config, path, locale)` changes the locale prefix and rejects unconfigured languages or paths containing queries/fragments. `localePaths(config, path)` enumerates default/alternate variants. Inputs are paths relative to the publication base path, not filesystem paths or absolute URLs. These helpers do not authorize routes; the artifact manifest remains authoritative. `localeName(locale)` supplies stable native menu labels without server/browser ICU differences.
+
+## Public content helpers
+
+`guidesForLocale(site, locale)` resolves an authored guide view over the full compiler graph. `pageContentLocale(site, path)` identifies the active content language. `guideAlternates(site, path)` returns available guide-language links; `validateGuideTranslations(site)` checks variant identities, declared locales and shared source budgets. `createSearchIndex(site, locale)` optionally selects the resolved guide corpus; the omitted locale retains the default-language behavior. Route-scoped data already contains the resolved view and intentionally omits the full variant map.

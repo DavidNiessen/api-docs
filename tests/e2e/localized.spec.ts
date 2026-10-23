@@ -122,7 +122,10 @@ test('locale links keep source pages, clear playground credentials and preserve 
     searchRequests: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('request', (request) => {
-    if (request.url().includes('search-manifest'))
+    if (
+      request.url().includes('search-manifest') ||
+      request.url().endsWith('/catalog.json')
+    )
       searchRequests.push(request.url());
   });
   await page.goto(
@@ -170,11 +173,11 @@ test('locale links keep source pages, clear playground credentials and preserve 
   await page.getByRole('link', { name: 'Documentation', exact: true }).click();
   await expect(page).toHaveURL(root + '/en/guides/introduction/');
   await expect(
-    page.getByRole('heading', { name: 'Einstieg', exact: true }),
+    page.getByRole('heading', { name: 'Getting started', exact: true }),
   ).toBeVisible();
   await expect(page.locator('.guide-content').locator('..')).toHaveAttribute(
     'lang',
-    'de',
+    'en',
   );
   await page
     .getByRole('button', { name: 'Search documentation', exact: true })
@@ -188,7 +191,7 @@ test('locale links keep source pages, clear playground credentials and preserve 
     .filter({ hasText: 'Projekte auflisten' })
     .click();
   await expect(page).toHaveURL(root + '/en/api/api/v1/listprojects/');
-  expect(searchRequests).toEqual([root + '/search-manifest.json']);
+  expect(searchRequests).toEqual([root + '/search/en/catalog.json']);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.locale-menu > summary').click();
   expect(
@@ -205,7 +208,7 @@ test('alternate locales and their language menu work without JavaScript', async 
   const context = await browser.newContext({ javaScriptEnabled: false });
   try {
     const page = await context.newPage();
-    await page.goto(root + '/en/guides/introduction/');
+    await page.goto(root + '/en/guides/authentication/');
     await expect(
       page.getByRole('link', { name: 'Documentation', exact: true }),
     ).toBeVisible();
@@ -215,7 +218,7 @@ test('alternate locales and their language menu work without JavaScript', async 
       .locator('.locale-menu')
       .getByRole('link', { name: 'Deutsch', exact: true })
       .click();
-    await expect(page).toHaveURL(root + '/guides/introduction/');
+    await expect(page).toHaveURL(root + '/guides/authentication/');
     await expect(page.locator('html')).toHaveAttribute('lang', 'de');
     await expect(page.getByRole('note')).toHaveCount(0);
   } finally {
@@ -239,4 +242,125 @@ test('unknown locale paths retain the verified default-language 404 without hydr
       .getByRole('link', { name: 'English', exact: true }),
   ).toHaveAttribute('href', '/localized/en/');
   expect(errors).toEqual([]);
+});
+test('authored guide translations update prose, search and reciprocal SEO metadata while untranslated pages retain fallback', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(root + '/en/guides/introduction/');
+  await expect(
+    page.getByRole('heading', { name: 'Getting started', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.guide-content')).toContainText(
+    'Launch your rocket',
+  );
+  await expect(page.getByRole('note')).toHaveCount(0);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://docs.example.test/localized/en/guides/introduction/',
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    'content',
+    'index,follow',
+  );
+  await expect(page.locator('link[data-doc-locale]')).toHaveCount(2);
+  await page
+    .getByRole('button', { name: 'Search documentation', exact: true })
+    .click();
+  await page
+    .getByRole('textbox', { name: 'Search documentation', exact: true })
+    .fill('rocket');
+  await expect(page.locator('.search-results')).toContainText(
+    'Getting started',
+  );
+  await page
+    .locator('.search-results')
+    .getByRole('link')
+    .filter({ hasText: 'Getting started' })
+    .click();
+  await expect(page).toHaveURL(root + '/en/guides/introduction/');
+  await page
+    .locator('.sidebar')
+    .getByRole('link', { name: 'Authentifizierung', exact: true })
+    .click();
+  await expect(page).toHaveURL(root + '/en/guides/authentication/');
+  await expect(page.getByRole('note')).toContainText(
+    'Documentation content is shown in Deutsch',
+  );
+  await expect(page.locator('link[data-doc-locale]')).toHaveCount(0);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://docs.example.test/localized/guides/authentication/',
+  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    'content',
+    'noindex,follow',
+  );
+  await page
+    .locator('.sidebar')
+    .getByRole('link', { name: 'Getting started', exact: true })
+    .click();
+  await expect(page.locator('link[data-doc-locale]')).toHaveCount(2);
+  await page.locator('.locale-menu > summary').click();
+  await expect(page.locator('.locale-menu')).toContainText(
+    'Page content: English',
+  );
+  await page
+    .locator('.locale-menu')
+    .getByRole('link', { name: 'Deutsch', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Einstieg', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.guide-content')).toContainText(
+    'Projekte erkunden',
+  );
+  await expect(page.locator('link[data-doc-locale]')).toHaveCount(2);
+  expect(errors).toEqual([]);
+});
+test('localized search rejects other locale and traversal shards, then recovers on an explicit reopen', async ({
+  page,
+}) => {
+  let manifests = 0;
+  const shards: string[] = [];
+  page.on('request', (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.includes('/search/') && /\/\d+\.json$/.test(path))
+      shards.push(path);
+  });
+  await page.route(root + '/search/en/catalog.json', async (route) => {
+    manifests++;
+    if (manifests === 1)
+      return route.fulfill({
+        json: {
+          schemaVersion: 1,
+          shards: [
+            'search/de/0.json',
+            'search/en/../0.json',
+            'search/en/0.json?key=not-a-shard',
+          ],
+        },
+      });
+    await route.continue();
+  });
+  await page.goto(root + '/en/guides/introduction/');
+  const open = page.getByRole('button', {
+    name: 'Search documentation',
+    exact: true,
+  });
+  await open.click();
+  await page
+    .getByRole('textbox', { name: 'Search documentation', exact: true })
+    .fill('rocket');
+  await expect.poll(() => manifests).toBe(1);
+  await expect(page.locator('.search-filters [role="status"]')).toHaveCount(0);
+  expect(shards).toEqual([]);
+  await page.getByRole('button', { name: 'Close search', exact: true }).click();
+  await open.click();
+  await expect(page.locator('.search-results')).toContainText(
+    'Getting started',
+  );
+  expect(manifests).toBe(2);
+  expect(shards).toEqual(['/localized/search/en/0.json']);
 });
