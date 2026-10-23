@@ -38,15 +38,13 @@ if (kind !== 'container') {
     exec(file, args, { env, timeout: 300_000, maxBuffer: 4 * 1024 * 1024 });
   const read = async (path) =>
     JSON.parse(await readRegularFile(path, 16 * 1024 * 1024));
-  const image = (await readRegularFile('/tmp/api-docs-server.id', 128))
-    .toString('utf8')
-    .trim();
+  const deployment = await read('.api-docs/server-container-evidence.json');
+  const image = deployment.resolvedImage;
   assert.match(image, /^sha256:[a-f0-9]{64}$/);
   // Reassess the exact raw inventory/finding bytes and freshness before export.
   await run(process.execPath, ['scripts/check-container-security.mjs', image]);
   const inventory = await read('.api-docs/container-inventory-evidence.json');
   const security = await read('.api-docs/container-security-evidence.json');
-  const deployment = await read('.api-docs/server-container-evidence.json');
   for (const report of [inventory, security]) {
     assert.equal(report.sourceCommit, context.commit);
     assert.equal(report.sourceWorkingTreeDirty, false);
