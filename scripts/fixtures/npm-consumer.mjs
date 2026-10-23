@@ -18,6 +18,7 @@ import {
   serializeJsonValue,
   setJsonProperty,
   toolVersion,
+  objectFieldSchema,
 } from '@api-docs/contracts';
 import {
   redactJsonBody,
@@ -29,6 +30,29 @@ import {
 } from '@api-docs/explorer';
 
 const exec = promisify(execFile);
+const composed = objectFieldSchema(
+  {
+    allOf: [
+      {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer' } },
+      },
+      { type: 'object', properties: { enabled: { type: 'boolean' } } },
+    ],
+  },
+  {},
+  false,
+);
+assert.deepEqual(composed.required, ['id']);
+assert.equal(
+  new URLSearchParams(
+    encodeFormBody('{"id":9007199254740993,"enabled":false}', {
+      schema: composed,
+    }),
+  ).get('id'),
+  '9007199254740993',
+);
 const uploadRequest = {
   url: 'https://api.example.test/upload',
   method: 'POST',

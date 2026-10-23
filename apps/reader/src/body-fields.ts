@@ -1,6 +1,9 @@
-import { parseJsonValue, resolveSchema } from '@api-docs/contracts';
+import {
+  parseJsonValue,
+  resolveSchema,
+  objectFieldSchema,
+} from '@api-docs/contracts';
 import type { JsonValueNode, Schema } from '@api-docs/contracts';
-import { objectFieldSchema } from './body-object-schema.js';
 
 export type ObjectBodyValue = Extract<JsonValueNode, { kind: 'object' }>;
 export type ArrayBodyValue = Extract<JsonValueNode, { kind: 'array' }>;

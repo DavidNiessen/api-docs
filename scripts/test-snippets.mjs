@@ -17,12 +17,24 @@ const languages = ['cURL', 'JavaScript', 'TypeScript', 'Python', 'Java'];
 const uploadBytes = Uint8Array.from([0, 255, 128, 13, 10, 34, 1, 254]);
 const multipartMedia = {
   schema: {
-    type: 'object',
-    properties: {
-      metadata: { type: 'object' },
-      tags: { type: 'array', items: { type: 'string' } },
-      documents: { type: 'array', items: { type: 'string', format: 'binary' } },
-    },
+    allOf: [
+      {
+        type: 'object',
+        properties: {
+          metadata: { type: 'object' },
+          tags: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      {
+        type: 'object',
+        properties: {
+          documents: {
+            type: 'array',
+            items: { type: 'string', format: 'binary' },
+          },
+        },
+      },
+    ],
   },
 };
 const uploadParts = createMultipartParts(

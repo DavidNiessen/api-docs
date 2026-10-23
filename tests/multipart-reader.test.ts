@@ -128,10 +128,11 @@ describe('multipart reader model and schema-aware previews', () => {
     const operation = api.operations.find(
       (operation) => operation.id === 'uploadDocuments',
     )!;
-    const schema =
-      operation.requestBody!.content['multipart/form-data']!.schema;
+    const media = operation.requestBody!.content['multipart/form-data']!;
+    // Preserve composition while adding hostile-name properties at the root.
+    const schema = media.schema;
     schema.properties = Object.fromEntries([
-      ...Object.entries(schema.properties as Record<string, unknown>),
+      ...Object.entries((schema.properties ?? {}) as Record<string, unknown>),
       ['constructor', { type: 'string', format: 'binary' }],
       ['__proto__', { type: 'string', format: 'binary' }],
     ]);
@@ -317,7 +318,7 @@ describe('multipart reader model and schema-aware previews', () => {
   it('bounds reader controls and rejects unsupported root shapes without silently dropping data', () => {
     expect(() =>
       multipartEditorModel(
-        { schema: { allOf: [{ type: 'object' }] } },
+        { schema: { oneOf: [{ type: 'object' }] } },
         {},
         false,
       ),

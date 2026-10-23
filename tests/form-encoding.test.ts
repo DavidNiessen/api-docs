@@ -175,7 +175,11 @@ describe('form-urlencoded body encoding', () => {
     ['{"name":"a","name":"b"}', media, /Duplicate/],
     ['{"name":"a"}', { schema: { type: 'string' } }, /object schema/],
     ['{"name":"a"}', { schema: { $ref: '#/missing' } }, /reference could not/],
-    ['{"name":"a"}', { schema: { allOf: [{}] } }, /Composed/],
+    [
+      '{"name":"a"}',
+      { schema: { allOf: [{ additionalProperties: false }] } },
+      /Composed/,
+    ],
     [
       '{"address":{"x":1}}',
       { ...media, encoding: { address: { contentType: 'application/xml' } } },

@@ -324,7 +324,7 @@ describe('binary-safe multipart requests', () => {
       parts('{}', {}, { schema: { $ref: '#/components/schemas/Missing' } }),
     ).toThrow(/resolve/);
     for (const schema of [
-      { allOf: [{ type: 'object' }] },
+      { anyOf: [{ type: 'object' }] },
       { type: 'array' },
       { 'x-api-docs-boolean-schema': false },
     ])

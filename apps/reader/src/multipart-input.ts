@@ -2,6 +2,7 @@ import {
   parseJsonValue,
   resolveSchema,
   serializeJsonValue,
+  objectFieldSchema,
 } from '@api-docs/contracts';
 import type { Media, Schema } from '@api-docs/contracts';
 
@@ -25,7 +26,14 @@ export function multipartEditorModel(
       throw new Error('Multipart field schema could not resolve.');
     return result;
   };
-  const root = resolve(media.schema);
+  let root = resolve(media.schema);
+  try {
+    root = objectFieldSchema(root, schemas, legacy);
+  } catch {
+    throw new Error(
+      'Multipart object composition cannot be edited safely. Use a custom client.',
+    );
+  }
   if (
     root['x-api-docs-boolean-schema'] === false ||
     ['allOf', 'oneOf', 'anyOf', 'if', 'then', 'else'].some((key) =>

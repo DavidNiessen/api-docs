@@ -243,6 +243,7 @@ export function withBase(base: string, path: string): string {
 }
 
 export { resolveSchema, exampleFor } from './schema.js';
+export { objectFieldSchema } from './object-fields.js';
 
 export { createPageData, normalizePagePath } from './page.js';
 export { toolVersion } from './version.js';

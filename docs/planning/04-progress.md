@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated: 2026-10-23. **Approximately 82% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-23. **Approximately 83% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
 ## Current milestone status
 
@@ -16,6 +16,19 @@ Updated: 2026-10-23. **Approximately 82% complete; pre-release.** This is an eng
 | M7 — Launch              | Local automated validation and documented performance experiments                                                                                                                                                                                                                                                                                                             | Independent pilots, security/accessibility review, complete license/distribution audit, protected release approval and registry installation verification |
 
 ## Latest completed increment
+
+**Compatible composed object schemas now work across JSON, form-urlencoded and multipart controls/serialization.** The existing conservative field projection is a shared public contracts helper, merging disjoint `allOf` properties and required lists with bounded reference/dialect handling. Multipart file selectors, example cleanup and redaction use the same field projection as the actual sender. Exact logical numeric tokens, unknown input values, file bytes and sensitive/read-only annotations are preserved. Ambiguous, closed, conditional or excessive compositions still fail explicitly and retain manual/custom-client alternatives. Browser fixtures now use real composed form/upload schemas. This implemented consumer workflow raises the estimate to approximately 83%; remaining serialization, browser extension, hosting and launch gates remain open.
+
+Validation for this increment:
+
+- Formatting/lint, type checking, all 73 tooling tests and all 506 compiler/component tests pass. Eleven new cross-codec cases cover referenced compositions, required uploads, exact bytes, redaction, dialect differences, incompatible branches, recursion and limits; existing JSON-field composition cases still pass after the shared-helper move.
+- All 60 executable built-in snippet checks pass, including binary upload preparation from a composed schema, with actual requests and independent multipart parsing across the five languages.
+- All 38 reader browser journeys pass, including the composed form and multipart fixtures, real uploads, sensitive preview/copy behavior, accessibility, mobile layouts, the Scalar-style bar and response-only Monaco viewer.
+- All 12 installed npm components pass outside the workspace, including the new public projection helper, codecs, offline reinstall, dependency audit and candidate SBOM. Obsolete generated reader-helper files were removed before packaging.
+
+See [form-urlencoded composition](../form-bodies.md) and [multipart boundaries](../multipart-bodies.md#boundaries-and-safety). The projection is an editor/serialization aid, not a full schema validator. Hosted CI, independent review and protected release acceptance remain open.
+
+## Previous snippet-plugin increment
 
 **Build plugins can add validated static code examples to operations.** The typed `generateSnippets` hook runs after all graph transforms, receives immutable shared API metadata and a separate operation snapshot, and returns bounded namespaced samples. The reader labels these as build-time examples, keeps live playground serialization separate and offers a visible full-copy action for both kinds of request example. Generated text is escaped rather than executed. A first-party Go plugin uses the public explorer serializer and sensitive-field redaction; its helper and output participate in artifact identity. Source and prepared-release workflows run the Go fixture harness; source CI also runs each first-party hook's CLI conformance check. This implemented extensibility scope raises the estimate to approximately 82%; dynamic browser hooks, external integration acceptance and launch gates remain open.
 

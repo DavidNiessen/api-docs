@@ -133,15 +133,20 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              type: object
-              properties:
-                name: { type: string }
-                id: { type: integer }
-                enabled: { type: boolean }
-                tags: { type: array, items: { type: string } }
-                address: { type: object, properties: { zip: { type: string } } }
-                filters: { type: object }
-                password: { type: string, format: password, writeOnly: true }
+              allOf:
+                - type: object
+                  properties:
+                    name: { type: string }
+                    id: { type: integer }
+                    enabled: { type: boolean }
+                - type: object
+                  properties:
+                    tags: { type: array, items: { type: string } }
+                    address:
+                      { type: object, properties: { zip: { type: string } } }
+                    filters: { type: object }
+                    password:
+                      { type: string, format: password, writeOnly: true }
             encoding:
               tags: { style: form, explode: true }
               filters: { style: deepObject, explode: true }
@@ -308,22 +313,27 @@ paths:
         content:
           multipart/form-data:
             schema:
-              type: object
-              required: [title, documents, responseOnly]
-              properties:
-                title: { type: string }
-                password: { type: string, format: password, writeOnly: true }
-                metadata:
-                  type: object
+              allOf:
+                - type: object
+                  required: [title, responseOnly]
                   properties:
-                    id: { type: integer }
-                    privateNote: { type: string, writeOnly: true }
-                tags: { type: array, items: { type: string } }
-                documents:
-                  type: array
-                  items: { type: string, format: binary }
-                  description: Select one or more local files.
-                responseOnly: { type: string, readOnly: true }
+                    title: { type: string }
+                    password:
+                      { type: string, format: password, writeOnly: true }
+                    metadata:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        privateNote: { type: string, writeOnly: true }
+                    tags: { type: array, items: { type: string } }
+                    responseOnly: { type: string, readOnly: true }
+                - type: object
+                  required: [documents]
+                  properties:
+                    documents:
+                      type: array
+                      items: { type: string, format: binary }
+                      description: Select one or more local files.
             examples:
               standard:
                 summary: Documents with metadata

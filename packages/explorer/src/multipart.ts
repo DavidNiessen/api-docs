@@ -3,6 +3,7 @@ import {
   parseJsonValue,
   resolveSchema,
   serializeJsonValue,
+  objectFieldSchema,
 } from '@api-docs/contracts';
 import type { JsonValueNode, Media, Schema } from '@api-docs/contracts';
 
@@ -134,7 +135,18 @@ export function createMultipartParts(
       throw new Error('Multipart schema reference could not resolve.');
     return result;
   };
-  const schema = resolve(media.schema);
+  let schema = resolve(media.schema);
+  try {
+    schema = objectFieldSchema(
+      schema,
+      options.schemas ?? {},
+      options.openapiVersion?.startsWith('3.0') ?? false,
+    );
+  } catch {
+    throw new Error(
+      'Multipart object composition cannot be serialized safely. Use a custom client.',
+    );
+  }
   if (
     schema['x-api-docs-boolean-schema'] === false ||
     (schema.type && typeOf(schema) !== 'object') ||
@@ -143,7 +155,7 @@ export function createMultipartParts(
     )
   )
     throw new Error(
-      'Multipart input requires a direct object schema; composed and conditional roots are not supported.',
+      'Multipart input requires a direct object schema or compatible allOf branches; conditional roots are not supported.',
     );
   const properties = object(schema.properties);
   const property = (name: string) =>

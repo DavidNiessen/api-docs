@@ -1,5 +1,5 @@
-import { resolveSchema } from '@api-docs/contracts';
-import type { Schema } from '@api-docs/contracts';
+import { resolveSchema } from './schema.js';
+import type { Schema } from './index.js';
 
 const annotations = new Set([
   'title',

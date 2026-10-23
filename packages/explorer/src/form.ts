@@ -3,6 +3,7 @@ import {
   parseJsonValue,
   serializeJsonValue,
   resolveSchema,
+  objectFieldSchema,
 } from '@api-docs/contracts';
 import type { JsonValueNode, Media, Schema } from '@api-docs/contracts';
 import { encodeValue, queryParts } from './parameters.js';
@@ -70,7 +71,18 @@ export function encodeFormBody(
       throw new Error('Form schema reference could not resolve.');
     return actual;
   };
-  const schema = resolve(media.schema);
+  let schema = resolve(media.schema);
+  try {
+    schema = objectFieldSchema(
+      schema,
+      options.schemas ?? {},
+      options.openapiVersion?.startsWith('3.0') ?? false,
+    );
+  } catch {
+    throw new Error(
+      'Composed or conditional form schemas require a pre-serialized body.',
+    );
+  }
   if (
     schema.type &&
     schema.type !== 'object' &&

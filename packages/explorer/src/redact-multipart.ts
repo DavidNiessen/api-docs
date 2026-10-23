@@ -3,6 +3,7 @@ import {
   parseJsonValue,
   resolveSchema,
   serializeJsonValue,
+  objectFieldSchema,
 } from '@api-docs/contracts';
 import type { JsonValueNode, Schema } from '@api-docs/contracts';
 import { redactJsonBody } from './redact-body.js';
@@ -39,7 +40,11 @@ export function redactMultipartParts(
             context.openapiVersion?.startsWith('3.0') ?? false,
         });
       };
-      const root = resolve(context.schema);
+      const root = objectFieldSchema(
+        resolve(context.schema),
+        context.schemas,
+        context.openapiVersion?.startsWith('3.0') ?? false,
+      );
       if (root.$ref) throw new Error('Unresolved schema');
       const groups = new Map<
         string,
