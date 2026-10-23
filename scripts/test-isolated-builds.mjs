@@ -6,7 +6,11 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { buildSite, buildIsolatedSite } from '../packages/cli/dist/index.js';
+import {
+  buildSite,
+  buildIsolatedSite,
+  inspectIsolatedSource,
+} from '../packages/cli/dist/index.js';
 
 const image = process.env.ISOLATED_BUILD_IMAGE;
 assert.match(
@@ -69,14 +73,21 @@ const receipts = [];
 let child;
 try {
   const native = await buildSite(project);
+  const approvedSource = await inspectIsolatedSource(project);
   const isolated = await buildIsolatedSite(project, {
     image,
+    expectedSourceDigest: approvedSource.digest,
     timeoutMs: 45000,
   });
   assert.equal(
     isolated.manifest.artifactDigest,
     native.manifest.artifactDigest,
     'Native and isolated outputs must agree',
+  );
+  assert.deepEqual(isolated.receipt.source, approvedSource);
+  await assert.rejects(
+    buildIsolatedSite(project, { image, expectedSourceDigest: '0'.repeat(64) }),
+    /source digest verification/,
   );
   receipts.push(isolated.receipt);
   const sentinel = join(root, 'host-only-' + randomUUID());

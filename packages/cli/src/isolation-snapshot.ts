@@ -12,6 +12,7 @@ export async function snapshotProject(
 ) {
   signal?.throwIfAborted();
   const files: { path: string; digest: string }[] = [];
+  const directories: string[] = [];
   let bytes = 0,
     entries = 0;
   async function walk(source: string, destination: string, prefix = '') {
@@ -29,8 +30,10 @@ export async function snapshotProject(
       const info = await lstat(input);
       if (info.isSymbolicLink())
         throw new Error('Isolated source cannot contain symlinks');
-      if (info.isDirectory()) await walk(input, output, path + '/');
-      else if (info.isFile() && info.nlink === 1) {
+      if (info.isDirectory()) {
+        directories.push(path);
+        await walk(input, output, path + '/');
+      } else if (info.isFile() && info.nlink === 1) {
         const content = await readBoundedFile(
           input,
           Math.min(64 * 1024 * 1024, maxBytes - bytes),
@@ -53,9 +56,13 @@ export async function snapshotProject(
   await walk(root, target);
   await mkdir(join(target, '.api-docs'), { mode: 0o755 });
   files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  directories.sort();
   return {
+    digestVersion: 2 as const,
     bytes,
     files: files.length,
-    digest: createHash('sha256').update(JSON.stringify(files)).digest('hex'),
+    digest: createHash('sha256')
+      .update(JSON.stringify({ version: 2, files, directories }))
+      .digest('hex'),
   };
 }

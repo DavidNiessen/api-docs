@@ -18,6 +18,24 @@ Networked image builds must use your configured registry credentials, proxy and 
 
 The local Docker daemon must support cgroup v2, the default seccomp filter, private cgroup namespaces, the freezer and managed local-driver tmpfs volumes. The runner probes the requested limits before executing source; missing enforcement fails the build. Remote Docker endpoints and non-Linux hosts are unsupported. `--socket` selects a local Unix socket; inherited Docker endpoint/TLS selectors cannot redirect the job. Docker registry configuration is preserved.
 
+## Inspect and approve source
+
+```sh
+api-docs source-info /srv/docs-source --json
+# Set DOCS_APPROVED_SOURCE_DIGEST from the reviewed source inspection,
+# and DOCS_APPROVED_WORKER_IMAGE to the approved immutable worker image.
+api-docs isolated-build /srv/docs-source --image "$DOCS_APPROVED_WORKER_IMAGE" \
+  --source-digest "$DOCS_APPROVED_SOURCE_DIGEST" --json
+```
+
+`source-info` copies a bounded visible snapshot into a private temporary directory, computes its metadata, and removes the copy. It does not parse project configuration, import project code, install dependencies, require Docker, or change the project's publication. `--source-mib` sets the same 1–1024 MiB budget as the runner, default 128. The JSON envelope is `{ "schemaVersion": 1, "source": { "digestVersion": 2, "digest": "…", "bytes": 0, "files": 0 } }`; actual counts depend on the source.
+
+The approval binds visible file paths and bytes plus directory layout, including empty directories. Hidden entries and `node_modules` remain excluded at every level. Snapshot file/directory permissions are normalized as before. Digest version 2 hashes UTF-8 compact JSON with `version`, `files` and `directories` in that order: `version` is 2; `files` is the sorted array of `{path,digest}` file records with SHA-256 content digests; `directories` is the sorted array of visible relative directory paths. Sorting follows JavaScript string ordering, independent of host locale. The digest excludes absolute paths and the runner's injected output scaffolding. Earlier unversioned receipt digests covered files only; obtain a fresh version 2 inspection for new approvals.
+
+`--source-digest` / `expectedSourceDigest` accepts a lowercase 64-character SHA-256 value. After staging the actual build snapshot, the host compares its digest **before any Docker command or source execution**. A mismatch retains the prior publication and cleans the private stage/lock. A matching pin continues the existing immutable-image, isolation and publication checks. The executed read-only snapshot is the one that was compared, so later changes to the original source affect a later job. Bind approved image, config path, trust flags and resource policy separately when scheduling a build; a source digest alone does not approve those choices.
+
+The public `@api-docs/cli` API exports `inspectIsolatedSource`, `IsolatedSourceOptions` and `IsolatedSourceInfo` alongside `buildIsolatedSite`, `IsolatedBuildOptions` and `IsolatedBuildReceipt`. Both inspection and building accept an `AbortSignal`. A build receipt's source metadata uses the same digest version and counts as inspection of the identical source. Inspection is data-only; validate the project separately with `validate` or `doctor` before approving it.
+
 ## Source and dependency boundary
 
 Supply a dedicated, secret-free documentation source directory. All hidden entries and `node_modules` are excluded, including `.env`, `.git`, `.npmrc`, deployment secrets and previous `.api-docs` output. This is an exclusion rule, not secret detection: **visible files supplied in the source remain readable by build code**. Do not point this at a credentials directory or a general application checkout containing private data.
@@ -59,4 +77,4 @@ Docker access is privileged administrative access to the host. Use a dedicated p
 ISOLATED_BUILD_IMAGE="$(cat /tmp/api-docs-builder.id)" npm run test:isolated-builds
 ```
 
-The serial harness checks native/isolated artifact parity, SDK plugin resolution, absent host markers, read-only mounts, offline interfaces, detached descendants, trust refusal, deadline/cancellation, parent-death cleanup and preservation of the prior publication. Archive/snapshot adversarial cases also run in the normal unit suite. CI builds its own worker and makes this harness part of the aggregate quality gate.
+The serial harness checks pinned-source/native/isolated artifact parity, receipt identity, mismatched-source rejection, SDK plugin resolution, absent host markers, read-only mounts, offline interfaces, detached descendants, trust refusal, deadline/cancellation, parent-death cleanup and preservation of the prior publication. Archive/snapshot adversarial cases also run in the normal unit suite. CI builds its own worker and makes this harness part of the aggregate quality gate.

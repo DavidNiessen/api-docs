@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import Fastify from 'fastify';
-import { createStaticServer } from '@api-docs/cli';
+import { createStaticServer, inspectIsolatedSource } from '@api-docs/cli';
 import { PostgresRepository } from '@api-docs/storage';
 import { verifyArtifact } from '@api-docs/compiler';
 import {
@@ -376,6 +376,12 @@ typeImports.push(`import {PostgresRepository as TypedPostgresRepository} from '@
 import type {PostgresRepositoryOptions} from '@api-docs/storage';
 const databaseOptions: PostgresRepositoryOptions = {statementTimeoutMs:1000,queryTimeoutMs:2000};
 const typedStore = new TypedPostgresRepository('postgresql://fixture@127.0.0.1/unused',databaseOptions);void typedStore;`);
+typeImports.push(`import {inspectIsolatedSource as typedInspectSource} from '@api-docs/cli';
+import type {IsolatedSourceInfo, IsolatedSourceOptions, IsolatedBuildOptions} from '@api-docs/cli';
+const sourceOptions:IsolatedSourceOptions={sourceMiB:1};
+const sourcePromise:Promise<IsolatedSourceInfo>=typedInspectSource('docs',sourceOptions);
+const pinnedBuild:IsolatedBuildOptions={image:'sha256:'+'a'.repeat(64),expectedSourceDigest:'b'.repeat(64)};
+void [sourcePromise,pinnedBuild];`);
 await writeFile(
   'types.mts',
   typeImports.join('\n') +
@@ -412,6 +418,16 @@ assert.equal(
   version,
 );
 await exec(process.execPath, [cli, 'init', 'docs']);
+const sourceInfo = await inspectIsolatedSource('docs', { sourceMiB: 1 });
+assert.equal(sourceInfo.digestVersion, 2);
+assert.match(sourceInfo.digest, /^[a-f0-9]{64}$/);
+assert.equal(
+  JSON.parse(
+    (await exec(process.execPath, [cli, 'source-info', 'docs', '--json']))
+      .stdout,
+  ).source.digest,
+  sourceInfo.digest,
+);
 const importedSource = Buffer.from(
   '{"openapi":"3.1.0","info":{"title":"Packaged remote snapshot","version":"v1"},"paths":{},"components":{"schemas":{"Id":{"type":"integer","example":9007199254740993}}}}\n',
 );

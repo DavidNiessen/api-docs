@@ -46,10 +46,12 @@ export { vendorRemoteSpec } from './vendor-spec.js';
 export type { VendorSpecOptions } from './vendor-spec.js';
 export { importRemoteSpec } from './import-spec.js';
 export type { ImportSpecOptions } from './import-spec.js';
-export { buildIsolatedSite } from './isolation.js';
+export { buildIsolatedSite, inspectIsolatedSource } from './isolation.js';
 export type {
   IsolatedBuildOptions,
   IsolatedBuildReceipt,
+  IsolatedSourceInfo,
+  IsolatedSourceOptions,
 } from './isolation.js';
 export interface BuildOptions {
   config?: string;

@@ -30,6 +30,7 @@ import {
   importRemoteSpec,
   vendorRemoteSpec,
   buildIsolatedSite,
+  inspectIsolatedSource,
 } from './index.js';
 const program = new Command()
   .name('api-docs')
@@ -223,6 +224,35 @@ buildOptions(
     );
   },
 );
+program
+  .command('source-info [project]')
+  .description(
+    'Inspect the bounded visible source snapshot without executing build code',
+  )
+  .option('--source-mib <number>', 'source snapshot limit in MiB', '128')
+  .option('--json', 'print machine-readable source metadata')
+  .action(
+    async (project = '.', options: { sourceMib: string; json?: boolean }) => {
+      const controller = new AbortController();
+      const cancel = () => controller.abort();
+      process.once('SIGINT', cancel);
+      process.once('SIGTERM', cancel);
+      try {
+        const source = await inspectIsolatedSource(project, {
+          sourceMiB: Number(options.sourceMib),
+          signal: controller.signal,
+        });
+        console.log(
+          options.json
+            ? JSON.stringify({ schemaVersion: 1, source })
+            : `Source sha256:${source.digest} · ${source.files} files · ${source.bytes} bytes`,
+        );
+      } finally {
+        process.removeListener('SIGINT', cancel);
+        process.removeListener('SIGTERM', cancel);
+      }
+    },
+  );
 buildOptions(
   program
     .command('isolated-build [project]')
@@ -233,6 +263,10 @@ buildOptions(
   .requiredOption(
     '--image <digest>',
     'immutable local image id or repository digest',
+  )
+  .option(
+    '--source-digest <sha256>',
+    'require an approved visible-source snapshot digest',
   )
   .option('--socket <path>', 'local Docker Unix socket', '/var/run/docker.sock')
   .option(
@@ -251,6 +285,7 @@ buildOptions(
       project = '.',
       options: {
         image: string;
+        sourceDigest?: string;
         socket: string;
         config: string;
         output: string;
@@ -272,6 +307,9 @@ buildOptions(
       try {
         const result = await buildIsolatedSite(project, {
           image: options.image,
+          ...(options.sourceDigest === undefined
+            ? {}
+            : { expectedSourceDigest: options.sourceDigest }),
           socket: options.socket,
           config: options.config,
           output: options.output,

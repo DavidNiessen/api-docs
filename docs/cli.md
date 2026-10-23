@@ -4,18 +4,20 @@ Use the [lifecycle inventory](lifecycle.md) to report deprecations, resolve migr
 
 Build the repository with `npm ci && npm run build`. Commands below use `node packages/cli/dist/main.js`; the packaged executable is named `api-docs`.
 
-| Command                          | Purpose                                                 |
-| -------------------------------- | ------------------------------------------------------- |
-| `init [directory]`               | Create a project without overwriting existing files     |
-| `import-spec <url> [project]`    | Explicitly validate and save a remote spec snapshot     |
-| `vendor-spec <policy> [project]` | Save pinned root/reference sources for offline builds   |
-| `build [project]`                | Compile and verify a static publication                 |
-| `export [project]`               | Alias for build; output is portable static files        |
-| `dev [project]`                  | Build, serve and watch inputs; refresh after rebuilding |
-| `serve <directory>`              | Serve an existing publication with security headers     |
-| `validate [project]`             | Check configuration, specs and guides                   |
-| `doctor [project]`               | Offline examples, links, fragments and coverage policy  |
-| `diff <before> <after>`          | Classify breaking and uncertain API contract changes    |
+| Command                          | Purpose                                                   |
+| -------------------------------- | --------------------------------------------------------- |
+| `init [directory]`               | Create a project without overwriting existing files       |
+| `import-spec <url> [project]`    | Explicitly validate and save a remote spec snapshot       |
+| `vendor-spec <policy> [project]` | Save pinned root/reference sources for offline builds     |
+| `build [project]`                | Compile and verify a static publication                   |
+| `export [project]`               | Alias for build; output is portable static files          |
+| `source-info [project]`          | Inspect visible source digest/counts without running code |
+| `isolated-build [project]`       | Build offline in an approved restricted Docker worker     |
+| `dev [project]`                  | Build, serve and watch inputs; refresh after rebuilding   |
+| `serve <directory>`              | Serve an existing publication with security headers       |
+| `validate [project]`             | Check configuration, specs and guides                     |
+| `doctor [project]`               | Offline examples, links, fragments and coverage policy    |
+| `diff <before> <after>`          | Classify breaking and uncertain API contract changes      |
 
 `build` and `dev` accept `--config`, `--output`, and `--trust-plugins`. Output must stay inside the project's `.api-docs` directory to protect source files. `serve` and `dev` accept `--port` and `--host`; the default interface is loopback.
 
@@ -24,6 +26,8 @@ Build the repository with `npm ci && npm run build`. Commands below use `node pa
 Programmatic callers can use `await server.reloadPublication()` on the result of `createStaticServer` to verify a replacement publication and update the allowed file set. A failed reload makes documentation and `/health/ready` return 503 while `/health/live` remains available. Repair the artifact and reload to recover. A changed `basePath` requires restarting the server.
 
 See [pinned reference snapshots](reference-snapshots.md) for multi-file specs, explicit per-source hashes and offline resolution. See [remote spec importing](remote-import.md) for exact origin controls, authentication, SHA-256 pins, private generators and atomic refreshes.
+
+See [isolated builds and source approvals](isolated-builds.md) for `source-info --source-mib <limit> --json` and `isolated-build --image <immutable-image> --source-digest <approved-digest>`. Inspection requires no Docker and does not change project output. The build runner requires a supported Linux Docker host and explicit trust flags for executable content.
 
 ## Configuration
 

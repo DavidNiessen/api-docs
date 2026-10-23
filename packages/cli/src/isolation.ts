@@ -4,12 +4,14 @@ import {
   chmod,
   lstat,
   mkdir,
+  mkdtemp,
   open,
   readdir,
   realpath,
   rm,
 } from 'node:fs/promises';
 import { dirname, join, isAbsolute } from 'node:path';
+import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { safeOutput, verifyArtifact } from '@api-docs/compiler';
@@ -23,6 +25,8 @@ import { activateDirectory } from './activate.js';
 
 export interface IsolatedBuildOptions {
   image: string;
+  /** Approved visible-source digest; checked before any Docker operation. */
+  expectedSourceDigest?: string;
   socket?: string;
   config?: string;
   output?: string;
@@ -36,11 +40,21 @@ export interface IsolatedBuildOptions {
   outputMiB?: number;
   signal?: AbortSignal;
 }
+export interface IsolatedSourceInfo {
+  digestVersion: 2;
+  digest: string;
+  bytes: number;
+  files: number;
+}
+export interface IsolatedSourceOptions {
+  sourceMiB?: number;
+  signal?: AbortSignal;
+}
 export interface IsolatedBuildReceipt {
   schemaVersion: 1;
   toolVersion: string;
   image: string;
-  source: { digest: string; bytes: number; files: number };
+  source: IsolatedSourceInfo;
   artifactDigest: string;
   durationMs: number;
   limits: {
@@ -92,6 +106,29 @@ function localName(value: string) {
 }
 
 /** Operator-only Docker boundary; the publication server never invokes this with uploaded code. */
+/** Inspect only bounded visible data, without evaluating project configuration or source code. */
+export async function inspectIsolatedSource(
+  project: string,
+  options: IsolatedSourceOptions = {},
+): Promise<IsolatedSourceInfo> {
+  const limit = integer(options.sourceMiB, 128, 1, 1024) * MiB;
+  if (options.signal !== undefined && !(options.signal instanceof AbortSignal))
+    throw new Error('Use an AbortSignal for source inspection cancellation');
+  options.signal?.throwIfAborted();
+  const root = await realpath(project);
+  const temporary = await mkdtemp(join(tmpdir(), 'api-docs-source-info-'));
+  try {
+    return await snapshotProject(
+      root,
+      join(temporary, 'source'),
+      limit,
+      options.signal,
+    );
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+}
+
 export async function buildIsolatedSite(
   project: string,
   options: IsolatedBuildOptions,
@@ -111,6 +148,12 @@ export async function buildIsolatedSite(
     throw new Error(
       'Isolated builds require Linux and an explicit immutable local image id or repository digest',
     );
+  if (
+    options.expectedSourceDigest !== undefined &&
+    (typeof options.expectedSourceDigest !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(options.expectedSourceDigest))
+  )
+    throw new Error('Expected source digest must be a lowercase SHA-256 value');
   for (const value of [options.trustPlugins, options.trustContent])
     if (value !== undefined && typeof value !== 'boolean')
       throw new Error('Trust options must be booleans');
@@ -223,6 +266,12 @@ export async function buildIsolatedSite(
       limits.sourceMiB * MiB,
       controller.signal,
     );
+    phase = 'source digest verification';
+    if (
+      options.expectedSourceDigest !== undefined &&
+      source.digest !== options.expectedSourceDigest
+    )
+      throw new Error('Source snapshot does not match its approved digest');
     phase = 'image verification';
     const image = await docker([
       'image',
