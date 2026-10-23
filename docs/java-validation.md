@@ -36,6 +36,12 @@ A pinned CycloneDX Maven plugin generates a 1.6 JSON inventory of the baseline r
 
 The 2026-10-22 development run passed all six archive inspections, the five-property metadata check, a 20-component/21-node dependency inventory, all twelve installed consumers (24 tests without skips and twelve offline compilations), and all six source combinations (60 tests without skips). The Node tooling gate has 73 passing tests and the compiler/component suite has 380. Candidates remain unsigned and unpublished; namespace ownership and the release-wide distribution/license review are separate gates.
 
+## Selected publishing namespace
+
+The selected Maven group is `dev.niessen`. Parent/module dependencies, consumer fixtures and embedded-coordinate/SBOM checks use that group. The `api-docs` artifact names remain placeholders pending the product rename; Java source packages retain their existing API identities. Namespace selection does not establish Maven Central authorization or signed registry publication.
+
+A local follow-up from source `568f2ad` with the namespace changes in its working tree passes all six JDK 17/21/25 × Boot 3.5.16/4.1.1 combinations (60 tests, no skips) and all 12 physically installed MVC/WebFlux consumers (48 tests, no skips, with offline compilation). Candidate reports record the dirty source and unverified publication/signature state. Older evidence below uses the previous development coordinates.
+
 ## Recorded Linux validation
 
 The 2026-10-22 local matrix used Temurin 17.0.21+9, 21.0.13+9 and 25.0.5+8 on Linux x64. Each runtime passed both Boot lines with 8 manifest tests and 2 servlet/reactive host tests: 60 test executions across six combinations, no skips. The host tests serve real generated pages, search, scripts and OAuth callback assets behind Spring Security and an approved-digest pin.

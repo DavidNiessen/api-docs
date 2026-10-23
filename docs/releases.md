@@ -1,6 +1,6 @@
 # Development candidates and release gates
 
-The project is in development. There is no approved stable release, registry ownership is not verified, and these commands do not publish anything. The current `@api-docs` scope and Maven coordinates remain provisional. Never install or execute artifacts from an untrusted pull request.
+The project is in development. There is no approved stable release, registry ownership is not verified, and these commands do not publish anything. The current `@api-docs` scope and `api-docs` artifact names remain provisional pending the product rename. The selected Maven group is `dev.niessen`; Maven Central namespace authorization remains unverified. Never install or execute artifacts from an untrusted pull request.
 
 ## Review a release plan
 
@@ -41,7 +41,7 @@ The **Release rehearsal** workflow can be dispatched from `master` with a target
 
 The workflow uses SHA-pinned actions, read-only repository permissions, full Git history, and quoted environment inputs. Its shared preparation action validates boolean/baseline choices and retains the JSON plan, preview and applied receipt. Source artifacts and current Java results are retained for review. The prepared working tree is deliberately dirty and labeled as an unpublished rehearsal: no tags, commits, registry packages, release entries or deployments are created. A rehearsal does not replace checks against a final reviewed clean commit or signed release artifacts.
 
-Remote execution currently remains unverified because of the GitHub account billing restriction. Local evidence below describes the commands actually exercised rather than a successful hosted workflow.
+Hosted Actions can now run after maintainer account setup. The prepared-version release rehearsal still requires its own successful hosted run; the local evidence below does not establish that gate.
 
 ## Local prepared-version rehearsal
 
@@ -67,7 +67,7 @@ npm run test:packages
 
 The consumer check installs the archives into a temporary project outside the workspace, audits its dependency tree at the moderate threshold, reinstalls from its lockfile using the local npm cache with network access disabled for npm, and runs the installed code. Internal package directories must be physical installs rather than workspace symlinks. The smoke covers strict public TypeScript declarations, CLI initialization, trusted MDX and plugin workers, plugin conformance, strict doctor validation, artifact checks, static serving, and authenticated Express/Fastify mounts under a subpath. Its Node TypeScript fixture selects `types: ["node"]` and keeps `skipLibCheck: false`; this avoids auto-loading unrelated ambient MDX JSX types. Projects that consume MDX types directly must configure the JSX runtime they use.
 
-Results remain in `.api-docs/npm-candidates/<commit>-<run>/`: archives, `manifest.json`, `consumer-result.json`, the installed consumer lockfile and a CycloneDX SBOM. The lockfile/SBOM describe this tested consumer, including its integration hosts, rather than every Docker/Java distribution. The source workflow retains candidates and browser reports for 14 days. These workflow steps are configured but remote execution is currently blocked by the GitHub account billing restriction; local results are separate evidence.
+Results remain in `.api-docs/npm-candidates/<commit>-<run>/`: archives, `manifest.json`, `consumer-result.json`, the installed consumer lockfile and a CycloneDX SBOM. The lockfile/SBOM describe this tested consumer, including its integration hosts, rather than every Docker/Java distribution. The source workflow retains candidates and browser reports for 14 days. Hosted Actions is enabled; source and aggregate Quality results are tracked in the [implementation progress](planning/04-progress.md). Local candidate results remain separate evidence.
 
 Browser builds collect license texts for packages identified in bundle source maps plus Vite's generated preload helper. Reader exports and Studio distributions include `assets/THIRD_PARTY_NOTICES.txt`; static exports retain that file. This is attribution collection, not completion of the release-wide dependency/license review.
 

@@ -50,7 +50,7 @@ cd integrations/java
 ./mvnw --batch-mode --no-transfer-progress --strict-checksums install
 ```
 
-Add `io.github.davidniessen.apidocs:api-docs-spring-boot-starter` to your application after installing or publishing the local artifacts. The current development version is `0.1.0-SNAPSHOT`. Registry publication is separate release work.
+Add `dev.niessen:api-docs-spring-boot-starter` to your application after installing or publishing the local artifacts. The current development version is `0.1.0-SNAPSHOT`. Registry publication is separate release work.
 
 The local installation includes source and Javadoc archives. Spring-aware IDEs can complete the documented `api-docs` properties from the starter’s generated configuration metadata.
 

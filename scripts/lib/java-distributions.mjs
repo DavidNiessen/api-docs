@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-const group = 'io.github.davidniessen.apidocs';
+const group = 'dev.niessen';
 const digest = /^[a-f0-9]{64}$/;
 const record = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);

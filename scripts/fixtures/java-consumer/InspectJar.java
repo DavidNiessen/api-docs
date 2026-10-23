@@ -42,11 +42,11 @@ class InspectJar {
       require(sha(content(jar, "META-INF/LICENSE")).equals(args[3]), "License differs from the source license");
       require(sha(content(jar, "META-INF/NOTICE")).equals(args[4]), "Notice differs from the source notice");
       String artifact = "api-docs-" + module;
-      String maven = "META-INF/maven/io.github.davidniessen.apidocs/" + artifact + "/";
+      String maven = "META-INF/maven/dev.niessen/" + artifact + "/";
       var properties = new Properties();
       try (var input = jar.getInputStream(jar.getJarEntry(maven + "pom.properties"))) { properties.load(input); }
       require(version.equals(properties.getProperty("version")) && artifact.equals(properties.getProperty("artifactId"))
-          && "io.github.davidniessen.apidocs".equals(properties.getProperty("groupId")), "Embedded Maven coordinates disagree");
+          && "dev.niessen".equals(properties.getProperty("groupId")), "Embedded Maven coordinates disagree");
       require(unique.contains(module.equals("core") ? "io/apidocs/core/Publication.class"
           : "io/apidocs/spring/ApiDocsAutoConfiguration.class"), "Missing public runtime entrypoint");
       if (module.equals("spring-boot-starter")) {

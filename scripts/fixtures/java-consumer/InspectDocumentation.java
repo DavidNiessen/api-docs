@@ -35,11 +35,11 @@ class InspectDocumentation {
       String metadata = "";
       if (classifier.equals("sources")) {
         require(unique.contains(publicType + ".java"), "Public sources are missing");
-        String maven = "META-INF/maven/io.github.davidniessen.apidocs/api-docs-" + module + "/";
+        String maven = "META-INF/maven/dev.niessen/api-docs-" + module + "/";
         var properties = new Properties();
         try (var input = jar.getInputStream(jar.getJarEntry(maven + "pom.properties"))) { properties.load(input); }
         require(version.equals(properties.getProperty("version")) && ("api-docs-" + module).equals(properties.getProperty("artifactId"))
-            && "io.github.davidniessen.apidocs".equals(properties.getProperty("groupId")), "Source Maven coordinates disagree");
+            && "dev.niessen".equals(properties.getProperty("groupId")), "Source Maven coordinates disagree");
         metadata = ",\"pomSha256\":\"" + sha(content(jar, maven + "pom.xml")) + "\"";
       } else {
         require(unique.contains("index.html") && unique.contains(publicType + ".html"), "Public API documentation is missing");

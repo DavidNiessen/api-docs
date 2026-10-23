@@ -27,7 +27,7 @@ function metadata() {
     })),
   };
 }
-const group = 'io.github.davidniessen.apidocs',
+const group = 'dev.niessen',
   version = '0.2.0';
 function component(group, name, version) {
   const ref = `pkg:maven/${group}/${name}@${version}?type=jar`;
