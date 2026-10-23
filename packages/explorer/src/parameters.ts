@@ -221,6 +221,76 @@ export function queryParts(value: Value, parameter: Parameter): QueryPart[] {
       : [value];
   return [entry(parameter.name, values.map(encode).join(separator))];
 }
+type ParameterOptions = {
+  schemas?: Record<string, Schema>;
+  openapiVersion?: string | undefined;
+};
+function parameterValue(
+  parameter: Parameter,
+  raw: string,
+  options: ParameterOptions,
+) {
+  let serialized: string | undefined;
+  if (parameter.content) {
+    const media = Object.keys(parameter.content);
+    if (media.length !== 1)
+      throw new Error(
+        `${parameter.name}: parameter content requires exactly one media type`,
+      );
+    serialized = raw;
+    if (isJsonMediaType(media[0]!)) {
+      try {
+        JSON.parse(raw);
+        serialized = raw.replace(/"(?:[^"\\]|\\.)*"|\s+/g, (token) =>
+          token.startsWith('"') ? token : '',
+        );
+      } catch {
+        throw new Error(`${parameter.name} must be valid JSON`);
+      }
+    }
+  }
+  return {
+    serialized,
+    value:
+      serialized === undefined
+        ? valueFor(
+            parameter,
+            raw,
+            options.schemas ?? {},
+            options.openapiVersion?.startsWith('3.0') ?? false,
+          )
+        : serialized,
+  };
+}
+function headerText(
+  parameter: Parameter,
+  value: Value,
+  serialized: string | undefined,
+): string {
+  if (serialized === undefined && (parameter.style ?? 'simple') !== 'simple')
+    throw new Error(`Unsupported header style: ${parameter.style}`);
+  return (
+    serialized ??
+    (Array.isArray(value)
+      ? value.map(String).join(',')
+      : isObject(value)
+        ? pairs(value)
+            .flatMap(([key, item]) =>
+              parameter.explode ? [`${key}=${item}`] : [key, String(item)],
+            )
+            .join(',')
+        : String(value))
+  );
+}
+/** Header representation only; each transport applies its own name/framing policy. */
+export function serializeHeaderValue(
+  parameter: Parameter,
+  raw: string,
+  options: ParameterOptions,
+): string {
+  const { value, serialized } = parameterValue(parameter, raw, options);
+  return headerText(parameter, value, serialized);
+}
 export function serializeParameters(
   parameters: Parameter[],
   input: Record<string, string>,
@@ -254,35 +324,7 @@ export function serializeParameters(
       throw new Error(
         'Cookie parameters require a same-origin authenticated session and cannot be set manually in a browser',
       );
-    let serialized: string | undefined;
-    if (parameter.content) {
-      const media = Object.keys(parameter.content);
-      if (media.length !== 1)
-        throw new Error(
-          `${parameter.name}: parameter content requires exactly one media type`,
-        );
-      serialized = raw;
-      if (isJsonMediaType(media[0]!)) {
-        try {
-          JSON.parse(raw);
-          // Compact syntax without rounding numeric tokens or rewriting strings.
-          serialized = raw.replace(/"(?:[^"\\]|\\.)*"|\s+/g, (token) =>
-            token.startsWith('"') ? token : '',
-          );
-        } catch {
-          throw new Error(`${parameter.name} must be valid JSON`);
-        }
-      }
-    }
-    const value =
-      serialized === undefined
-        ? valueFor(
-            parameter,
-            raw,
-            options.schemas ?? {},
-            options.openapiVersion?.startsWith('3.0') ?? false,
-          )
-        : serialized;
+    const { value, serialized } = parameterValue(parameter, raw, options);
     if (parameter.in === 'path')
       paths[parameter.name] =
         serialized === undefined
@@ -295,23 +337,11 @@ export function serializeParameters(
           : [{ name: parameter.name, value: encodeValue(serialized) }]),
       );
     else {
-      if (
-        serialized === undefined &&
-        (parameter.style ?? 'simple') !== 'simple'
-      )
-        throw new Error(`Unsupported header style: ${parameter.style}`);
-      const header =
-        serialized ??
-        (Array.isArray(value)
-          ? value.map(String).join(',')
-          : isObject(value)
-            ? pairs(value)
-                .flatMap(([key, item]) =>
-                  parameter.explode ? [`${key}=${item}`] : [key, String(item)],
-                )
-                .join(',')
-            : String(value));
-      setRequestHeader(headers, parameter.name, header);
+      setRequestHeader(
+        headers,
+        parameter.name,
+        headerText(parameter, value, serialized),
+      );
     }
   }
   return { paths, query, headers };

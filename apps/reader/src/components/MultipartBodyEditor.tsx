@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
+import { resolveSchema } from '@api-docs/contracts';
 import type { Media, Schema } from '@api-docs/contracts';
-import type { MultipartFiles } from '@api-docs/explorer';
+import { multipartHeaderFields } from '@api-docs/explorer';
+import type { MultipartFiles, MultipartHeaders } from '@api-docs/explorer';
 import { multipartEditorModel } from '../multipart-input.js';
 import { BodyEditor } from './BodyEditor.js';
 
@@ -10,6 +12,8 @@ export function MultipartBodyEditor({
   schemas,
   legacy,
   files,
+  partHeaders,
+  onHeaders,
   onFiles,
   onChange,
   onError,
@@ -19,6 +23,8 @@ export function MultipartBodyEditor({
   schemas: Record<string, Schema>;
   legacy: boolean;
   files: MultipartFiles;
+  partHeaders: MultipartHeaders;
+  onHeaders: (headers: MultipartHeaders) => void;
   onFiles: (files: MultipartFiles) => void;
   onChange: (value: string) => void;
   onError: (error: string) => void;
@@ -26,7 +32,15 @@ export function MultipartBodyEditor({
   const [revision, setRevision] = useState(() => new Map<string, number>());
   const model = useMemo(() => {
     try {
-      return { value: multipartEditorModel(media, schemas, legacy) };
+      const headers = multipartHeaderFields(media, {
+        schemas,
+        openapiVersion: legacy ? '3.0' : '3.1',
+      });
+      if (headers.length > 100)
+        throw new Error(
+          'The playground supports at most 100 part-header controls. Use a custom client for larger definitions.',
+        );
+      return { value: multipartEditorModel(media, schemas, legacy), headers };
     } catch (error) {
       return {
         error:
@@ -49,6 +63,64 @@ export function MultipartBodyEditor({
         parts and 32 MiB including headers. Files are sent only when you choose
         Send request.
       </p>
+      {model.headers?.length ? (
+        <fieldset className="multipart-part-headers">
+          <legend>Part headers</legend>
+          <p className="subtle">
+            Blank values omit a header. Copied examples hide all custom
+            part-header values.
+          </p>
+          {model.headers.map(({ field, parameter }) => {
+            const schema = resolveSchema(parameter.schema, schemas, {
+              ignoreReferenceSiblings: legacy,
+            });
+            const values = Object.hasOwn(partHeaders, field)
+              ? partHeaders[field]
+              : undefined;
+            const value =
+              values && Object.hasOwn(values, parameter.name)
+                ? values[parameter.name]
+                : '';
+            return (
+              <label key={JSON.stringify([field, parameter.name])}>
+                {field} · {parameter.name}
+                {parameter.required && (
+                  <span className="required">
+                    required when part is present
+                  </span>
+                )}
+                <input
+                  aria-label={`Part ${field} header ${parameter.name}`}
+                  type={
+                    schema.writeOnly === true ||
+                    schema.format === 'password' ||
+                    /authorization|api[-_]?key|secret|token|password/i.test(
+                      parameter.name,
+                    )
+                      ? 'password'
+                      : 'text'
+                  }
+                  value={value ?? ''}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(event) =>
+                    onHeaders({
+                      ...partHeaders,
+                      [field]: {
+                        ...values,
+                        [parameter.name]: event.target.value,
+                      },
+                    })
+                  }
+                />
+                {parameter.description && (
+                  <span className="subtle">{parameter.description}</span>
+                )}
+              </label>
+            );
+          })}
+        </fieldset>
+      ) : null}
       {model.value.files.map((field) => {
         const selected = Object.hasOwn(files, field.name)
           ? (files[field.name] ?? [])

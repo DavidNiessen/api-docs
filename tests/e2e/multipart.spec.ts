@@ -19,6 +19,17 @@ test('multipart uploads send real binary files and structured parts while previe
   await page.getByRole('button', { name: 'Try now', exact: true }).click();
   const playground = page.getByLabel('API playground');
   await playground.locator('.playground-request-example > summary').click();
+  const partHeader = playground.getByLabel(
+    'Part documents header X-Upload-Token',
+    { exact: true },
+  );
+  await expect(partHeader).toHaveAttribute('type', 'password');
+  await partHeader.fill('private-part-token');
+  await expect(
+    playground.getByLabel('Part documents header Content-Type', {
+      exact: true,
+    }),
+  ).toHaveCount(0);
   await expect(
     playground.getByRole('button', { name: 'Send request' }),
   ).toBeDisabled();
@@ -63,6 +74,7 @@ test('multipart uploads send real binary files and structured parts while previe
     'changed-private-note',
     'private-customer.bin',
     'demo-token',
+    'private-part-token',
   ])
     await expect(code).not.toContainText(value);
   for (const language of [
@@ -77,6 +89,8 @@ test('multipart uploads send real binary files and structured parts while previe
       .selectOption(language);
     await expect(code).toContainText('YOUR_FILE_1');
     await expect(code).not.toContainText('private-customer.bin');
+    await expect(code).toContainText('YOUR_PART_HEADER');
+    await expect(code).not.toContainText('private-part-token');
   }
   expect(uploads).toHaveLength(0);
   page.once('dialog', (dialog) => dialog.accept());
@@ -90,6 +104,12 @@ test('multipart uploads send real binary files and structured parts while previe
     /^multipart\/form-data; boundary=api-docs-[a-f0-9]{48}$/,
   );
   const received = await response.json();
+  expect(received.partHeaders).toHaveLength(received.parts.length);
+  expect(
+    received.partHeaders
+      .slice(-2)
+      .map((headers: Record<string, string>) => headers['x-upload-token']),
+  ).toEqual(['private-part-token', 'private-part-token']);
   expect(received.jsonPart).toBe(true);
   expect(received.parts).toEqual([
     { name: 'title', value: 'New + upload' },
@@ -119,6 +139,8 @@ test('multipart uploads send real binary files and structured parts while previe
   await playground
     .getByRole('combobox', { name: 'Request example' })
     .selectOption('named:minimal');
+  await expect(partHeader).toHaveValue('');
+  await partHeader.fill('another-private-part-token');
   await expect(
     playground.getByLabel('Upload documents', { exact: true }),
   ).toHaveValue('');
@@ -135,6 +157,7 @@ test('multipart uploads send real binary files and structured parts while previe
   await playground
     .getByLabel('API server', { exact: true })
     .fill('http://127.0.0.1:4010/v1/');
+  await expect(partHeader).toHaveValue('');
   await expect(
     playground.getByLabel('Upload documents', { exact: true }),
   ).toHaveValue('');
@@ -173,6 +196,9 @@ test('invalid and oversized multipart inputs cannot send and valid upload contro
   const playground = page.getByLabel('API playground');
   await playground.locator('.playground-request-example > summary').click();
   await playground.getByRole('button', { name: 'JSON', exact: true }).click();
+  await playground
+    .getByLabel('Part documents header X-Upload-Token', { exact: true })
+    .fill('fixture-part-token');
   await playground
     .getByLabel('Request body', { exact: true })
     .fill('{"title":');

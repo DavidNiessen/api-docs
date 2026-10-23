@@ -75,7 +75,11 @@ const uploadRequest = {
           password: { type: 'string', writeOnly: true },
         },
       },
+      encoding: {
+        attachment: { headers: { 'X-Part': { schema: { type: 'string' } } } },
+      },
     },
+    { partHeaders: { attachment: { 'X-Part': 'installed-part-secret' } } },
   ),
 };
 const multipart = toFetchRequest(uploadRequest);
@@ -88,6 +92,12 @@ const uploadPreview = redactRequest(
   },
 );
 assert(!JSON.stringify(uploadPreview).includes('installed-upload-secret'));
+assert(!JSON.stringify(uploadPreview).includes('installed-part-secret'));
+assert(
+  uploadPreview.multipart.find((part) => part.kind === 'file').headers[
+    'X-Part'
+  ] === 'YOUR_PART_HEADER',
+);
 assert(
   uploadPreview.multipart.some(
     (part) =>

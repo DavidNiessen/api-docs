@@ -310,12 +310,11 @@ describe('binary-safe multipart requests', () => {
       ),
     ).toThrow(/content type/);
   });
-  it('rejects unsupported styles, custom part headers and unresolvable/composed schemas explicitly', () => {
+  it('rejects unsupported styles and unresolvable/composed schemas explicitly', () => {
     for (const encoding of [
       { style: 'form' },
       { explode: true },
       { allowReserved: false },
-      { headers: { 'X-Part': { schema: { type: 'string' } } } },
     ])
       expect(() =>
         parts('{"title":"x"}', {}, { ...media, encoding: { title: encoding } }),

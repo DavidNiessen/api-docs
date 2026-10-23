@@ -1,4 +1,9 @@
-import { methods, slugify, parseOperationLifecycle } from '@api-docs/contracts';
+import {
+  methods,
+  slugify,
+  parseOperationLifecycle,
+  resolveHeaderObject,
+} from '@api-docs/contracts';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 const schemaValidator = new Ajv2020({ strict: false, validateFormats: false });
 import type {
@@ -30,7 +35,65 @@ function namedExamples(
     ]),
   );
 }
-function content(document: unknown, input: unknown): Record<string, Media> {
+function normalizedHeader(
+  document: unknown,
+  input: unknown,
+  depth = 0,
+): Record<string, unknown> {
+  const header = resolveHeaderObject(
+    input,
+    (reference) => pointerValue(document, reference),
+    text(record(document).openapi).startsWith('3.0'),
+  );
+  return {
+    ...header,
+    ...(typeof header.schema === 'boolean'
+      ? { schema: { 'x-api-docs-boolean-schema': header.schema } }
+      : {}),
+    ...(header.examples === undefined
+      ? {}
+      : { examples: namedExamples(document, header.examples) }),
+    ...(header.content === undefined
+      ? {}
+      : { content: content(document, header.content, depth + 1) }),
+  };
+}
+function normalizedEncoding(
+  document: unknown,
+  input: unknown,
+  depth: number,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(record(input)).map(([field, value]) => {
+      const encoding = record(value);
+      return [
+        field,
+        {
+          ...encoding,
+          ...(encoding.headers === undefined
+            ? {}
+            : {
+                headers: Object.fromEntries(
+                  Object.entries(record(encoding.headers)).map(
+                    ([name, header]) => [
+                      name,
+                      normalizedHeader(document, header, depth),
+                    ],
+                  ),
+                ),
+              }),
+        },
+      ];
+    }),
+  );
+}
+function content(
+  document: unknown,
+  input: unknown,
+  depth = 0,
+): Record<string, Media> {
+  if (depth > 8)
+    throw new Error('Media and Header Object nesting exceeds eight levels');
   return Object.fromEntries(
     Object.entries(record(input)).map(([type, value]) => {
       const media = resolvePointer(document, value);
@@ -43,7 +106,9 @@ function content(document: unknown, input: unknown): Record<string, Media> {
               : record(media.schema),
           ...(media.encoding === undefined
             ? {}
-            : { encoding: record(media.encoding) }),
+            : {
+                encoding: normalizedEncoding(document, media.encoding, depth),
+              }),
           ...(media.example === undefined ? {} : { example: media.example }),
           ...(media.examples === undefined
             ? {}
@@ -277,33 +342,10 @@ export function normalizeSpec(
               content: content(document, response.content),
               headers: Object.fromEntries(
                 Object.entries(record(response.headers)).map(
-                  ([name, rawHeader]) => {
-                    const header = resolvePointer(document, rawHeader);
-                    return [
-                      name,
-                      {
-                        ...header,
-                        ...(typeof header.schema === 'boolean'
-                          ? {
-                              schema: {
-                                'x-api-docs-boolean-schema': header.schema,
-                              },
-                            }
-                          : {}),
-                        ...(header.examples === undefined
-                          ? {}
-                          : {
-                              examples: namedExamples(
-                                document,
-                                header.examples,
-                              ),
-                            }),
-                        ...(header.content === undefined
-                          ? {}
-                          : { content: content(document, header.content) }),
-                      },
-                    ];
-                  },
+                  ([name, rawHeader]) => [
+                    name,
+                    normalizedHeader(document, rawHeader),
+                  ],
                 ),
               ),
             };

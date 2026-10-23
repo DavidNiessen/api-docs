@@ -178,12 +178,32 @@ export function redactMultipartParts(
           name: scrub(part.name),
           kind: 'file',
           contentType: scrub(part.contentType),
+          ...(part.headers
+            ? {
+                headers: Object.fromEntries(
+                  Object.keys(part.headers).map((name) => [
+                    scrub(name),
+                    'YOUR_PART_HEADER',
+                  ]),
+                ),
+              }
+            : {}),
           file: { filename: 'upload.bin', data: new Blob([]) },
         }
       : {
           name: scrub(part.name),
           kind: 'text',
           contentType: scrub(part.contentType),
+          ...(part.headers
+            ? {
+                headers: Object.fromEntries(
+                  Object.keys(part.headers).map((name) => [
+                    scrub(name),
+                    'YOUR_PART_HEADER',
+                  ]),
+                ),
+              }
+            : {}),
           ...(part.collection ? { collection: true } : {}),
           value: values.get(index) ?? placeholder(part),
         },

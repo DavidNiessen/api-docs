@@ -15,6 +15,7 @@ import {
   multipartBody,
 } from './multipart.js';
 import type { MultipartFiles, MultipartPart } from './multipart.js';
+import type { MultipartHeaders } from './multipart-headers.js';
 import { redactMultipartParts } from './redact-multipart.js';
 export interface RequestInput {
   server: string;
@@ -22,6 +23,7 @@ export interface RequestInput {
   body?: string;
   bodyFormat?: 'serialized' | 'json';
   files?: MultipartFiles;
+  partHeaders?: MultipartHeaders;
   contentType?: string;
   accept?: string;
   credentials?: Record<string, string>;
@@ -159,6 +161,13 @@ export function prepareRequest(
     body = undefined;
     for (const key of Object.keys(headers))
       if (key.toLowerCase() === 'content-type') delete headers[key];
+  } else if (
+    input.partHeaders &&
+    Object.values(input.partHeaders).some((headers) =>
+      Object.values(headers).some(Boolean),
+    )
+  ) {
+    throw new Error('Custom part headers require multipart/form-data.');
   } else if (
     input.files &&
     Object.values(input.files).some((files) => files.length)
@@ -304,6 +313,14 @@ export function toFetchRequest(request: PreparedRequest): {
 }
 export { generateSnippet } from './snippets.js';
 export type { SnippetLanguage } from './snippets.js';
+export {
+  multipartHeaderFields,
+  MULTIPART_HEADER_LIMITS,
+} from './multipart-headers.js';
+export type {
+  MultipartHeaders,
+  MultipartHeaderField,
+} from './multipart-headers.js';
 export {
   oauthUrl,
   resolveOAuthEndpoint,

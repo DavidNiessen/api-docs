@@ -6,6 +6,11 @@ import {
   objectFieldSchema,
 } from '@api-docs/contracts';
 import type { JsonValueNode, Media, Schema } from '@api-docs/contracts';
+import {
+  multipartHeaderLines,
+  prepareMultipartHeaders,
+} from './multipart-headers.js';
+import type { MultipartHeaders } from './multipart-headers.js';
 
 export interface MultipartFile {
   data: Blob;
@@ -15,6 +20,7 @@ export type MultipartFiles = Record<string, readonly MultipartFile[]>;
 export type MultipartPart = {
   name: string;
   contentType: string;
+  headers?: Record<string, string>;
 } & (
   | { kind: 'text'; value: string; collection?: boolean }
   | { kind: 'file'; file: MultipartFile }
@@ -79,7 +85,7 @@ export function multipartPartHeader(part: MultipartPart): string {
   validateName(part.name);
   validateType(part.contentType);
   if (part.kind === 'file') validateName(part.file.filename, true);
-  return `Content-Disposition: form-data; name=${quoted(part.name)}${part.kind === 'file' ? `; filename=${quoted(part.file.filename)}` : ''}\r\nContent-Type: ${part.contentType}\r\n\r\n`;
+  return `Content-Disposition: form-data; name=${quoted(part.name)}${part.kind === 'file' ? `; filename=${quoted(part.file.filename)}` : ''}\r\nContent-Type: ${part.contentType}\r\n${multipartHeaderLines(part.headers)}\r\n`;
 }
 export function validateMultipartParts(parts: readonly MultipartPart[]): void {
   if (!Array.isArray(parts) || parts.length > MULTIPART_LIMITS.parts)
@@ -121,6 +127,7 @@ export function createMultipartParts(
   options: {
     schemas?: Record<string, Schema>;
     openapiVersion?: string | undefined;
+    partHeaders?: MultipartHeaders;
   } = {},
 ): MultipartPart[] {
   const values = parseJsonValue(input);
@@ -176,8 +183,6 @@ export function createMultipartParts(
       throw new Error(
         'Style-based multipart encoding is not supported; use content-based parts.',
       );
-    if (Object.keys(object(value.headers)).length)
-      throw new Error('Custom multipart part headers are not supported.');
     if (
       value.contentType !== undefined &&
       typeof value.contentType !== 'string'
@@ -186,9 +191,15 @@ export function createMultipartParts(
     return value;
   };
   const parts: MultipartPart[] = [];
+  const headersFor = prepareMultipartHeaders(
+    media,
+    options.partHeaders,
+    options,
+  );
   const present = new Set<string>();
   const add = (part: MultipartPart) => {
-    parts.push(part);
+    const headers = headersFor(part.name);
+    parts.push(headers ? { ...part, headers } : part);
     if (parts.length > MULTIPART_LIMITS.parts)
       throw new Error('Multipart requests support at most 100 parts.');
     present.add(part.name);

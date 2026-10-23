@@ -1210,6 +1210,23 @@ h3 {
   line-height: 1.5;
   color: var(--muted);
 }
+.multipart-part-headers {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.multipart-part-headers legend {
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--heading);
+}
+.multipart-part-headers label {
+  overflow-wrap: anywhere;
+}
 .code-block {
   background: #151b23;
   color: #c7d6e6;

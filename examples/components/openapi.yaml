@@ -334,6 +334,11 @@ paths:
                       type: array
                       items: { type: string, format: binary }
                       description: Select one or more local files.
+            encoding:
+              documents:
+                headers:
+                  X-Upload-Token: { $ref: '#/components/headers/UploadToken' }
+                  Content-Type: { schema: { type: string } }
             examples:
               standard:
                 summary: Documents with metadata
@@ -357,6 +362,11 @@ paths:
               schema: { type: object }
         '400': { description: Invalid upload }
 components:
+  headers:
+    UploadToken:
+      description: A per-part token applied to each selected document.
+      required: true
+      schema: { type: string, writeOnly: true }
   schemas:
     BodyIdentity:
       type: object

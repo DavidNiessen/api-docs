@@ -20,6 +20,7 @@ import type {
   PreparedRequest,
   SnippetLanguage,
   MultipartFiles,
+  MultipartHeaders,
 } from '@api-docs/explorer';
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
@@ -177,6 +178,7 @@ export function Explorer({
   );
   const [bodyRevision, setBodyRevision] = useState(0);
   const [files, setFiles] = useState<MultipartFiles>({});
+  const [partHeaders, setPartHeaders] = useState<MultipartHeaders>({});
   const [bodyFormError, setBodyFormError] = useState('');
   const requestMedia = operation.requestBody?.content[contentType];
   const requestChoices = requestMedia
@@ -225,6 +227,7 @@ export function Explorer({
         body,
         bodyFormat,
         files,
+        partHeaders,
         contentType,
         accept,
         credentials: placeholderCredentials,
@@ -269,6 +272,7 @@ export function Explorer({
     bodyFormError,
     bodyFormat,
     files,
+    partHeaders,
     credentials,
     authNames.join(','),
   ]);
@@ -307,6 +311,7 @@ export function Explorer({
         body,
         bodyFormat,
         files,
+        partHeaders,
         contentType,
         accept,
         credentials: auth.currentCredentials(),
@@ -529,6 +534,7 @@ export function Explorer({
                   setError('');
                   if (isMultipartMediaType(contentType)) {
                     setFiles({});
+                    setPartHeaders({});
                     setBodyRevision((current) => current + 1);
                   }
                 }}
@@ -669,6 +675,7 @@ export function Explorer({
                       setBodyRevision((current) => current + 1);
                       setBodyFormError('');
                       setFiles({});
+                      setPartHeaders({});
                       setBody(
                         choices.length
                           ? exampleBody(
@@ -706,6 +713,7 @@ export function Explorer({
                             setBodyRevision((current) => current + 1);
                             setBodyFormError('');
                             setFiles({});
+                            setPartHeaders({});
                             setBody(
                               exampleBody(
                                 choice.value,
@@ -742,6 +750,11 @@ export function Explorer({
                     schemas={api.schemas}
                     legacy={api.openapiVersion?.startsWith('3.0') ?? false}
                     files={files}
+                    partHeaders={partHeaders}
+                    onHeaders={(value) => {
+                      setRequestExample('');
+                      setPartHeaders(value);
+                    }}
                     onFiles={(value) => {
                       setRequestExample('');
                       setFiles(value);

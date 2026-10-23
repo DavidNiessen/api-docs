@@ -16,6 +16,9 @@ const directory = await mkdtemp(join(tmpdir(), 'api-docs-snippets-'));
 const languages = ['cURL', 'JavaScript', 'TypeScript', 'Python', 'Java'];
 const uploadBytes = Uint8Array.from([0, 255, 128, 13, 10, 34, 1, 254]);
 const multipartMedia = {
+  encoding: {
+    documents: { headers: { 'X-Upload-Id': { schema: { type: 'integer' } } } },
+  },
   schema: {
     allOf: [
       {
@@ -46,6 +49,7 @@ const uploadParts = createMultipartParts(
     ],
   },
   multipartMedia,
+  { partHeaders: { documents: { 'X-Upload-Id': '9007199254740993' } } },
 );
 const cases = [
   {
@@ -294,6 +298,13 @@ try {
           headers: { 'Content-Type': actual.headers['content-type'] },
         }).formData();
         const values = [...form.entries()];
+        const boundary =
+          actual.headers['content-type'].match(/boundary=([^;]+)/)[1];
+        const rawParts = actual.bytes
+          .toString('latin1')
+          .split('--' + boundary)
+          .slice(1, -1);
+        assert.equal(rawParts.length, fixture.multipart.length);
         assert.equal(
           values.length,
           fixture.multipart.length,
@@ -302,6 +313,14 @@ try {
         let fileIndex = 0;
         for (let index = 0; index < fixture.multipart.length; index++) {
           const expected = fixture.multipart[index];
+          const rawHeaders =
+            rawParts[index].slice(0, rawParts[index].indexOf('\r\n\r\n')) +
+            '\r\n';
+          for (const [name, value] of Object.entries(expected.headers ?? {}))
+            assert(
+              rawHeaders.includes(`\r\n${name}: ${value}\r\n`),
+              `${language}/${fixture.name}: custom part header missing`,
+            );
           const [name, value] = values[index];
           assert.equal(name, expected.name);
           assert(

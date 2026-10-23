@@ -91,6 +91,31 @@ const server = createServer(async (request, response) => {
         );
       send(200, {
         parts,
+        partHeaders: rawBody
+          .split(
+            '--' +
+              (String(request.headers['content-type'])
+                .match(/boundary=(?:"([^"]+)"|([^;\s]+))/)
+                ?.slice(1)
+                .find(Boolean) ?? ''),
+          )
+          .slice(1, -1)
+          .map((part) =>
+            Object.fromEntries(
+              part
+                .slice(0, part.indexOf('\r\n\r\n'))
+                .trim()
+                .split('\r\n')
+                .filter((line) => line.includes(':'))
+                .map((line) => {
+                  const colon = line.indexOf(':');
+                  return [
+                    line.slice(0, colon).toLowerCase(),
+                    line.slice(colon + 1).trim(),
+                  ];
+                }),
+            ),
+          ),
         jsonPart: rawBody.includes('\r\nContent-Type: application/json\r\n'),
       });
     } catch {

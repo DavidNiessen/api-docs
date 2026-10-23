@@ -26,6 +26,8 @@ const request = prepareRequest(operation, api.securitySchemes, {
   files: {
     attachment: [{ data: selectedFile, filename: selectedFile.name }],
   },
+  // When declared by encoding.attachment.headers:
+  partHeaders: { attachment: { 'X-Checksum': 'reviewed-checksum-value' } },
   schemas: api.schemas,
   openapiVersion: api.openapiVersion,
 });
@@ -47,7 +49,19 @@ Text primitives use UTF-8 `text/plain`; objects use JSON. Explicit per-field `en
 
 The codec supports direct object roots, compatible `allOf` object roots and content-based encoding. The shared reader/SDK projection merges disjoint properties and required fields, resolves local references with the API's dialect rules and preserves read-only/sensitive annotations. It is bounded to 32 schema nodes and eight composition levels; upload controls, example file removal and snippet redaction use the same projected fields.
 
-Overlapping properties, closed/additionally constrained composition branches, unions, conditionals and unresolved/excessive compositions require a custom client. Explicit style/explode/allowReserved settings and custom per-part headers still fail rather than being silently approximated. This is a serializer with presence checks, not full schema-instance or file-content validation. Configure API-side size limits, authorization and file validation separately.
+Overlapping properties, closed/additionally constrained composition branches, unions, conditionals and unresolved/excessive compositions require a custom client. Explicit style/explode/allowReserved settings on the multipart Encoding Object still fail rather than being silently approximated. This is a serializer with presence checks, not full schema-instance or file-content validation. Configure API-side size limits, authorization and file validation separately.
+
+## Custom part headers
+
+Declare MIME extension headers in `encoding.<field>.headers`, using Header Objects or local Header Object references. The playground adds inputs for those definitions, initially empty. Empty values omit a header; a required header needs a value only when its part is emitted. One field's values apply to every repeated text/file part with that field name. Changing the server, content type or selected example clears header drafts; closing the playground, navigation and reload discard them. Direct password/write-only annotations and familiar secret-bearing header names use masked inputs. Header examples remain descriptive and are not implicitly sent.
+
+SDK callers pass `partHeaders` to `prepareRequest`, or as `createMultipartParts`' fourth-argument option. Names match case-insensitively; duplicate spellings and undeclared nonempty inputs fail. Header schema serialization supports simple style, boolean explode, primitives and flat arrays/objects, using the same representation as ordinary header parameters. Header `content` accepts already serialized values; JSON is compacted without rounding numeric tokens. Nested structured values require JSON content rather than flat simple style. This does not perform complete Header Object schema-instance validation.
+
+`Content-Type` declarations/values inside the encoding header map are ignored as required by OpenAPI: use `encoding.<field>.contentType` instead. Content-Disposition, Content-Length and Transfer-Encoding belong to the encoder and cannot be overridden. Custom names are ASCII HTTP tokens of at most 128 characters, and serialized values must be printable ASCII without controls. Each part permits 16 custom headers and 8 KiB of combined custom header lines; each supplied raw value is also limited to 8 KiB. The SDK accepts header values for at most 100 encoded fields; the reader caps declared header controls at 100. These bytes also count toward the 32 MiB multipart limit. `MULTIPART_HEADER_LIMITS` exposes the limits, and `multipartHeaderFields` exposes normalized definitions for custom UIs.
+
+These are headers inside the MIME body; they do not alter HTTP transport headers, authentication policies or CORS. Header values describe the supplied bytes; setting an encoding header does not transform them. The receiving multipart parser must retain headers if the API needs their values. The compiler resolves Header Object references separately from schema references, honors 3.0/3.1 Reference Object description rules and bounds nested media/header content to eight levels. Direct SDK callers provide any referenced definitions through their portable registry.
+
+Every copied custom header value becomes `YOUR_PART_HEADER`, including values without sensitivity annotations. Actual sending retains entered values. All five generated clients share the validated framer and carry those MIME headers; executable tests inspect received part-header bytes as well as ordinary fields and binary files.
 
 Field names reject controls, double quotes and backslashes to avoid ambiguous Content-Disposition parsing. Filenames must be basenames without controls or path separators; quoted filenames escape `"` as `%22`, matching browser multipart behavior. Ordinary Unicode names and filenames remain UTF-8. Check a server's decoding behavior if it relies on unusual filename characters.
 
