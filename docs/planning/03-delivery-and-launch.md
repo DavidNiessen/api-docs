@@ -141,17 +141,18 @@ Owner decision on 2026-10-24: defer the independent security, isolation, accessi
 ### Project and community
 
 - [ ] Adopt the final name and verify namespace/trademark availability.
-- [ ] Adopt a license (proposed Apache-2.0), add required notices, and audit dependency, font, icon, fixture, and documentation licenses.
+- [x] Adopt Apache-2.0 and add project/browser notices; see [LICENSE](../../LICENSE), [NOTICE](../../NOTICE) and the distributed reader notices.
+- [ ] Complete the independent dependency, font, icon, fixture and documentation license audit; adopted licensing and generated inventories do not replace this deferred review.
 - [x] Add CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, governance/maintainer ownership, issue/PR templates, and support policies.
-- [ ] Define contribution certification (DCO or another reviewed process), public decision-making, triage labels, and maintainer succession.
-- [ ] Publish honest feature/support matrices, release status, roadmap, and example projects; remove placeholder features from marketing.
+- [x] Define the inbound/outbound contribution policy without a mandatory CLA/DCO, public decision-making and succession in [governance](../../GOVERNANCE.md), and existing label/ownership conventions in [support](../../SUPPORT.md).
+- [x] Publish feature/support matrices, prerelease status, roadmap and runnable examples: see [OpenAPI limits](../openapi-compatibility.md), [integrations](../integrations.md), [support](../../SUPPORT.md), [release acceptance](../release-acceptance.md) and [examples](../../examples/). The market-leading ambition remains an unverified goal.
 - [x] Enable and verify repository protection and private vulnerability reporting settings.
 
 ### Product and documentation
 
 - [ ] Complete all required 1.0 product scope or explicitly revise the contract before release.
 - [x] Ship quickstarts for static hosting, Docker/Compose, private docs, Spring Boot, Express, and Fastify.
-- [ ] Ship configuration, theme, plugin, API format compatibility, authentication, operator, troubleshooting, and migration reference docs.
+- [x] Ship [configuration/branding](../customization.md), [themes/layout](../reader-layout.md), [plugins](../plugins.md), [API compatibility](../openapi-compatibility.md), [authentication](../explorer-auth.md), [server operations](../server.md), [deployment/troubleshooting/recovery](../deployment.md) and [migration](../artifact-manifest.md) references.
 - [ ] Verify the public demo against the exact released packages and include realistic large and small examples.
 - [ ] Complete independent pilot journeys and close blocking usability, browser, and accessibility issues.
 
@@ -159,19 +160,19 @@ Owner decision on 2026-10-24: defer the independent security, isolation, accessi
 
 - [ ] Review threat model, trust boundaries, XSS/SSRF protections, plugin isolation, and authorization across all artifact types.
 - [ ] Verify no secrets in bundles, snippets, screenshots, logs, telemetry, or build artifacts.
-- [ ] Complete dependency/container/code scanning and document triaged findings.
-- [ ] Test TLS/reverse-proxy configuration, non-root containers, filesystem permissions, resource limits, and offline startup.
-- [ ] Perform backup/restore, failed publish recovery, upgrade/rollback, and disaster recovery rehearsals.
-- [ ] Publish supported versions, patch policy, vulnerability intake, and incident/release responsibilities.
+- [x] Complete dependency/container/code scans for the accepted prerelease and [record findings](../security-triage.md); Medium findings remain visible and independent review remains deferred.
+- [x] Test the shipped Caddy TLS template, non-root containers, filesystem permissions, resource limits and offline runtime in the declared [single-host acceptance](../deployment.md#disposable-server-container-acceptance); provider-specific topology acceptance remains the operator's responsibility.
+- [x] Rehearse publication failures, fresh-target backup/restore and the supported historical schema upgrade/rollback in [deployment acceptance](../deployment.md); this does not validate arbitrary databases, topologies or disaster-recovery objectives.
+- [x] Publish current supported configurations, best-effort prerelease maintenance, the stable security-window policy, vulnerability intake and [incident/release ownership](../../SUPPORT.md).
 
 ### Release evidence
 
-- [ ] All required tests execute and pass on the supported platform matrix.
-- [ ] Performance budgets are met on documented fixtures or openly revised with justification before release claims.
-- [ ] Versioned npm packages, Java artifacts, container images, static bundles, SBOMs, checksums, signatures, and provenance agree.
+- [x] All required prerelease candidate tests pass on the declared platform matrix: [22 candidate jobs](../release-acceptance.md#verified-workflows). Repeat for the stable candidate.
+- [x] Meet unchanged compiler and cold mobile reader budgets on the documented [release fixtures](../release-acceptance.md#performance-and-installation-limits); lab measurements do not establish production capacity.
+- [x] Verify versioned npm/Java/container/static subjects, SBOMs, checksums and producer/promotion attestations for [.7](../release-acceptance.md), including real registry consumption. Repeat for the stable candidate.
 - [ ] Stable release uses reviewed tags and protected publication; release notes include migrations and known limitations.
 - [x] Verify installation from published registries, not only local build output: [prerelease .7 acceptance](../release-acceptance.md) passed fresh npm/Maven and anonymous container consumers; repeat for the stable candidate.
-- [ ] Assign post-release monitoring, triage, and rollback ownership.
+- [x] Assign release monitoring, triage, incident and rollback coordination in [SUPPORT](../../SUPPORT.md); deployment monitoring and backup execution remain operator responsibilities.
 
 ## 7. Principal risks and mitigations
 

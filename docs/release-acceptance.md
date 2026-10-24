@@ -19,6 +19,8 @@ The publication run reverified original producer attestations, live repository/e
 
 The original Pages attempt passed all five browser tests, but GitHub failed to finalize its verification job and eventually cancelled it at the job timeout. A full second attempt on unchanged source passed all three jobs. This retry did not waive a failed product assertion. The public demo's index and selected CSS/JavaScript/deep-page files also matched the tested artifact bytes.
 
+After the acceptance documentation merged, [main 40118398261](https://github.com/DavidNiessen/api-docs/actions/runs/40118398261) passed all 15 jobs and [Pages 40118976356](https://github.com/DavidNiessen/api-docs/actions/runs/40118976356) passed all three jobs at documentation-only source `b44e3e5`. An additional comparison downloaded all 28 deployed reader assets and verified exact equality with the original tested demo artifact and the published reader package. This covers CSS, JavaScript, workers, source maps, the icon font and browser notices; it does not claim the demo itself was built by installing from the registry.
+
 ## Fresh registry consumers
 
 - **npm:** all 12 packages are public and connected to the source repository. A separate read-only runner verified original archive sizes, SHA-256/SHA-512 integrity and producer attestations, installed from GitHub with an empty cache, audited dependencies, reinstalled offline and passed public CLI/types/MDX/plugin/Express/Fastify journeys. Its lockfile and SBOM were retained.
