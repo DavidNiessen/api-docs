@@ -10,6 +10,8 @@ The prior GitHub Packages configuration is now verified: [PR #11](https://github
 
 Local validation passes formatting/lint, all **180 tooling tests** and **1,049 source tests**; actionlint accepts the publication workflow. Regression cases retain pending/stable gates and reject missing, malformed, stale or foreign-owner deferrals. The estimate remains approximately **97%, pre-release**. The new policy requires its own validated commit and matching candidate before actual registry publication/installation can be accepted. Deferred reviews remain unfinished and are not included as completed work.
 
+A source-bound preview/application prepares `0.2.0-candidate.3`, aligning all 16 npm packages, both lockfiles, runtime identity and three Java POMs. Its fresh production build and all 12 installed npm components pass, including audit, offline reinstall, CLI/types, MDX/plugins and authenticated Express/Fastify subpaths. The native pnpm prepared-release check preserves the frozen lockfile. Hosted source/Java/browser/performance and exact clean-tag candidate checks still apply before publication.
+
 ## Previous GitHub Packages increment
 
 **Distributions now target the selected GitHub account for npm, Maven and GHCR.** npm uses `@davidniessen` at `npm.pkg.github.com`; Maven keeps `dev.niessen` at the repository's GitHub Maven endpoint. Publication needs the repository's short-lived Actions token rather than external npm/Central accounts or a production GPG key. Schema-2 source policy binds destinations to the source repository and keeps publication disabled with five independent launch reviews pending: six source-policy blockers. Package manifests, the Java POM and installation guides select the same destinations.

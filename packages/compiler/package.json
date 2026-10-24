@@ -1,6 +1,6 @@
 {
   "name": "@davidniessen/compiler",
-  "version": "0.2.0-candidate.2",
+  "version": "0.2.0-candidate.3",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -13,11 +13,11 @@
     }
   },
   "dependencies": {
-    "@davidniessen/contracts": "0.2.0-candidate.2",
-    "@davidniessen/spec": "0.2.0-candidate.2",
-    "@davidniessen/content": "0.2.0-candidate.2",
-    "@davidniessen/plugin-sdk": "0.2.0-candidate.2",
-    "@davidniessen/search": "0.2.0-candidate.2"
+    "@davidniessen/contracts": "0.2.0-candidate.3",
+    "@davidniessen/spec": "0.2.0-candidate.3",
+    "@davidniessen/content": "0.2.0-candidate.3",
+    "@davidniessen/plugin-sdk": "0.2.0-candidate.3",
+    "@davidniessen/search": "0.2.0-candidate.3"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
