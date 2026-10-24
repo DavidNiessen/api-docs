@@ -7,6 +7,8 @@
 ### Package coordinates
 
 - npm packages now use `@davidniessen/*`; update imports and workspace dependencies from `@api-docs/*`. Maven coordinates retain `dev.niessen`. Namespace ownership and registry publication remain pending.
+- Distributions target GitHub Packages for npm/Maven and GHCR for containers. Protected publishers use repository Actions tokens; npm/Central accounts and a production OpenPGP key are unnecessary. Public npm/Maven installation requires GitHub authentication; see [installation instructions](docs/github-packages.md).
+- Fresh consumers verify downloaded bytes against original producer attestations, package visibility, installed framework behavior and offline compilation. Actual protected registry publication and independent launch reviews remain pending.
 
 ### Fixes
 
