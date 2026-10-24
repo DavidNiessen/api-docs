@@ -47,7 +47,7 @@ The preflight job signs its own raw inventory, unsuppressed findings and assessm
 
 If approval waits beyond freshness limits, rerun **all publication jobs** with the same candidate inputs. This refreshes the scan while preserving accepted package/image bytes, allowing exact already-published versions to be reused. Do not rerun only failed jobs: artifact names and receipts bind to the current attempt. Candidate artifacts still have their documented 14-day retention.
 
-The nonpublishing candidate workflow exercises the same loader, audit and scanner path with `--candidate`. Its `candidate-rehearsal` receipt cannot substitute for a signed `publication-preflight` receipt. Local tests cover freshness, source/run/image binding, raw-data tampering, new blocking findings and verifier constraints. Actual clean-tag execution and protected end-to-end publication remain pending.
+The nonpublishing candidate workflow exercises the same loader, audit and scanner path with `--candidate`. Its `candidate-rehearsal` receipt cannot substitute for a signed `publication-preflight` receipt. Local tests cover freshness, source/run/image binding, raw-data tampering, new blocking findings and verifier constraints. Actual clean-tag [candidate execution 40043580095](https://github.com/DavidNiessen/api-docs/actions/runs/40043580095) passed this path for `0.2.0-candidate.1`. The subsequent read-only [publication plan 40045907895](https://github.com/DavidNiessen/api-docs/actions/runs/40045907895) passed with ten source-policy blockers and no registry writes. Protected end-to-end publication remains pending.
 
 ## npm transport and fresh consumers
 

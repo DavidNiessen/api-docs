@@ -205,7 +205,7 @@ export async function signMavenBundle(
     env.MAVEN_SIGNING_KEY,
     'Configure the release environment signing key.',
   );
-  const privateRoot = await mkdtemp(join(tmpdir(), 'api-docs-maven-signing-'));
+  const privateRoot = await mkdtemp(join(tmpdir(), 'ad-sign-'));
   const home = join(privateRoot, 'gnupg');
   await mkdir(home, { mode: 0o700 });
   await mkdir(destination, { recursive: true });
