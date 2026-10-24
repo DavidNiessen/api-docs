@@ -60,3 +60,18 @@ The plan deliberately retains API terminology, code-oriented data, authored bran
 Limit blur to the floating navigation and modal backdrop; content cards remain opaque. `liquid-glass.md › Where the material belongs`: “Don't use Liquid Glass in the content layer.” CSS blur is a limited web approximation, with opaque defaults/fallbacks. Respect reduced transparency, reduced motion, increased contrast and forced colors. Use a brief opacity-only dialog entrance; no decorative page animations or bouncing controls.
 
 Keep native dialog dismissal, focus restoration, keyboard resizing, full response copying, read-only Monaco, selected theme matching and search shortcuts. Validate guide, endpoint, settings, search, playground, response fullscreen, classic mode and Studio; inspect light/dark at 360, 768, 1280 and 1920px plus enlarged text. Automated browser/axe checks and visual inspection remain distinct from deferred independent accessibility and pilot reviews.
+
+## Implementation review
+
+The reader now uses a centered reading column, a segmented navigation filter, a quieter contents rail and grouped native preference controls. Studio shares the same type/control scale and semantic light/dark surfaces. Text symbols in its navigation and brand mark have been replaced with original inline SVGs; the marks stay contained when text is doubled. Content stays opaque and the request URL remains a distinct action surface. These are design judgments applied within the existing product structure.
+
+Local verification on 2026-10-24:
+
+- Production builds, TypeScript, ESLint, Markdown lint and Prettier pass. All 42 targeted content, preference, translation and editor-theme unit tests pass.
+- All 11 Chromium static-demo checks pass, including existing complete response copy, folding, fullscreen, mock-only execution, classic reference, offline search and no-JavaScript reading journeys. New coverage exercises light/dark at 360, 768, 1280 and 1920px, doubled compact text, visible keyboard focus, contrast/motion preferences and forced colors.
+- Local Studio appearance previews pass axe and doubled-text reflow in both appearances at 360px. These previews mock session data for visual inspection; the real publication/authentication journeys remain in hosted Studio CI. Chromium CDP emulation separately confirms the reader's reduced-transparency fallback.
+- Ten cold mobile samples per guide/endpoint route pass the existing browser budgets: p95 LCP **1,172 / 1,088ms**, maximum CLS **0 / 0**, and p95 scripted search-open latency **132 / 115ms**. Initial JavaScript is **139,011 gzip bytes**; Monaco remains deferred. Profile: 390×844, 4× CPU slowdown, 150ms latency and 1.6Mb/s download. These are shared-host lab observations, not field INP or a before/after speed comparison. The report recorded source `ebafcef` with the working tree dirty because Studio mark polish was in progress; the tested reader artifact digest is `e104778ab0b9b84928ecc14976ec386893bdb764978eabbb77b121ec1061a841`.
+
+The review found and corrected two issues: prefixed CSS declaration ordering defeated the opaque-header fallback in the production bundle, and text-based Studio marks escaped fixed containers at doubled text. Native dialog semantics, response-editor behavior and navigation structure remain intact. Independent accessibility, linguistic, real-device and pilot reviews remain separate and deferred; automated checks do not establish certification.
+
+This source redesign changes the next build and the master-branch demo. It does not replace or modify the immutable `0.2.0-candidate.7` registry artifacts or their historical release evidence. Hosted acceptance is recorded in the implementation progress log after CI completes.

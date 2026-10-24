@@ -122,6 +122,13 @@ header > button {
   border-radius: var(--ui-control-radius);
   font-size: 1.5rem;
 }
+.studio-brand > span svg {
+  width: 18px;
+  height: 18px;
+}
+.studio-brand > span {
+  flex-shrink: 0;
+}
 .studio-brand small {
   font-size: var(--ui-text-sm);
   font-weight: 500;
@@ -472,6 +479,10 @@ code {
   display: grid;
   place-items: center;
   margin: 0 auto 28px;
+}
+.login-mark svg {
+  width: 36px;
+  height: 36px;
 }
 .login h1 {
   font-size: 1.875rem;

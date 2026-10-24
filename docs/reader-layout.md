@@ -1,6 +1,8 @@
 # Workspace layout and fullscreen responses
 
-The reader uses a shared canvas with separate rounded islands for the header, navigation, article and inspector. Existing project colors, light/dark palettes, density, fonts and radius tokens remain available. The island radius has a 14-pixel minimum; inner controls retain their own radii. API examples and guide contents use the inspector alongside the article when space permits.
+The reader uses a shared canvas with separate rounded islands for the header, navigation, article and inspector. Existing project colors, light/dark palettes, density, fonts and radius tokens remain available. Modern desktop islands have an 18-pixel minimum radius; compact articles use 14 pixels and inner controls retain their own radii. API examples and guide contents use the inspector alongside the article when space permits.
+
+The reader and Studio share a system-font scale, semantic surfaces and control sizing. Guide text starts at 16px, desktop toolbar targets at 36px, and compact/touch controls at 44px. Text uses relative units and reflows with enlarged browser text. Headers use limited translucency; increased contrast and reduced transparency make them opaque, reduced motion disables transitions, and forced colors preserve system borders and focus indicators. Studio follows system light/dark appearance. See the [design review and verification](design/apple-workspace.md).
 
 ## Personal reader settings
 
