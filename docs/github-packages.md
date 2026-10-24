@@ -1,6 +1,6 @@
 # Install from GitHub Packages
 
-The configured targets are GitHub's npm and Maven registries and GHCR. `api-docs` is still a provisional product name. Use versions that have passed the protected publication workflow and its fresh consumer checks; configuring destinations does not mean a version has already been published.
+Version **0.2.0-candidate.7** is published to GitHub's npm and Maven registries and GHCR. Its protected publication and all three fresh consumer checks passed; see [acceptance evidence and limitations](release-acceptance.md). `api-docs` is still a provisional product name. This is a prerelease with independent reviews deferred, not an approved stable production release.
 
 GitHub requires authentication to download npm and Maven packages, including public packages. No npm or Maven Central account is needed. For local installation, use your GitHub username and a personal access token **classic** with `read:packages`, following [GitHub's npm registry guide](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry) and [Maven registry guide](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-apache-maven-registry). Keep token values out of source control, command arguments and chat.
 
@@ -13,10 +13,10 @@ npm config set @davidniessen:registry https://npm.pkg.github.com --location=proj
 npm login --scope=@davidniessen --auth-type=legacy --registry=https://npm.pkg.github.com
 ```
 
-Use your GitHub username and the token when prompted. After a preview has been published:
+Use your GitHub username and the token when prompted, then install the accepted version:
 
 ```sh
-npm install @davidniessen/node@next
+npm install @davidniessen/node@0.2.0-candidate.7
 ```
 
 The Express/Fastify entry points are `@davidniessen/node/express` and `@davidniessen/node/fastify`. The CLI package is `@davidniessen/cli`; its executable remains `api-docs`. See [framework integrations](integrations.md) and the [CLI reference](cli.md). Stable releases use npm's `latest` channel.
@@ -47,11 +47,11 @@ Add the repository and the required version to your project POM:
 <dependency>
   <groupId>dev.niessen</groupId>
   <artifactId>api-docs-spring-boot-starter</artifactId>
-  <version>RELEASED_VERSION</version>
+  <version>0.2.0-candidate.7</version>
 </dependency>
 ```
 
-Replace `RELEASED_VERSION` with a successfully published version. Generic Java applications can use `dev.niessen:api-docs-core`. The Java/Spring integration serves an already built documentation publication and does not require Studio, PostgreSQL or a Node runtime in the deployed Java application. See the [integration guide](integrations.md).
+Generic Java applications can use `dev.niessen:api-docs-core` at the same version. The Java/Spring integration serves an already built documentation publication and does not require Studio, PostgreSQL or a Node runtime in the deployed Java application. See the [integration guide](integrations.md).
 
 Merge this server entry into your private Maven settings, using your GitHub username:
 
@@ -71,7 +71,13 @@ Supply the token through your shell/CI secret store. The repository and server I
 
 ## Containers and static hosting
 
-Public versioned server images use `ghcr.io/davidniessen/api-docs:RELEASED_VERSION`; operators should pin the verified registry digest. Public images can be pulled anonymously after their package visibility is public. See [deployment](deployment.md).
+The Linux amd64 server image is public and its anonymous pull/runtime checks passed. Pin the accepted manifest digest:
+
+```sh
+docker pull ghcr.io/davidniessen/api-docs@sha256:46ebb30ad41974cfbcb9014de2982623a175358061010a48198090c95129f8ce
+```
+
+The corresponding version tag is `ghcr.io/davidniessen/api-docs:0.2.0-candidate.7`. See [deployment](deployment.md) for configuration and PostgreSQL requirements of the optional server.
 
 Generated documentation is an ordinary static directory. Serving that output needs no package-registry credentials and no account with the project maintainers. The public [mock demo](pages-demo.md) also needs no credentials.
 

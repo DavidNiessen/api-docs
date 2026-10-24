@@ -4,7 +4,7 @@
 
 ## 0.2.0-candidate.7 - 2026-10-24
 
-Support GitHub's signed artifact downloads through one exact CDN hop without forwarding registry credentials, headers or referrers. Metadata and writes retain redirect refusal; original-byte integrity and producer checks remain required. Native read-only downloads match the partial `.6` artifacts, whose published versions and tag remain immutable. This replacement requires its own full candidate and registry acceptance. Independent launch reviews remain deferred for prereleases.
+Support GitHub's signed artifact downloads through one exact CDN hop without forwarding registry credentials, headers or referrers. Metadata and writes retain redirect refusal; original-byte integrity and producer checks remain required. Native read-only downloads match the partial `.6` artifacts, whose published versions and tag remain immutable. This replacement passed all 22 signed candidate jobs and all nine protected publication/fresh-consumer jobs and is now a [published prerelease](docs/release-acceptance.md). Independent launch reviews remain deferred for prereleases.
 
 ### Fixes
 

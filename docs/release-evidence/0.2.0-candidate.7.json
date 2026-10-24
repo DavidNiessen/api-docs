@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "version": "0.2.0-candidate.7",
+  "source": "99fec8df8474758e5c6377945fc83335530090c7",
+  "tag": "refs/tags/v0.2.0-candidate.7",
+  "candidate": {
+    "runId": "40113329167",
+    "attempt": "1",
+    "subjects": 39,
+    "workflowUrl": "https://github.com/DavidNiessen/api-docs/actions/runs/40113329167",
+    "producerWorkflow": "DavidNiessen/api-docs/.github/workflows/quality.yml"
+  },
+  "publication": {
+    "runId": "40115526978",
+    "attempt": "1",
+    "acceptance": "all-nine-jobs-passed",
+    "workflowUrl": "https://github.com/DavidNiessen/api-docs/actions/runs/40115526978"
+  },
+  "reviews": {
+    "security": "deferred",
+    "isolation": "deferred",
+    "accessibility": "deferred",
+    "licenses": "deferred",
+    "pilot": "deferred"
+  },
+  "reviewDeferral": {
+    "authorizedBy": "DavidNiessen",
+    "reason": "The repository owner requested postponing the five independent launch reviews and pilots on 2026-10-24 while continuing release implementation and registry acceptance.",
+    "scope": "prerelease"
+  },
+  "npm": {
+    "registry": "https://npm.pkg.github.com",
+    "packages": [
+      {
+        "name": "@davidniessen/contracts",
+        "version": "0.2.0-candidate.7",
+        "sha256": "209ed2eaefed0a41e1374cf490467f65c38aca6adcf1811ac6904064417a678a",
+        "integrity": "sha512-IcFe1sSsTqbMzCd9oU7U0KjJKVb9DKnhGscyZ0/pEE9iuALwa1OzWHfGSDMV3m8IWz8l43/lkj7p09coEBVz3g=="
+      },
+      {
+        "name": "@davidniessen/spec",
+        "version": "0.2.0-candidate.7",
+        "sha256": "2cd78a3c99b8e03089157edda500be0b40534fedcf59e7d671cfda8990ec05f0",
+        "integrity": "sha512-4VWyVoLH+wHL6wB7TFmpi1NNxdexeqT6wK0rzaClW6cUTVZo79GI73g9YYs6MmNs2Q0mnlpJoDTmOSaVy4+fAg=="
+      },
+      {
+        "name": "@davidniessen/content",
+        "version": "0.2.0-candidate.7",
+        "sha256": "75d20fad19e4683b1fc2c38b2aa5e95c762cf799b533b07138ece74b7ee9e284",
+        "integrity": "sha512-HmoyOp+nhxpd1jf2VufTHDTT8RyxWJs7/it2TFcbFyEdskcdYHchJidVQs+T0beq3njYqplMPogw36QSKDj0xA=="
+      },
+      {
+        "name": "@davidniessen/plugin-sdk",
+        "version": "0.2.0-candidate.7",
+        "sha256": "b84220b774763b44812f275e66d53bfa64a2a44377162f217eeaf04031c7e80b",
+        "integrity": "sha512-/egKq4Vs9UdNsArWaXmABaoVB11a4FgzWH3L0BpUztDvf+ggHqDEdhPSMxLJ7wTsRDbd8aogHJYivlvaCcj+og=="
+      },
+      {
+        "name": "@davidniessen/search",
+        "version": "0.2.0-candidate.7",
+        "sha256": "b74d17f1a27237f1c96bf307cc9c765ad43ed1c919f7fdc2d15871728f880eab",
+        "integrity": "sha512-l8IF+DL3/EsEHtTLzvvr1nRc4+s7+N+LSBTR9H86YDG6UKJt91WrfV4sbVBa36Hsd2/HOwd3uz8ovzqqZYhMGA=="
+      },
+      {
+        "name": "@davidniessen/compiler",
+        "version": "0.2.0-candidate.7",
+        "sha256": "5a0086acca56aa6bb92c07940d03ec9dfc085cc3e7e52cf83c7af2c0cb322303",
+        "integrity": "sha512-IOxycY7Nu4SCBpAAUi2xAz1bPT0LYxuNPrLwV0uecNFM8cJ/RfLUcIZoCi9vCpWRt98we5KNaDih0JnLkY0jTQ=="
+      },
+      {
+        "name": "@davidniessen/explorer",
+        "version": "0.2.0-candidate.7",
+        "sha256": "ffc58686eb82db0eebf6b291c15a20fd913f816740d84001f2c358209fec571c",
+        "integrity": "sha512-j2dt0GAginh1By70gH/NrppXdccPZxMpBVzIVd3SN0niBCqeRzhrH4gU1LcYGk+D9rlczMfJ/f/e90f3D2laTw=="
+      },
+      {
+        "name": "@davidniessen/reader",
+        "version": "0.2.0-candidate.7",
+        "sha256": "1314e7b4ad89f8e626fa2445e9d18227520cc0ef88e72d86424715ab8c883ae0",
+        "integrity": "sha512-yw/iivbDXOzYSJ5/tg6V/mDAP7FRbMe4YIZVA+mulVfZ66eGUeiz4C6piqGjOvhb9ucmQnO7bwLn4g2UT7I4wA=="
+      },
+      {
+        "name": "@davidniessen/cli",
+        "version": "0.2.0-candidate.7",
+        "sha256": "561beaeec9d9375a1526fe54de510d1e1b45055a641382ec4bb1003f405bc76f",
+        "integrity": "sha512-MaBe84lZKV7DIjRj5ixPsuBI3ws4K1VhYCQUUEmEIT0KUq3AWuQvmx6qCiIT7zaE7Ki+HmHr9NQj+KUr8n/z9g=="
+      },
+      {
+        "name": "@davidniessen/domain",
+        "version": "0.2.0-candidate.7",
+        "sha256": "c084fa973aa6721af91017683e287a58be80fac6181d060e9380c860ff7afbb3",
+        "integrity": "sha512-OQQsdvTppZpAmtzo1PepA0qfr6DU+mbMhNgnXgoQwtQR4YQdPITrCvXiAP6fJX5YZF+6MxHpRxzoHbioCHqnLg=="
+      },
+      {
+        "name": "@davidniessen/node",
+        "version": "0.2.0-candidate.7",
+        "sha256": "f6c665b4388c9216f098b83b47ce0a6c12a51cebbb3ea39001083be622833227",
+        "integrity": "sha512-NMoCKMpZMN3E+hcv0rAr6BS88E9n1ellJ/eXSEFmtbDIxoIYWz5bzktHIciClH17xUHumA0KNAHQGbqJNDyivQ=="
+      },
+      {
+        "name": "@davidniessen/storage",
+        "version": "0.2.0-candidate.7",
+        "sha256": "de578abbe67035a15271932f4167dc655511a8b75d7db14d892740681452a602",
+        "integrity": "sha512-GOx18eh3us7PITV1xKnyHxrDJV7efA6o02w68xw1wgaA1fX3q470ezHYNIyVb/icQnDgwq4XxGThE7sIdApBXQ=="
+      }
+    ]
+  },
+  "maven": {
+    "registry": "https://maven.pkg.github.com/davidniessen/api-docs",
+    "groupId": "dev.niessen",
+    "files": [
+      {
+        "name": "api-docs-parent-0.2.0-candidate.7.pom",
+        "path": "dev/niessen/api-docs-parent/0.2.0-candidate.7/api-docs-parent-0.2.0-candidate.7.pom",
+        "bytes": 5130,
+        "sha256": "5d219e21c64522c7a65aa0af8c744f4b7191ae68e30c7e75509717b74f5facf0"
+      },
+      {
+        "name": "api-docs-core-0.2.0-candidate.7.pom",
+        "path": "dev/niessen/api-docs-core/0.2.0-candidate.7/api-docs-core-0.2.0-candidate.7.pom",
+        "bytes": 568,
+        "sha256": "09c63814e039079af1a3a71960a5fa92d650f25e2491e65414dc9020053d3666"
+      },
+      {
+        "name": "api-docs-core-0.2.0-candidate.7.jar",
+        "path": "dev/niessen/api-docs-core/0.2.0-candidate.7/api-docs-core-0.2.0-candidate.7.jar",
+        "bytes": 18228,
+        "sha256": "a64f6cf18c43fdabe8ad05a6414a3153527b8d22170733648bf303580fc89889"
+      },
+      {
+        "name": "api-docs-core-0.2.0-candidate.7-sources.jar",
+        "path": "dev/niessen/api-docs-core/0.2.0-candidate.7/api-docs-core-0.2.0-candidate.7-sources.jar",
+        "bytes": 11520,
+        "sha256": "d2e6aca016a81347f4b4b357ede85f2443780ed8e56e7acd9541b8590514e761"
+      },
+      {
+        "name": "api-docs-core-0.2.0-candidate.7-javadoc.jar",
+        "path": "dev/niessen/api-docs-core/0.2.0-candidate.7/api-docs-core-0.2.0-candidate.7-javadoc.jar",
+        "bytes": 100131,
+        "sha256": "508eead569ab93a1edf193b6147403e4a88851562662b5ae07927245d72e8b1f"
+      },
+      {
+        "name": "api-docs-spring-boot-starter-0.2.0-candidate.7.pom",
+        "path": "dev/niessen/api-docs-spring-boot-starter/0.2.0-candidate.7/api-docs-spring-boot-starter-0.2.0-candidate.7.pom",
+        "bytes": 2043,
+        "sha256": "6f2c09464037c5c5877985d23559ff20232598c78ba7d3c192607bd7c6a6dfba"
+      },
+      {
+        "name": "api-docs-spring-boot-starter-0.2.0-candidate.7.jar",
+        "path": "dev/niessen/api-docs-spring-boot-starter/0.2.0-candidate.7/api-docs-spring-boot-starter-0.2.0-candidate.7.jar",
+        "bytes": 17831,
+        "sha256": "74e5c4a1aabe89420c55fd96d0079c46ba6ca0d5cf98088564632f8fc094089c"
+      },
+      {
+        "name": "api-docs-spring-boot-starter-0.2.0-candidate.7-sources.jar",
+        "path": "dev/niessen/api-docs-spring-boot-starter/0.2.0-candidate.7/api-docs-spring-boot-starter-0.2.0-candidate.7-sources.jar",
+        "bytes": 11212,
+        "sha256": "3a104d07727a260b526e09e849b9da23088053c9ae93715859ea373d5576291c"
+      },
+      {
+        "name": "api-docs-spring-boot-starter-0.2.0-candidate.7-javadoc.jar",
+        "path": "dev/niessen/api-docs-spring-boot-starter/0.2.0-candidate.7/api-docs-spring-boot-starter-0.2.0-candidate.7-javadoc.jar",
+        "bytes": 103855,
+        "sha256": "8126d0059815ace2a25a0d96d3f1ee31d41b539f17337cb139eb5ce72f380ff2"
+      }
+    ]
+  },
+  "container": {
+    "repository": "ghcr.io/davidniessen/api-docs",
+    "manifestDigest": "sha256:46ebb30ad41974cfbcb9014de2982623a175358061010a48198090c95129f8ce",
+    "imageConfigDigest": "sha256:38acecbab164d4b7a259f847cdb5dda20a56c6d8334bb1e2b31f9296391e2e03",
+    "archiveSha256": "ab07d4b6430cfa310ed4de7f8dbdf54d0e61f29939584550c5bb47da40a9bb34",
+    "platform": "linux/amd64"
+  },
+  "consumers": {
+    "npm": {
+      "passed": true,
+      "checks": [
+        "fresh-empty-cache-authenticated-github-registry-install",
+        "registry-archive-hashes",
+        "exact-github-producer-attestations",
+        "public-repository-linked-package-visibility",
+        "dependency-audit",
+        "offline-lockfile-reinstall",
+        "public-types-cli-and-authenticated-adapters"
+      ]
+    },
+    "maven": {
+      "passed": true,
+      "checks": [
+        "github-registry-archive-hashes",
+        "exact-producer-attestations",
+        "fresh-authenticated-maven-repository",
+        "github-origin-for-installed-project-files",
+        "installed-mvc-and-webflux",
+        "offline-consumer-compilation"
+      ]
+    },
+    "container": {
+      "passed": true,
+      "checks": [
+        "anonymous-registry-manifest",
+        "anonymous-digest-pull",
+        "tested-config-id",
+        "keyless-promotion-attestation",
+        "unprivileged-readonly-offline-runtime"
+      ]
+    }
+  },
+  "releaseUrl": "https://github.com/DavidNiessen/api-docs/releases/tag/v0.2.0-candidate.7",
+  "evidenceScope": "Public summary of workflow receipts; verify original producer and promotion attestations independently.",
+  "security": {
+    "critical": 0,
+    "high": 0,
+    "unknown": 0,
+    "medium": 3,
+    "dependencyAuditPassed": true,
+    "independentReview": "deferred"
+  },
+  "stableProductionApproved": false
+}
