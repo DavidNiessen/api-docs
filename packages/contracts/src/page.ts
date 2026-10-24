@@ -70,22 +70,62 @@ export function createPageData(site: SiteData, inputPath: string): SiteData {
   return pageData(site, inputPath);
 }
 type OperationTarget = { api: ApiDocument; operation: Operation };
+type NavigationIndex = {
+  entries: { position: number; operation: Operation }[];
+  positions: Map<Operation, number[]>;
+};
+function navigationIndex(api: ApiDocument): NavigationIndex {
+  const entries: NavigationIndex['entries'] = [];
+  const positions: NavigationIndex['positions'] = new Map();
+  const counts = new Map<string, number>();
+  for (const [position, operation] of api.operations.entries()) {
+    const matches = positions.get(operation);
+    if (matches) matches.push(position);
+    else positions.set(operation, [position]);
+    if (position >= 200) continue;
+    const tag = operation.tags[0] ?? 'Endpoints';
+    const count = counts.get(tag) ?? 0;
+    counts.set(tag, count + 1);
+    if (count < 20) entries.push({ position, operation });
+  }
+  return { entries, positions };
+}
+function indexedNavigation(
+  index: NavigationIndex,
+  active?: Operation,
+): Operation[] {
+  const entries = [...index.entries];
+  if (active)
+    for (const position of index.positions.get(active) ?? []) {
+      const next = entries.findIndex((entry) => entry.position >= position);
+      if (next < 0) entries.push({ position, operation: active });
+      else if (entries[next]!.position !== position)
+        entries.splice(next, 0, { position, operation: active });
+    }
+  return entries.map(({ operation }) =>
+    operation === active ? operation : navigationOperation(operation),
+  );
+}
 /** Reuse route lookup while rendering one immutable graph; create a new factory after graph changes. */
 export function createPageDataFactory(
   site: SiteData,
 ): (path: string) => SiteData {
   const operations = new Map<string, OperationTarget>();
-  for (const api of site.apis)
+  const navigation = new Map<ApiDocument, NavigationIndex>();
+  for (const api of site.apis) {
+    navigation.set(api, navigationIndex(api));
     for (const operation of api.operations) {
       const path = operationHref(api, operation);
       if (!operations.has(path)) operations.set(path, { api, operation });
     }
-  return (path) => pageData(site, path, operations);
+  }
+  return (path) => pageData(site, path, operations, navigation);
 }
 function pageData(
   site: SiteData,
   inputPath: string,
   operations?: ReadonlyMap<string, OperationTarget>,
+  navigation?: ReadonlyMap<ApiDocument, NavigationIndex>,
 ): SiteData {
   const path = normalizePagePath(inputPath);
   if (site.pagePath === path) return site;
@@ -116,18 +156,23 @@ function pageData(
     .filter((api, index) => index < 16 || api === activeApi)
     .map((api) => {
       const counts = new Map<string, number>();
-      const operations = api.operations
-        .filter((operation, index) => {
-          const tag = operation.tags[0] ?? 'Endpoints';
-          const count = counts.get(tag) ?? 0;
-          counts.set(tag, count + 1);
-          return operation === activeOperation || (index < 200 && count < 20);
-        })
-        .map((operation) =>
-          operation === activeOperation
-            ? operation
-            : navigationOperation(operation),
-        );
+      const indexed = navigation?.get(api);
+      const operations = indexed
+        ? indexedNavigation(indexed, activeOperation)
+        : api.operations
+            .filter((operation, index) => {
+              const tag = operation.tags[0] ?? 'Endpoints';
+              const count = counts.get(tag) ?? 0;
+              counts.set(tag, count + 1);
+              return (
+                operation === activeOperation || (index < 200 && count < 20)
+              );
+            })
+            .map((operation) =>
+              operation === activeOperation
+                ? operation
+                : navigationOperation(operation),
+            );
       return {
         ...api,
         operations,

@@ -2,7 +2,17 @@
 
 Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current prerelease review-deferral increment
+## Current full-build performance increment
+
+**Candidate `.3` failed the unchanged 10k compiler budget: 121.31 seconds against 120 seconds.** Its 949.5 MiB RSS, 9.78 ms warm-search p95 and 267.14 ms incremental-guide p95 passed. The failure is retained in [candidate run 40097708002](https://github.com/DavidNiessen/api-docs/actions/runs/40097708002), not rerun for a lucky timing. The immutable tag remains unchanged and cannot authorize publication.
+
+The follow-up indexes the bounded navigation selection once per graph and overlaps static writes in four-page batches, waiting for every write before propagating a failure. Output-equivalence and bounded-read regression coverage use a 10k-operation graph. A local 1,000-operation smoke run takes 8.57 seconds with the same full-build artifact digest before/after; it does not replace full-size hosted acceptance. See [performance evidence](../performance.md). The estimate stays approximately **97%, pre-release** while the optimization and next candidate are validated.
+
+Local formatting/lint, all **180 tooling tests** and **1,050 source tests** pass. The prior main Quality run also passed on `4817011`; candidate `.3` remains rejected by its separate performance gate. The fix requires fresh hosted Quality/performance acceptance and a new matching candidate before publication.
+
+A source-bound preparation aligns `0.2.0-candidate.4` across all npm/Java metadata and both locks. Its fresh production build and all **12 installed npm components** pass audit, offline reinstall, CLI/types, MDX/plugin and authenticated Express/Fastify journeys. The rejected `.3` tag stays immutable, and the fix is tested under a new version.
+
+## Previous prerelease review-deferral increment
 
 **The owner explicitly requested deferring the five independent launch reviews and pilots for now.** Schema-3 source policy records `deferred` separately from `pending` and `approved`, together with the owner, reason and prerelease-only scope. Pending reviews always block publication; deferred reviews still block stable versions. Plans and workflow summaries expose the deferral. Publication is enabled for a new matching prerelease candidate while automated scans, producer signatures, protected publishing and fresh registry consumers remain required. See [ADR 0002](../adr/0002-deferred-prerelease-reviews.md).
 

@@ -1,6 +1,6 @@
 {
   "name": "@davidniessen/cli",
-  "version": "0.2.0-candidate.3",
+  "version": "0.2.0-candidate.4",
   "type": "module",
   "license": "Apache-2.0",
   "bin": {
@@ -16,12 +16,12 @@
     }
   },
   "dependencies": {
-    "@davidniessen/compiler": "0.2.0-candidate.3",
-    "@davidniessen/contracts": "0.2.0-candidate.3",
-    "@davidniessen/plugin-sdk": "0.2.0-candidate.3",
-    "@davidniessen/reader": "0.2.0-candidate.3",
-    "@davidniessen/search": "0.2.0-candidate.3",
-    "@davidniessen/spec": "0.2.0-candidate.3",
+    "@davidniessen/compiler": "0.2.0-candidate.4",
+    "@davidniessen/contracts": "0.2.0-candidate.4",
+    "@davidniessen/plugin-sdk": "0.2.0-candidate.4",
+    "@davidniessen/reader": "0.2.0-candidate.4",
+    "@davidniessen/search": "0.2.0-candidate.4",
+    "@davidniessen/spec": "0.2.0-candidate.4",
     "@fastify/static": "10.1.7",
     "commander": "14.0.2",
     "fastify": "5.12.7",
