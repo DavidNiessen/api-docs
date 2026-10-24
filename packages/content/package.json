@@ -1,6 +1,6 @@
 {
   "name": "@davidniessen/content",
-  "version": "0.2.0-candidate.5",
+  "version": "0.2.0-candidate.6",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -13,8 +13,8 @@
     }
   },
   "dependencies": {
-    "@davidniessen/contracts": "0.2.0-candidate.5",
-    "@davidniessen/spec": "0.2.0-candidate.5",
+    "@davidniessen/contracts": "0.2.0-candidate.6",
+    "@davidniessen/spec": "0.2.0-candidate.6",
     "@mdx-js/mdx": "3.1.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",

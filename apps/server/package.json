@@ -1,6 +1,6 @@
 {
   "name": "@davidniessen/server",
-  "version": "0.2.0-candidate.5",
+  "version": "0.2.0-candidate.6",
   "type": "module",
   "license": "Apache-2.0",
   "private": true,
@@ -14,12 +14,12 @@
     }
   },
   "dependencies": {
-    "@davidniessen/cli": "0.2.0-candidate.5",
-    "@davidniessen/compiler": "0.2.0-candidate.5",
-    "@davidniessen/contracts": "0.2.0-candidate.5",
-    "@davidniessen/domain": "0.2.0-candidate.5",
-    "@davidniessen/spec": "0.2.0-candidate.5",
-    "@davidniessen/storage": "0.2.0-candidate.5",
+    "@davidniessen/cli": "0.2.0-candidate.6",
+    "@davidniessen/compiler": "0.2.0-candidate.6",
+    "@davidniessen/contracts": "0.2.0-candidate.6",
+    "@davidniessen/domain": "0.2.0-candidate.6",
+    "@davidniessen/spec": "0.2.0-candidate.6",
+    "@davidniessen/storage": "0.2.0-candidate.6",
     "@fastify/cookie": "11.1.3",
     "@fastify/rate-limit": "10.3.0",
     "@fastify/static": "10.1.7",

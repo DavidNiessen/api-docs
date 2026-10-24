@@ -1,6 +1,6 @@
 # ADR 0003: Bind protection snapshots to live GitHub revisions
 
-Status: implemented; least-privilege workflow acceptance remains required.
+Status: implemented and verified with the read-only workflow token.
 
 Date: 2026-10-24.
 
@@ -17,6 +17,8 @@ Before publication, read GitHub's live metadata and require exact agreement with
 When GitHub redacts the actor list, the guard relies on the source-reviewed administrator snapshot and its exact live revision binding. Receipts explicitly distinguish that evidence from live actor visibility; they do not claim independent live enumeration of a redacted field. The protected release environment's reviewer/tag policy is still inspected directly on every run, and its native approval remains required.
 
 A read-only manual/daily workflow verifies these same protections and retains actual observations, including drift failures. Existing source signatures, security gates, package permissions and installed-consumer acceptance remain unchanged. No additional Actions secret or administration-write capability is introduced.
+
+[Workflow 40105494720](https://github.com/DavidNiessen/api-docs/actions/runs/40105494720) passes at `6b466c7` using only content/action read permissions. Both bypass lists are reported as hidden, and the receipt records the matching source snapshot, live revisions, reviewer/tag policy and original protection checks. This verifies the intended read-only path; actual registry acceptance remains separate.
 
 ## Trust and maintenance
 
