@@ -1,5 +1,20 @@
 # Changelog
 
+<!-- markdownlint-configure-file {"MD024": {"siblings_only": true}} -->
+
+## 0.2.0-candidate.2 - 2026-10-24
+
+### Package coordinates
+
+- npm packages now use `@davidniessen/*`; update imports and workspace dependencies from `@api-docs/*`. Maven coordinates retain `dev.niessen`. Namespace ownership and registry publication remain pending.
+
+### Fixes
+
+- **release:** keep validation portable and record signed candidate acceptance ([9efa4f6](https://github.com/DavidNiessen/api-docs/commit/9efa4f61e492eb45156dbbdce8a75f6e61379ee4))
+- **release:** require current approving reviews before publication ([6e9a5f7](https://github.com/DavidNiessen/api-docs/commit/6e9a5f7c3515a534f4b48e7bab8c80b7cc23585d))
+
+[Full changelog](https://github.com/DavidNiessen/api-docs/compare/v0.2.0-candidate.1...v0.2.0-candidate.2)
+
 ## 0.2.0-candidate.1 - 2026-10-24
 
 ### Features

@@ -1,14 +1,14 @@
 {
   "name": "@davidniessen/worker",
-  "version": "0.2.0-candidate.1",
+  "version": "0.2.0-candidate.2",
   "type": "module",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
-    "@davidniessen/cli": "0.2.0-candidate.1",
-    "@davidniessen/compiler": "0.2.0-candidate.1",
-    "@davidniessen/contracts": "0.2.0-candidate.1",
-    "@davidniessen/domain": "0.2.0-candidate.1",
-    "@davidniessen/spec": "0.2.0-candidate.1"
+    "@davidniessen/cli": "0.2.0-candidate.2",
+    "@davidniessen/compiler": "0.2.0-candidate.2",
+    "@davidniessen/contracts": "0.2.0-candidate.2",
+    "@davidniessen/domain": "0.2.0-candidate.2",
+    "@davidniessen/spec": "0.2.0-candidate.2"
   }
 }
