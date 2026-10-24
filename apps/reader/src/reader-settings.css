@@ -1,19 +1,29 @@
 .header-tabs > button,
-.header-tabs > span.section-fallback {
+.header-tabs > .section-fallback,
+.header-tabs > a {
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 2px solid transparent;
+  border: 1px solid transparent;
   color: var(--muted);
-  padding: 0 2px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 .header-tabs > button.active,
-.header-tabs > span.section-fallback.active {
-  border-color: var(--accent-text);
+.header-tabs > .section-fallback.active,
+.header-tabs > a.active {
+  border-color: var(--ui-border, var(--border));
+  background: var(--bg);
+  box-shadow: 0 1px 3px #00000008;
   color: var(--accent-text);
   font-weight: 600;
+}
+.header-tabs > button:hover,
+.header-tabs > a:hover {
+  background: var(--subtle);
 }
 .header-tabs > .section-fallback[hidden],
 .header-tabs > button[hidden] {
@@ -22,20 +32,22 @@
 .reader-settings {
   color-scheme: inherit;
   position: fixed;
-  inset: 12px 12px 12px auto;
-  width: min(500px, calc(100vw - 24px));
+  inset: 0;
+  width: min(560px, calc(100vw - 24px));
   max-height: calc(100dvh - 24px);
-  margin: 0;
-  padding: 24px;
+  margin: auto;
+  padding: 28px;
   overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border: 1px solid var(--ui-border, var(--border));
+  border-radius: 22px;
   background: var(--bg);
   color: var(--text);
   box-shadow: 0 16px 60px #0003;
 }
 .reader-settings::backdrop {
-  background: #0002;
+  background: #12121655;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 .reader-settings-heading {
   display: flex;
@@ -52,16 +64,16 @@
 }
 .reader-settings h2 {
   margin: 4px 0 0;
-  font-size: 25px;
+  font-size: 1.75rem;
   color: var(--heading);
 }
 .reader-settings small {
   color: var(--accent-text);
-  font-size: 11px;
+  font-size: var(--ui-text-sm);
   font-weight: 600;
 }
 .reader-settings p {
-  font-size: 12px;
+  font-size: var(--ui-text-md);
   line-height: 1.7;
   color: var(--muted);
 }
@@ -71,7 +83,7 @@
   min-width: 0;
   gap: 8px;
   margin: 14px 0;
-  font-size: 12px;
+  font-size: var(--ui-text-md);
 }
 .reader-settings-grid {
   display: grid;
@@ -82,8 +94,21 @@
   width: 100%;
   min-width: 0;
 }
+.reader-settings-controls {
+  margin-top: 24px;
+}
+.reader-settings .settings-privacy {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface);
+  margin: 0 0 20px;
+}
+.reader-settings-grid > label:last-child {
+  grid-column: 1 / -1;
+}
 .layout-classic.docs-shell {
   --canvas: var(--bg);
+  --workspace-top: calc(7rem + 1px);
   --island-radius: 4px;
   padding: 0;
 }
@@ -99,10 +124,10 @@
   grid-template-columns: min(250px, 26vw) minmax(0, 1fr);
 }
 .layout-classic .sidebar {
-  top: 110px;
-  height: calc(100dvh - 110px);
+  top: var(--workspace-top);
+  height: calc(100dvh - var(--workspace-top));
   border: 0;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--ui-border, var(--border));
   border-radius: 0;
   padding-top: 28px;
 }
@@ -129,20 +154,29 @@
   display: none;
 }
 @media (max-width: 760px) {
+  .layout-classic.docs-shell {
+    --workspace-top: calc(6.75rem + 1px);
+  }
   .layout-classic .docs-layout {
     display: block;
   }
   .layout-classic .sidebar {
     left: 0;
     width: min(320px, 90vw);
-    top: 104px;
-    height: calc(100dvh - 104px);
+    top: var(--workspace-top);
+    height: calc(100dvh - var(--workspace-top));
   }
   .layout-classic .main-area {
     padding: 24px 16px;
   }
   .reader-settings {
     padding: 20px;
+  }
+  .header-tabs > button,
+  .header-tabs > a,
+  .header-tabs > .section-fallback {
+    min-height: 44px;
+    padding-inline: 10px;
   }
 }
 @media (max-width: 520px) {

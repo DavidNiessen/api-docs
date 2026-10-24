@@ -12,9 +12,9 @@
 }
 .build-controls > p {
   flex: 1;
-  font-size: 13px;
+  font-size: 0.9375rem;
   line-height: 1.7;
-  color: #596979;
+  color: var(--muted);
 }
 .builds-workspace .build-controls > button {
   flex-shrink: 0;
@@ -31,7 +31,7 @@
 .build-checkbox input,
 .build-trust-controls input {
   width: auto;
-  accent-color: #148567;
+  accent-color: var(--accent-text);
 }
 .build-trust-controls {
   display: grid;
@@ -41,16 +41,18 @@
   box-sizing: border-box;
   width: 100%;
   min-height: 130px;
-  border: 1px solid #dce3e9;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--ui-field-border);
   border-radius: 7px;
   padding: 12px;
   font:
-    12px/1.7 ui-monospace,
+    0.875rem/1.7 ui-monospace,
     monospace;
   resize: vertical;
 }
 .builds-workspace textarea:focus-visible {
-  outline: 2px solid #13765d;
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 .builds-workspace code {
@@ -58,18 +60,18 @@
 }
 .builds-workspace pre {
   padding: 16px;
-  background: #f5f8fa;
-  border: 1px solid #e0e7ec;
+  background: var(--surface);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: 8px;
   max-height: 320px;
   overflow: auto;
   font:
-    12px/1.7 ui-monospace,
+    0.875rem/1.7 ui-monospace,
     monospace;
 }
 .build-source {
   padding: 16px 0;
-  border-bottom: 1px solid #e6ebee;
+  border-bottom: 1px solid var(--ui-border, var(--border));
 }
 .build-source > summary {
   display: flex;
@@ -77,11 +79,11 @@
   justify-content: space-between;
   gap: 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .build-source p {
-  color: #596979;
-  font-size: 12px;
+  color: var(--muted);
+  font-size: var(--ui-text-md);
   line-height: 1.7;
 }
 .build-source > summary strong {
@@ -89,52 +91,52 @@
 }
 .source-approval > summary {
   cursor: pointer;
-  font-size: 16px;
+  font-size: 1.125rem;
   font-weight: 650;
 }
 .source-approval > p {
   margin: 16px 0;
   line-height: 1.7;
-  font-size: 13px;
-  color: #596979;
+  font-size: 0.9375rem;
+  color: var(--muted);
 }
 .build-row-actions > button,
 .build-pagination > button {
   padding: 7px 9px;
-  border: 1px solid #dce3e9;
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--ui-text-md);
 }
 .build-pagination {
   justify-content: space-between;
   margin-top: 20px;
-  font-size: 12px;
-  color: #596979;
+  font-size: var(--ui-text-md);
+  color: var(--muted);
 }
 .build-state-running,
 .build-state-queued {
-  background: #eaf1ff;
-  color: #244b85;
+  background: var(--info-surface);
+  color: var(--info-text);
 }
 .build-state-succeeded {
-  background: #e8f6f0;
-  color: #13604a;
+  background: var(--success-surface);
+  color: var(--success-text);
 }
 .build-state-failed {
-  background: #fbecec;
-  color: #9b2f3e;
+  background: var(--error-surface);
+  color: var(--error-text);
 }
 .build-state-cancelled {
-  background: #edf0f3;
-  color: #526170;
+  background: var(--surface);
+  color: var(--muted);
 }
 .build-read-only {
-  color: #596979;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 0.9375rem;
   line-height: 1.7;
 }
 .pending-build-action {
-  border-left: 3px solid #93651c;
+  border-left: 3px solid var(--warning-text);
 }
 @media (max-width: 600px) {
   .builds-workspace .build-controls {

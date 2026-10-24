@@ -19,7 +19,7 @@
 .classic-reference-header label {
   display: grid;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--ui-text-md);
   color: var(--muted);
   width: min(100%, 320px);
 }
@@ -28,7 +28,7 @@
 }
 .classic-reference-help {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.9375rem;
   line-height: 1.7;
 }
 .classic-pagination {
@@ -37,7 +37,7 @@
   align-items: center;
   gap: 10px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--ui-text-md);
   margin: 22px 0;
 }
 .classic-pagination > span {
@@ -46,7 +46,7 @@
 .classic-pagination button,
 .classic-reference-error button,
 .classic-endpoint-content [role='alert'] button {
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: 6px;
   min-height: 34px;
   padding: 7px 12px;
@@ -60,7 +60,7 @@
 }
 .classic-endpoint-group > h2 {
   overflow-wrap: anywhere;
-  font-size: 21px;
+  font-size: 1.5rem;
   margin: 30px 0 16px;
   color: var(--heading);
 }
@@ -100,14 +100,14 @@
   flex: 0 1 36%;
   min-width: 0;
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 .endpoint-summary {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .endpoint-disclosure > summary > svg {
   margin-left: auto;
@@ -116,7 +116,7 @@
   transform: rotate(90deg);
 }
 .classic-deprecated {
-  font-size: 11px;
+  font-size: var(--ui-text-sm);
   color: var(--muted);
 }
 .classic-endpoint-content {
@@ -132,12 +132,12 @@
   gap: 10px;
   padding-bottom: 12px;
   margin-top: 28px;
-  border-bottom: 1px solid var(--border);
-  font-size: 17px;
+  border-bottom: 1px solid var(--ui-border, var(--border));
+  font-size: 1.1875rem;
   color: var(--heading);
 }
 .classic-endpoint-content > p {
-  font-size: 14px;
+  font-size: var(--ui-text-body);
   line-height: 1.8;
 }
 .classic-endpoint-actions {
@@ -148,17 +148,17 @@
   gap: 12px;
 }
 .classic-endpoint-actions > a {
-  font-size: 12px;
+  font-size: var(--ui-text-md);
   color: var(--accent-text);
   text-decoration: underline;
 }
 .classic-endpoint-actions > button {
   padding: 9px 16px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--ui-text-md);
 }
 .classic-reference-error {
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border, var(--border));
   padding: 16px;
   border-radius: 8px;
 }
