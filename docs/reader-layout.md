@@ -39,7 +39,7 @@ Navigation defaults to the configured `theme.sidebarWidth`. API and guide inspec
 
 Medium layouts stack API examples beneath the article. Compact layouts use the existing navigation menu and stack the playground's request and response panels. Unneeded dividers disappear rather than reserving width. Pre-rendered content and ordinary links remain usable without JavaScript; interactive resizing becomes available after hydration.
 
-Studio uses the same rounded workspace surfaces. Its desktop navigation-width slider supports pointer and native keyboard controls and remembers its width locally. On compact screens, navigation becomes a horizontal menu and the width control disappears.
+Studio uses the same rounded workspace surfaces. Its header offers System, Light and Dark appearance, remembered for the current browser and synchronized across tabs. System appearance follows operating-system changes; blocked storage keeps controls usable for the current visit. Drag the divider beside its desktop navigation to resize it, or focus the divider and use Left/Right (Shift for larger steps), Home/End or double-click to reset. It remembers the preferred width locally, including widths saved by the former slider. On compact screens, navigation becomes a horizontal menu and the resize divider is hidden.
 
 ## Response pane
 

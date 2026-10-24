@@ -18,7 +18,7 @@ test('Studio login follows system appearance and supports doubled compact text',
     await expect(
       page.getByRole('heading', { name: 'Welcome to your workspace' }),
     ).toBeVisible();
-    await expect(page.locator('html')).toHaveCSS('color-scheme', appearance);
+    await expect(page.locator('html')).toHaveCSS('color-scheme', 'light dark');
     await expect(page.locator('.login')).toHaveCSS(
       'background-color',
       appearance === 'light' ? 'rgb(255, 255, 255)' : 'rgb(24, 24, 27)',

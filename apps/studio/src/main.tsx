@@ -8,6 +8,8 @@ import {
   useState,
 } from 'react';
 import type { BuildAction } from './Builds.js';
+import { AppearanceControl } from './AppearanceControl.js';
+import { NavigationResize } from './NavigationResize.js';
 import { createStudioApi } from './api.js';
 import { createStudioRequestScope } from './request-scope.js';
 import { useProjectCapabilities } from './use-project-capabilities.js';
@@ -41,18 +43,25 @@ function WorkspaceMark() {
   );
 }
 function Studio() {
-  const [sidebarWidth, setSidebarWidth] = useState(240);
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('api-docs-studio-navigation-width');
-      if (stored && /^\d{3}$/.test(stored))
-        setSidebarWidth(Math.max(200, Math.min(360, Number(stored))));
-    } catch {
-      /* Layout preferences are optional. */
-    }
-  }, []);
+  const layout = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLElement>(null);
   const [token, setToken] = useState('');
   const [connected, setConnected] = useState(false);
+  useLayoutEffect(() => {
+    const chrome = header.current;
+    const workspace = layout.current;
+    if (!connected || !chrome || !workspace) return;
+    const measure = () => {
+      workspace.style.setProperty(
+        '--studio-header-height',
+        `${chrome.getBoundingClientRect().height}px`,
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(chrome);
+    return () => observer.disconnect();
+  }, [connected]);
   const [signingOut, setSigningOut] = useState(false);
   const [requestEpoch, setRequestEpoch] = useState(0);
   const connection = useRef<AbortController | null>(null);
@@ -322,7 +331,7 @@ function Studio() {
   }
   return (
     <div className="studio">
-      <header>
+      <header ref={header}>
         <a className="studio-brand" href="/admin/">
           <span>
             <WorkspaceMark />
@@ -330,15 +339,18 @@ function Studio() {
           api-docs <small>Studio</small>
         </a>
         <span className="self-hosted">Self-hosted workspace</span>
-        {connected && (
-          <button
-            type="button"
-            disabled={signingOut}
-            onClick={() => void signOut()}
-          >
-            {signingOut ? 'Signing out…' : 'Sign out'}
-          </button>
-        )}
+        <div className="studio-header-actions">
+          <AppearanceControl />
+          {connected && (
+            <button
+              type="button"
+              disabled={signingOut}
+              onClick={() => void signOut()}
+            >
+              {signingOut ? 'Signing out…' : 'Sign out'}
+            </button>
+          )}
+        </div>
       </header>
       {!connected ? (
         <main className="login">
@@ -386,14 +398,8 @@ function Studio() {
           )}
         </main>
       ) : (
-        <div
-          className="studio-layout"
-          inert={signingOut}
-          style={{
-            gridTemplateColumns: `min(${sidebarWidth}px, 30vw) minmax(0, 1fr)`,
-          }}
-        >
-          <aside>
+        <div className="studio-layout" inert={signingOut} ref={layout}>
+          <aside id="studio-navigation">
             <div className="workspace-label">Workspace</div>
             <label className="project-picker">
               Current project
@@ -463,31 +469,6 @@ function Studio() {
                 </button>
               ))}
             </nav>
-            <label className="studio-panel-size">
-              <span>
-                Navigation width <output>{sidebarWidth}px</output>
-              </span>
-              <input
-                type="range"
-                aria-label="Navigation width"
-                min={200}
-                max={360}
-                step={8}
-                value={sidebarWidth}
-                onChange={(event) => {
-                  const width = Number(event.target.value);
-                  setSidebarWidth(width);
-                  try {
-                    localStorage.setItem(
-                      'api-docs-studio-navigation-width',
-                      String(width),
-                    );
-                  } catch {
-                    /* Storage is optional. */
-                  }
-                }}
-              />
-            </label>
             <div className="identity">
               <span className="avatar">
                 {subject.slice(0, 1).toUpperCase()}
@@ -498,6 +479,13 @@ function Studio() {
               </div>
             </div>
           </aside>
+          <div
+            className="studio-navigation-resize-controls"
+            role="region"
+            aria-label="Navigation layout"
+          >
+            <NavigationResize target={layout} />
+          </div>
           <main className="workspace-main" key={`${selected}:${tab}`}>
             <div className="workspace-heading">
               <div>
