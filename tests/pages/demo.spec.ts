@@ -102,9 +102,7 @@ test('Send mock stays local after server edits and supports highlighted, folded 
     JSON.parse(body!).data.map((project: { id: string }) => project.id),
   ).toEqual(['proj_aurora', 'proj_horizon']);
   await page.keyboard.press('Escape');
-  await playground
-    .getByText('Preview a mock response', { exact: true })
-    .click();
+  await playground.getByText('Mock response options', { exact: true }).click();
   await playground
     .getByLabel('Mock response status', { exact: true })
     .selectOption('401');

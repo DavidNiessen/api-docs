@@ -954,6 +954,12 @@ export function Explorer({
               </label>
             )}
           </div>
+          <MockResponseControls
+            api={api}
+            operation={operation}
+            busy={busy}
+            onGenerate={showMockResponse}
+          />
           <details className="playground-request-example">
             <summary>Request example</summary>
             {snippet}
@@ -986,13 +992,6 @@ export function Explorer({
           className="playground-output"
           aria-label={t('response.region')}
         >
-          <div className="response-panel-heading">{t('response.title')}</div>
-          <MockResponseControls
-            api={api}
-            operation={operation}
-            busy={busy}
-            onGenerate={showMockResponse}
-          />
           <div className="response-content">
             {response ? (
               <>

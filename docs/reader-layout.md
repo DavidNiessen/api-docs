@@ -41,6 +41,10 @@ Medium layouts stack API examples beneath the article. Compact layouts use the e
 
 Studio uses the same rounded workspace surfaces. Its desktop navigation-width slider supports pointer and native keyboard controls and remembers its width locally. On compact screens, navigation becomes a horizontal menu and the width control disappears.
 
+## Response pane
+
+The playground's response editor fills its pane without an inset card or fixed editor height. The empty state fills the same area before a response arrives. Status and expandable response headers remain available, and Monaco owns code scrolling. On compact screens, the stacked response pane has its own bounded height. Mock response options are grouped with the request inputs on the left rather than above the response editor.
+
 ## View an entire response
 
 After receiving or generating a response, choose **View response fullscreen** in the response-editor toolbar. A native modal expands the response view to the viewport, with read-only Monaco highlighting, folding, scrolling and **Copy entire response**. Switching views preserves folding/scroll state for the same response. Copy retains the complete original response text, including formatting and precise number tokens; the formatted display does not replace the copy source.

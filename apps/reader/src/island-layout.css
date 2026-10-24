@@ -223,7 +223,58 @@
   margin: 16px 0;
 }
 .playground-output {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.playground-output > .response-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.playground-output .response-meta {
+  flex: none;
+  flex-wrap: wrap;
+}
+.playground-output .response-editor {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--ui-border, var(--border));
+  border-radius: 0;
+}
+.playground-output .response-editor:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+}
+.playground-output .response-editor-toolbar {
+  flex: none;
+}
+.playground-output .response-monaco {
+  flex: 1;
+  height: 0;
+  min-height: 0;
+}
+.playground-output .response-fallback {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+.playground-output .response-content > details {
+  flex: none;
+  max-height: 35%;
+  overflow: auto;
+  border-top: 1px solid var(--ui-border, var(--border));
+}
+.playground-output .response-empty {
+  flex: 1;
+  min-height: 0;
+}
+.playground-inputs > .mock-response-controls {
+  margin: 0 24px 24px;
 }
 .response-editor-toolbar > button {
   min-height: var(--ui-control-height);
@@ -374,6 +425,14 @@
   .playground-inputs,
   .playground-output {
     overflow: visible;
+  }
+  .playground-output {
+    height: min(720px, 80dvh);
+    min-height: 320px;
+    overflow: hidden;
+  }
+  .playground-inputs > .mock-response-controls {
+    margin-inline: 16px;
   }
   .response-fullscreen-dialog {
     inset: 6px;
