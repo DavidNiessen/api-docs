@@ -2,7 +2,17 @@
 
 Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current GitHub Packages increment
+## Current prerelease review-deferral increment
+
+**The owner explicitly requested deferring the five independent launch reviews and pilots for now.** Schema-3 source policy records `deferred` separately from `pending` and `approved`, together with the owner, reason and prerelease-only scope. Pending reviews always block publication; deferred reviews still block stable versions. Plans and workflow summaries expose the deferral. Publication is enabled for a new matching prerelease candidate while automated scans, producer signatures, protected publishing and fresh registry consumers remain required. See [ADR 0002](../adr/0002-deferred-prerelease-reviews.md).
+
+The prior GitHub Packages configuration is now verified: [PR #11](https://github.com/DavidNiessen/api-docs/pull/11) merged after all 31 current-head checks passed. [Main Quality 40093698702](https://github.com/DavidNiessen/api-docs/actions/runs/40093698702) passes all 15 jobs after retrying an upstream Maven download failure. [Signed candidate 40093764410](https://github.com/DavidNiessen/api-docs/actions/runs/40093764410) passes all 22 jobs for immutable `v0.2.0-candidate.2` / `700f6e4`. [Read-only plan 40095165927](https://github.com/DavidNiessen/api-docs/actions/runs/40095165927) reverified all 39 subjects; every publisher remained skipped under that tag's original disabled policy. [Pages 40096049108](https://github.com/DavidNiessen/api-docs/actions/runs/40096049108) passed deployment and hosted mock-browser checks. Both original and fresh image scan bytes were independently rehashed/reassessed: zero High/Critical/Unknown and three Medium matches; JavaScript SARIF has zero High/Critical and five Medium, and Java has no findings.
+
+Local validation passes formatting/lint, all **180 tooling tests** and **1,049 source tests**; actionlint accepts the publication workflow. Regression cases retain pending/stable gates and reject missing, malformed, stale or foreign-owner deferrals. The estimate remains approximately **97%, pre-release**. The new policy requires its own validated commit and matching candidate before actual registry publication/installation can be accepted. Deferred reviews remain unfinished and are not included as completed work.
+
+A source-bound preview/application prepares `0.2.0-candidate.3`, aligning all 16 npm packages, both lockfiles, runtime identity and three Java POMs. Its fresh production build and all 12 installed npm components pass, including audit, offline reinstall, CLI/types, MDX/plugins and authenticated Express/Fastify subpaths. The native pnpm prepared-release check preserves the frozen lockfile. Hosted source/Java/browser/performance and exact clean-tag candidate checks still apply before publication.
+
+## Previous GitHub Packages increment
 
 **Distributions now target the selected GitHub account for npm, Maven and GHCR.** npm uses `@davidniessen` at `npm.pkg.github.com`; Maven keeps `dev.niessen` at the repository's GitHub Maven endpoint. Publication needs the repository's short-lived Actions token rather than external npm/Central accounts or a production GPG key. Schema-2 source policy binds destinations to the source repository and keeps publication disabled with five independent launch reviews pending: six source-policy blockers. Package manifests, the Java POM and installation guides select the same destinations.
 

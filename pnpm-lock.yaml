@@ -17,43 +17,43 @@ importers:
         specifier: 4.11.0
         version: 4.11.0(playwright-core@1.64.1)
       '@davidniessen/cli':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/cli
       '@davidniessen/compiler':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/compiler
       '@davidniessen/content':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/content
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/contracts
       '@davidniessen/domain':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/domain
       '@davidniessen/explorer':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/explorer
       '@davidniessen/node':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:integrations/node
       '@davidniessen/plugin-sdk':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/plugin-sdk
       '@davidniessen/reader':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:apps/reader
       '@davidniessen/search':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/search
       '@davidniessen/server':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:apps/server
       '@davidniessen/spec':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/spec
       '@davidniessen/storage':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:packages/storage
       '@eslint/js':
         specifier: 10.0.1
@@ -152,16 +152,16 @@ importers:
   apps/reader:
     dependencies:
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/contracts
       '@davidniessen/explorer':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/explorer
       '@davidniessen/plugin-sdk':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/plugin-sdk
       '@davidniessen/search':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/search
       dompurify:
         specifier: 3.4.17
@@ -179,22 +179,22 @@ importers:
   apps/server:
     dependencies:
       '@davidniessen/cli':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/cli
       '@davidniessen/compiler':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/compiler
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/contracts
       '@davidniessen/domain':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/domain
       '@davidniessen/spec':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/spec
       '@davidniessen/storage':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/storage
       '@fastify/cookie':
         specifier: 11.1.3
@@ -218,10 +218,10 @@ importers:
   apps/studio:
     dependencies:
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/contracts
       '@davidniessen/domain':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/domain
       react:
         specifier: 19.3.1
@@ -233,28 +233,28 @@ importers:
   apps/worker:
     dependencies:
       '@davidniessen/cli':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/cli
       '@davidniessen/compiler':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/compiler
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/contracts
       '@davidniessen/domain':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/domain
       '@davidniessen/spec':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/spec
 
   integrations/node:
     dependencies:
       '@davidniessen/compiler':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/compiler
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../packages/contracts
       '@fastify/static':
         specifier: 10.1.7
@@ -272,22 +272,22 @@ importers:
   packages/cli:
     dependencies:
       '@davidniessen/compiler':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../compiler
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../contracts
       '@davidniessen/plugin-sdk':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../plugin-sdk
       '@davidniessen/reader':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../../apps/reader
       '@davidniessen/search':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../search
       '@davidniessen/spec':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../spec
       '@fastify/static':
         specifier: 10.1.7
@@ -305,28 +305,28 @@ importers:
   packages/compiler:
     dependencies:
       '@davidniessen/content':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../content
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../contracts
       '@davidniessen/plugin-sdk':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../plugin-sdk
       '@davidniessen/search':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../search
       '@davidniessen/spec':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../spec
 
   packages/content:
     dependencies:
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../contracts
       '@davidniessen/spec':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../spec
       '@mdx-js/mdx':
         specifier: 3.1.1
@@ -370,19 +370,19 @@ importers:
   packages/domain:
     dependencies:
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../contracts
 
   packages/explorer:
     dependencies:
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../contracts
 
   packages/plugin-sdk:
     dependencies:
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../contracts
       zod:
         specifier: 4.6.6
@@ -391,7 +391,7 @@ importers:
   packages/search:
     dependencies:
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../contracts
 
   packages/spec:
@@ -400,7 +400,7 @@ importers:
         specifier: 13.1.0
         version: 13.1.0(openapi-types@12.1.3)
       '@davidniessen/contracts':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../contracts
       ajv:
         specifier: 8.20.0
@@ -421,7 +421,7 @@ importers:
   packages/storage:
     dependencies:
       '@davidniessen/domain':
-        specifier: 0.2.0-candidate.2
+        specifier: 0.2.0-candidate.3
         version: link:../domain
       pg:
         specifier: 8.23.1

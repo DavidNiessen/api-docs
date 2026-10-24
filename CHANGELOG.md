@@ -2,6 +2,16 @@
 
 <!-- markdownlint-configure-file {"MD024": {"siblings_only": true}} -->
 
+## 0.2.0-candidate.3 - 2026-10-24
+
+The owner deferred independent security, isolation, accessibility, license reviews and external pilots for this prerelease. Their status remains unfinished and visible in publication plans. Automated acceptance, signatures, protected publishing and fresh registry installation checks remain required; stable publication still requires review approval.
+
+### Features
+
+- **release:** allow explicit owner-deferred prerelease reviews ([9b0d1ea](https://github.com/DavidNiessen/api-docs/commit/9b0d1eaf77e00e545c728db0dbed81f7c7ecbdd8))
+
+[Full changelog](https://github.com/DavidNiessen/api-docs/compare/v0.2.0-candidate.2...v0.2.0-candidate.3)
+
 ## 0.2.0-candidate.2 - 2026-10-24
 
 ### Package coordinates
