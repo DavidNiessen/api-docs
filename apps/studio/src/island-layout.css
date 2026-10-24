@@ -17,7 +17,10 @@
   border-radius: 18px;
 }
 .studio-layout {
-  gap: 12px;
+  gap: 0;
+  grid-template-columns:
+    min(var(--studio-sidebar-width, 240px), 30vw)
+    12px minmax(0, 1fr);
   margin-top: 12px;
   align-items: start;
 }
@@ -53,24 +56,42 @@
 nav button {
   border-radius: 10px;
 }
-.studio-panel-size {
-  margin-top: auto;
-  padding-top: 24px;
-  color: var(--muted);
-  font-size: var(--ui-text-xs);
+.studio-navigation-resize-controls {
+  position: sticky;
+  top: calc(var(--studio-header-height) + 24px);
+  height: calc(100dvh - var(--studio-header-height) - 36px);
 }
-.studio-panel-size > span {
+.studio-navigation-resize {
+  height: 100%;
+  width: calc(100% + 12px);
+  margin-inline: -6px;
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
 }
-.studio-panel-size input {
-  width: 100%;
-  padding: 0;
-  accent-color: var(--accent-text);
+.studio-navigation-resize > span {
+  width: 3px;
+  margin-block: 24px;
+  border-radius: 999px;
+  background: transparent;
 }
-.identity {
-  margin-top: 16px;
+.studio-navigation-resize:hover > span {
+  background: var(--ui-border);
+}
+.studio-navigation-resize:focus-visible > span,
+.studio-navigation-resize[data-dragging] > span {
+  background: var(--accent-text);
+}
+.studio-navigation-resize:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+.studio:has(.studio-navigation-resize[data-dragging]) * {
+  cursor: col-resize;
+  user-select: none;
 }
 .login {
   border-radius: 22px;
@@ -105,7 +126,7 @@ nav button {
     border-radius: 14px;
     margin-bottom: 6px;
   }
-  .studio-panel-size {
+  .studio-navigation-resize-controls {
     display: none;
   }
   .workspace-main {
