@@ -2,6 +2,8 @@
 
 Distributions use GitHub Packages for npm and Maven, and GHCR for containers. Publishing uses the workflow repository's short-lived `GITHUB_TOKEN`; maintainers do not need npm or Maven Central accounts, Central tokens or a production OpenPGP key. See [package installation and authentication](github-packages.md). Third-party build dependencies still resolve from their ordinary public registries.
 
+The [distribution decision](adr/0001-github-packages-distributions.md) records the selected identity, authentication trade-offs and remaining acceptance requirements.
+
 The manual **Review or publish verified distributions** workflow defaults to `confirm-publication: false`. That path has read-only permissions, verifies an existing signed candidate and retains a reviewable plan. Confirmed publication additionally requires approved source policy, current repository protections, a fresh scan of the accepted image and approval of the protected `release` environment.
 
 ## Source policy and destinations

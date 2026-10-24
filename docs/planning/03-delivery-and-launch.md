@@ -134,21 +134,21 @@ Retain test artifacts, traces on failure, accessibility reports, and benchmark m
 
 ## 6. Open source launch checklist
 
-Unchecked items are required future work, not completed claims.
+Checked items identify delivered implementation or documentation. Unchecked items remain required launch work. These checks do not replace exact-candidate acceptance or approve publication.
 
 ### Project and community
 
 - [ ] Adopt the final name and verify namespace/trademark availability.
 - [ ] Adopt a license (proposed Apache-2.0), add required notices, and audit dependency, font, icon, fixture, and documentation licenses.
-- [ ] Add CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, governance/maintainer ownership, issue/PR templates, and support policies.
+- [x] Add CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, governance/maintainer ownership, issue/PR templates, and support policies.
 - [ ] Define contribution certification (DCO or another reviewed process), public decision-making, triage labels, and maintainer succession.
 - [ ] Publish honest feature/support matrices, release status, roadmap, and example projects; remove placeholder features from marketing.
-- [ ] Enable and verify repository protection and private vulnerability reporting settings.
+- [x] Enable and verify repository protection and private vulnerability reporting settings.
 
 ### Product and documentation
 
 - [ ] Complete all required 1.0 product scope or explicitly revise the contract before release.
-- [ ] Ship quickstarts for static hosting, Docker/Compose, private docs, Spring Boot, Express, and Fastify.
+- [x] Ship quickstarts for static hosting, Docker/Compose, private docs, Spring Boot, Express, and Fastify.
 - [ ] Ship configuration, theme, plugin, API format compatibility, authentication, operator, troubleshooting, and migration reference docs.
 - [ ] Verify the public demo against the exact released packages and include realistic large and small examples.
 - [ ] Complete independent pilot journeys and close blocking usability, browser, and accessibility issues.
