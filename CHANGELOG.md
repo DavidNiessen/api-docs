@@ -2,6 +2,16 @@
 
 <!-- markdownlint-configure-file {"MD024": {"siblings_only": true}} -->
 
+## 0.2.0-candidate.4 - 2026-10-24
+
+Reduce large-site build work by indexing bounded navigation once per graph and overlapping static writes in bounded batches. The 120-second/10,000-operation release budget remains unchanged. Candidate `.3` failed that budget and was superseded; this version requires fresh full-size acceptance before publication. Independent launch reviews and pilots remain deferred for prereleases under the owner's recorded decision.
+
+### Performance
+
+- **compiler:** index navigation and overlap bounded page writes ([2177eea](https://github.com/DavidNiessen/api-docs/commit/2177eea212552d9f02fa327fcf5750352a1b15a1))
+
+[Full changelog](https://github.com/DavidNiessen/api-docs/compare/v0.2.0-candidate.3...v0.2.0-candidate.4)
+
 ## 0.2.0-candidate.3 - 2026-10-24
 
 The owner deferred independent security, isolation, accessibility, license reviews and external pilots for this prerelease. Their status remains unfinished and visible in publication plans. Automated acceptance, signatures, protected publishing and fresh registry installation checks remain required; stable publication still requires review approval.

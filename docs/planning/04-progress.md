@@ -10,6 +10,8 @@ The follow-up indexes the bounded navigation selection once per graph and overla
 
 Local formatting/lint, all **180 tooling tests** and **1,050 source tests** pass. The prior main Quality run also passed on `4817011`; candidate `.3` remains rejected by its separate performance gate. The fix requires fresh hosted Quality/performance acceptance and a new matching candidate before publication.
 
+A source-bound preparation aligns `0.2.0-candidate.4` across all npm/Java metadata and both locks. Its fresh production build and all **12 installed npm components** pass audit, offline reinstall, CLI/types, MDX/plugin and authenticated Express/Fastify journeys. The rejected `.3` tag stays immutable, and the fix is tested under a new version.
+
 ## Previous prerelease review-deferral increment
 
 **The owner explicitly requested deferring the five independent launch reviews and pilots for now.** Schema-3 source policy records `deferred` separately from `pending` and `approved`, together with the owner, reason and prerelease-only scope. Pending reviews always block publication; deferred reviews still block stable versions. Plans and workflow summaries expose the deferral. Publication is enabled for a new matching prerelease candidate while automated scans, producer signatures, protected publishing and fresh registry consumers remain required. See [ADR 0002](../adr/0002-deferred-prerelease-reviews.md).
