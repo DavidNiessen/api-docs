@@ -8,6 +8,7 @@ import { releaseCommand } from './release-command.mjs';
 import { readRegularFile } from './read-regular-file.mjs';
 import { hashReleaseAsset, verifyReleaseAssets } from './release-assets.mjs';
 import { releaseRequest } from './release-http.mjs';
+import { githubPackageRegistries } from './github-packages.mjs';
 
 const central = 'https://central.sonatype.com/api/v1/publisher';
 export const mavenRegistry = 'https://repo.maven.apache.org/maven2';
@@ -38,7 +39,12 @@ export function mavenPublicationFiles(context, group) {
   return files;
 }
 
-export async function loadMavenPublication(root, context, plan) {
+export async function loadMavenPublication(
+  root,
+  context,
+  plan,
+  { requireSigning = true } = {},
+) {
   assert.equal(
     plan.policyApproved,
     true,
@@ -53,7 +59,13 @@ export async function loadMavenPublication(root, context, plan) {
     'runAttempt',
   ])
     assert.equal(plan[key], context[key]);
-  assert.match(plan.maven.signingKeyFingerprint, fingerprintPattern);
+  if (requireSigning)
+    assert.match(plan.maven.signingKeyFingerprint, fingerprintPattern);
+  else
+    assert.equal(
+      plan.maven.registry,
+      githubPackageRegistries(context.repository).maven,
+    );
   const directory = join(root, '.api-docs/release-assets/java');
   const manifest = await verifyReleaseAssets(directory, context, 'java');
   const files = mavenPublicationFiles(context, plan.maven.groupId).map(
