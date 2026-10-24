@@ -1,0 +1,62 @@
+name: Publication protection drift
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - publication-protections.json
+      - scripts/lib/publication-protection.mjs
+      - scripts/lib/publication-policy.mjs
+      - scripts/lib/protection-api.mjs
+      - scripts/check-publication-protections.mjs
+      - scripts/snapshot-publication-protections.mjs
+      - .github/workflows/publication-protections.yml
+      - package-lock.json
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * *'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  protections:
+    name: Verify live publication protections
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Select this repository's release policy
+        id: policy
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFile, appendFile} from 'node:fs/promises';
+          const snapshot = JSON.parse(await readFile('publication-protections.json', 'utf8'));
+          const applicable = snapshot.repository === process.env.GITHUB_REPOSITORY;
+          await appendFile(process.env.GITHUB_OUTPUT, `applicable=${applicable}\n`);
+          if (!applicable) await appendFile(process.env.GITHUB_STEP_SUMMARY,
+            'The snapshot belongs to another repository. Ordinary fork build checks are separate; generate a matching snapshot when configuring fork releases.\n');
+          NODE
+      - run: npm ci --ignore-scripts
+        if: steps.policy.outputs.applicable == 'true'
+      - name: Compare source snapshot with actual ruleset revisions and protections
+        if: steps.policy.outputs.applicable == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/check-publication-protections.mjs
+      - name: Retain actual observations and verification
+        if: always() && steps.policy.outputs.applicable == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publication-protections-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .api-docs/publication/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

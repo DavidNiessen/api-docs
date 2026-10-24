@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "repository": "DavidNiessen/api-docs",
+  "branch": {
+    "id": 25759767,
+    "name": "Protect master",
+    "source": "DavidNiessen/api-docs",
+    "source_type": "Repository",
+    "updated_at": "2026-10-24T11:06:45.406Z",
+    "target": "branch",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": { "exclude": [], "include": ["~DEFAULT_BRANCH"] }
+    },
+    "rules": [
+      { "type": "deletion" },
+      { "type": "non_fast_forward" },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 1,
+          "dismiss_stale_reviews_on_push": true,
+          "required_reviewers": [],
+          "require_code_owner_review": false,
+          "require_last_push_approval": false,
+          "required_review_thread_resolution": true,
+          "require_extra_approval_for_unattributed_changes": true,
+          "allowed_merge_methods": ["merge", "squash", "rebase"]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": true,
+          "do_not_enforce_on_create": false,
+          "required_status_checks": [
+            { "context": "Quality", "integration_id": 15368 }
+          ]
+        }
+      }
+    ],
+    "bypass_actors": [
+      { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }
+    ]
+  },
+  "tags": {
+    "id": 25759785,
+    "name": "Protect release tags",
+    "source": "DavidNiessen/api-docs",
+    "source_type": "Repository",
+    "updated_at": "2026-10-23T22:55:21.206Z",
+    "target": "tag",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": { "exclude": [], "include": ["refs/tags/v*"] }
+    },
+    "rules": [
+      { "type": "deletion" },
+      { "type": "non_fast_forward" },
+      { "type": "update" }
+    ],
+    "bypass_actors": [
+      { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }
+    ]
+  }
+}
