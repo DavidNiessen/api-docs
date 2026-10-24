@@ -43,7 +43,7 @@ export function MockResponseControls({
     : [];
   return (
     <details className="mock-response-controls">
-      <summary>Preview a mock response</summary>
+      <summary>Mock response options</summary>
       <p>
         Local examples and seeded schema data. This does not contact the API.
       </p>

@@ -61,8 +61,23 @@ for (const width of [360, 768, 1280, 1920]) {
           (element) => element.scrollWidth - element.clientWidth,
         ),
       ).toBeLessThanOrEqual(1);
+      const output = playground.getByRole('region', { name: 'API response' });
+      await expect(output.locator('.mock-response-controls')).toHaveCount(0);
+      const pane = await output.boundingBox();
+      const empty = await output.locator('.response-empty').boundingBox();
+      expect(Math.abs(empty!.height - pane!.height)).toBeLessThanOrEqual(2);
       await send.click();
       await expect(playground.locator('.monaco-editor')).toBeVisible();
+      const editor = await output.locator('.response-editor').boundingBox();
+      expect(Math.abs(editor!.width - pane!.width)).toBeLessThanOrEqual(2);
+      const code = await output.locator('.response-monaco').boundingBox();
+      expect(code!.height).toBeGreaterThan(pane!.height * 0.55);
+      const headers = await output
+        .locator('.response-content > details')
+        .boundingBox();
+      expect(Math.abs(code!.y + code!.height - headers!.y)).toBeLessThanOrEqual(
+        2,
+      );
       const text = playground.locator('.monaco-editor textarea');
       await expect(text.first()).toHaveAttribute('readonly');
       await page.screenshot({

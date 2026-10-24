@@ -14,7 +14,7 @@ group: Get started
 
 ## Explore success and error cases
 
-Open **Preview a mock response** in the response panel. Choose a documented status and generate it. Named examples show curated responses; **Generate from schema** produces repeatable data for the chosen seed.
+Open **Mock response options** in the request pane. Choose a documented status and generate it. Named examples show curated responses; **Generate from schema** produces repeatable data for the chosen seed.
 
 Try **Create a project** to inspect a JSON request body, or **Delete a project** to preview a body-free 204 response. These actions generate local previews. They do not validate a real service, mutate a resource or require a confirmation for a live request.
 

@@ -2,7 +2,7 @@
 
 Choose **Try now** on an endpoint to open the playground. Its right panel shows **Your response will appear here** until a request receives a response, then displays the status, duration and a read-only Monaco editor. Request snippets are available in the collapsible **Request example** section on the left.
 
-The response panel also offers optional [local mock previews](mock-responses.md) from examples or seeded schema data. These are labeled as mocks and use the same editor/copy controls; the URL bar's Send action remains a live request by default. With `explorer.mode: mock`, **Send mock** generates a local preview instead; see the [static demonstration](pages-demo.md).
+The request pane also offers optional [local mock previews](mock-responses.md) from examples or seeded schema data. These are labeled as mocks and use the same editor/copy controls; the URL bar's Send action remains a live request by default. With `explorer.mode: mock`, **Send mock** generates a local preview instead; see the [static demonstration](pages-demo.md).
 
 ## Read, fold and copy responses
 

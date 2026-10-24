@@ -25,8 +25,10 @@ test('the live Send action retains confirmation and replaces an earlier mock res
   );
   const playground = page.getByLabel('API playground'),
     output = playground.getByRole('region', { name: 'API response' });
-  await output.getByText('Preview a mock response', { exact: true }).click();
-  await output.getByRole('button', { name: 'Generate mock response' }).click();
+  await playground.getByText('Mock response options', { exact: true }).click();
+  await playground
+    .getByRole('button', { name: 'Generate mock response' })
+    .click();
   await expect(output.locator('.response-meta')).toContainText('Mock response');
   expect(posts).toBe(0);
   await playground

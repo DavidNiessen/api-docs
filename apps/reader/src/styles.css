@@ -2326,13 +2326,6 @@ h3 {
   color: var(--heading);
   cursor: pointer;
 }
-.response-panel-heading {
-  padding: 12px 4px 16px;
-  border-bottom: 1px solid var(--ui-border, var(--border));
-  font-size: var(--ui-text-md);
-  font-weight: 600;
-  color: var(--heading);
-}
 .response-editor {
   border: 1px solid var(--ui-border, var(--border));
   border-radius: 10px;
