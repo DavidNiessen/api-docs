@@ -2,6 +2,20 @@
 
 <!-- markdownlint-configure-file {"MD024": {"siblings_only": true}} -->
 
+## 0.2.0-candidate.7 - 2026-10-24
+
+Support GitHub's signed artifact downloads through one exact CDN hop without forwarding registry credentials, headers or referrers. Metadata and writes retain redirect refusal; original-byte integrity and producer checks remain required. Native read-only downloads match the partial `.6` artifacts, whose published versions and tag remain immutable. This replacement requires its own full candidate and registry acceptance. Independent launch reviews remain deferred for prereleases.
+
+### Fixes
+
+- **release:** verify GitHub CDN downloads without forwarding credentials ([3d9d53a](https://github.com/DavidNiessen/api-docs/commit/3d9d53acfe8d7a7e552df35fdbb0e0c0f75e2981))
+
+### Documentation
+
+- **release:** record native registry downloads and partial publication ([5ec38f6](https://github.com/DavidNiessen/api-docs/commit/5ec38f61bf4d4c36c41b93d0ad66caeee7c6be7e))
+
+[Full changelog](https://github.com/DavidNiessen/api-docs/compare/v0.2.0-candidate.6...v0.2.0-candidate.7)
+
 ## 0.2.0-candidate.6 - 2026-10-24
 
 Verify repository protection with an administrator-read source snapshot bound to GitHub's live ruleset revisions. This supports read-only workflow tokens without treating hidden bypass actors as an empty list. Drift, visible bypass mismatches and malformed evidence remain blocking. No new secret or elevated workflow permission is required; native approval, signatures, security and fresh registry installation remain required. Independent launch reviews remain deferred for prereleases.

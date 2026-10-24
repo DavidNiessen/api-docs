@@ -10,11 +10,13 @@ The repository owner selected GitHub Packages for JavaScript and Java distributi
 
 ## Decision
 
-Use npm scope `@davidniessen` at `https://npm.pkg.github.com`, Maven group `dev.niessen` at `https://maven.pkg.github.com/davidniessen/api-docs`, and `ghcr.io/davidniessen/api-docs` for containers. Source policy schema 2 binds destinations to the source repository owner/name. Renaming or transferring the project requires matching reviewed coordinates and a new candidate.
+Use npm scope `@davidniessen` at `https://npm.pkg.github.com`, Maven group `dev.niessen` at `https://maven.pkg.github.com/davidniessen/api-docs`, and `ghcr.io/davidniessen/api-docs` for containers. Source policy binds destinations to the source repository owner/name. Renaming or transferring the project requires matching reviewed coordinates and a new candidate.
 
 Publish from the protected `release` environment with short-lived repository Actions tokens. npm and Maven publishers receive package-write permission; their separate consumers receive read permission. Only the OCI publisher and fresh security-report producer need OIDC in the publishing workflow. A production OpenPGP key and external registry credentials are unnecessary.
 
 Retain original producer attestations for all accepted subjects. Fresh npm/Maven consumers download registry bytes, check their accepted hashes and verify those producer attestations against the exact source tag/commit and hosted workflow. Maven uses its standard deployment protocol without rebuilding accepted POM/JAR files. npmjs native provenance and Central/OpenPGP signatures are not requirements of the selected GitHub transport.
+
+[ADR 0004](0004-github-artifact-downloads.md) records GitHub's signed artifact CDN redirects and the credential-free, exact-origin download path. Metadata and writes retain redirect refusal.
 
 Public npm acceptance additionally requires the package to be public and connected to its source repository. Maven inherits the source repository's access model. Anonymous GHCR acceptance remains required for the public container. Private package access by a workflow token cannot establish a successful public release.
 

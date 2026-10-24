@@ -2,7 +2,19 @@
 
 Updated: 2026-10-24. **Approximately 98% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current workflow protection-evidence increment
+## Current native registry-download increment
+
+**Candidate `.6` passed all 22 jobs and all 39 producer signatures; its first actual publication is partial.** [Candidate 40106582434](https://github.com/DavidNiessen/api-docs/actions/runs/40106582434), matching main Quality, live protection checks and the hosted mock demo passed on `54f455d`. The compiler measured 99.70 seconds for 10k operations. [Preview 40107936967](https://github.com/DavidNiessen/api-docs/actions/runs/40107936967) reverified all subjects with zero prerelease blockers and five reviews explicitly deferred. The owner approved the protected [publication 40108189912](https://github.com/DavidNiessen/api-docs/actions/runs/40108189912), whose plan and fresh signed scan passed with the normal workflow token.
+
+The accepted container was promoted unchanged, its promotion was attested, and the fresh anonymous consumer passed its pull/runtime checks. npm uploaded its first archive and Maven its parent POM, but read-back failed because GitHub redirects artifact downloads to signed CDN URLs. The aggregate correctly failed; this is not a complete release, and existing `.6` versions/tags remain immutable.
+
+Artifact GETs now support one exact GitHub CDN hop with a fresh request that drops every original header, credential option and referrer. Metadata/writes retain redirect refusal; bounds, accepted hashes, npm integrity and producer checks remain mandatory. Regression tests reject foreign/malformed targets, credentials/fragments, writes, further redirects, oversized responses and transport errors containing signed capabilities. See [ADR 0004](../adr/0004-github-artifact-downloads.md).
+
+Formatting/lint, all **187 tooling tests** and **1,050 source tests** pass. [Read-only native download 40112262485](https://github.com/DavidNiessen/api-docs/actions/runs/40112262485) at `3d9d53a` fetched both existing GitHub artifacts through the corrected path: the 75,704-byte archive and 5,130-byte POM match the original producer-verified SHA-256 hashes, and npm integrity matches. This partial-artifact proof does not replace a new matching candidate or all three complete registry consumers. The estimate remains approximately **98%, pre-release**; independent reviews remain deferred.
+
+Source-bound preview/application aligns `0.2.0-candidate.7` across all 16 npm packages, both locks, runtime identity and three Java POMs. The fresh production build and all **12 installed npm components** pass audit, offline reinstall, public SDK/CLI/plugin and authenticated Express/Fastify journeys. Fresh hosted checks, the new clean-tag candidate and complete registry acceptance remain required before announcing a prerelease.
+
+## Previous workflow protection-evidence increment
 
 **Signed candidate `.5` passed all 22 jobs, but confirmed publication stopped before registry writes on GitHub's redacted bypass metadata.** [Candidate 40102334422](https://github.com/DavidNiessen/api-docs/actions/runs/40102334422), main Quality and the deployed mock demo passed on `6fb08cf`. The compiler measured 99.95 seconds for 10k operations. [Preview 40103554382](https://github.com/DavidNiessen/api-docs/actions/runs/40103554382) verified all 39 subjects with zero prerelease blockers and all five reviews explicitly deferred. [Confirmed run 40103828095](https://github.com/DavidNiessen/api-docs/actions/runs/40103828095) failed closed because the workflow token could not enumerate ruleset bypass actors; every publisher was skipped.
 

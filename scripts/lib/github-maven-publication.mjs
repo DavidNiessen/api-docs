@@ -88,6 +88,7 @@ export async function inspectGitHubMaven(
       const result = await request(`${candidate.registry}/${file.path}`, {
         headers,
         maximum: Math.max(file.bytes, 64 * 1024),
+        allowGitHubArtifactRedirect: true,
       });
       if (result.status === 404) continue;
       assert.equal(
