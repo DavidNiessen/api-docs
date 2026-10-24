@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   githubPackageRegistries,
   githubPackageHeaders,
@@ -10,6 +10,42 @@ import {
 import { loadMavenPublication } from './maven-publication.mjs';
 import { releaseRequest } from './release-http.mjs';
 import { releaseCommand } from './release-command.mjs';
+import { hashReleaseAsset } from './release-assets.mjs';
+import { readRegularFile } from './read-regular-file.mjs';
+
+/** Validate Maven's actual installed bytes and resolver-origin markers after fresh consumption. */
+export async function verifyGitHubMavenCache(files, directory) {
+  const origins = [];
+  for (const file of files.filter(
+    (file) =>
+      file.name.endsWith('.pom') ||
+      (file.name.endsWith('.jar') &&
+        !file.name.endsWith('-sources.jar') &&
+        !file.name.endsWith('-javadoc.jar')),
+  )) {
+    const path = join(directory, file.path);
+    const actual = await hashReleaseAsset(path);
+    assert.equal(
+      actual.sha256,
+      file.sha256,
+      'Installed Maven consumer used different project bytes.',
+    );
+    assert.equal(actual.bytes, file.bytes);
+    const markers = (
+      await readRegularFile(join(dirname(path), '_remote.repositories'))
+    ).toString('utf8');
+    assert(
+      markers.split('\n').includes(file.name + '>github='),
+      'Project artifacts must resolve from GitHub Packages, not another repository or a local install.',
+    );
+    origins.push({
+      name: file.name,
+      sha256: file.sha256,
+      repositoryId: 'github',
+    });
+  }
+  return origins;
+}
 
 export async function loadGitHubMavenPublication(root, context, plan) {
   const registry = githubPackageRegistries(context.repository).maven;

@@ -9,6 +9,43 @@ const exec = promisify(execFile);
 const execute = (file, args) =>
   exec(file, args, { timeout: 90_000, maxBuffer: 4 * 1024 * 1024 });
 
+/** Also used on registry-downloaded bytes, with the original producer identity. */
+export async function verifyProducerSubject(
+  path,
+  context,
+  { run = execute } = {},
+) {
+  let result;
+  try {
+    result = await run('gh', [
+      'attestation',
+      'verify',
+      path,
+      '--repo',
+      context.repository,
+      '--signer-workflow',
+      `${context.repository}/.github/workflows/quality.yml`,
+      '--source-ref',
+      context.ref,
+      '--source-digest',
+      context.commit,
+      '--deny-self-hosted-runners',
+      '--format',
+      'json',
+    ]);
+  } catch {
+    throw new Error(
+      'Producer provenance verification failed. Check the signature, repository, source, workflow and hosted-runner identity.',
+    );
+  }
+  const receipt = JSON.parse(result.stdout);
+  assert(
+    receipt && typeof receipt === 'object' && Object.keys(receipt).length > 0,
+    'Empty producer verification result.',
+  );
+  return receipt;
+}
+
 /** Verify accepted bytes against the actual hosted producer, never just a repository owner. */
 export async function verifyProducerProvenance(
   root,
@@ -26,36 +63,7 @@ export async function verifyProducerProvenance(
       'release-assets.json',
     ]) {
       const path = join(directory, name);
-      let result;
-      try {
-        result = await run('gh', [
-          'attestation',
-          'verify',
-          path,
-          '--repo',
-          context.repository,
-          '--signer-workflow',
-          `${context.repository}/.github/workflows/quality.yml`,
-          '--source-ref',
-          context.ref,
-          '--source-digest',
-          context.commit,
-          '--deny-self-hosted-runners',
-          '--format',
-          'json',
-        ]);
-      } catch {
-        throw new Error(
-          `Producer provenance verification failed for ${kind}/${name}. Check the signature, repository, source, workflow and hosted-runner identity.`,
-        );
-      }
-      const receipt = JSON.parse(result.stdout);
-      assert(
-        receipt &&
-          typeof receipt === 'object' &&
-          Object.keys(receipt).length > 0,
-        'Empty producer verification result.',
-      );
+      const receipt = await verifyProducerSubject(path, context, { run });
       await writeFile(
         join(evidence, `${kind}-${name}.json`),
         JSON.stringify(receipt, null, 2) + '\n',

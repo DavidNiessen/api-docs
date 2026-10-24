@@ -10,6 +10,11 @@ import {
 } from './lib/npm-publication.mjs';
 import { releaseSource } from './lib/release-assets.mjs';
 import { readRegularFile } from './lib/read-regular-file.mjs';
+import {
+  githubPackageRegistries,
+  githubNpmVisibility,
+} from './lib/github-packages.mjs';
+import { verifyProducerSubject } from './lib/provenance-verification.mjs';
 
 assert.equal(process.argv.length, 2);
 const root = process.cwd();
@@ -21,11 +26,8 @@ const plan = JSON.parse(
 );
 const context = { ...source, runId: plan.runId, runAttempt: plan.runAttempt };
 const candidate = await loadNpmPublication(root, context, plan);
-for (const pkg of candidate.packages)
-  assert(
-    (await inspectNpmVersion(pkg)).exists,
-    `Public npm package is missing: ${pkg.name}.`,
-  );
+const registries = githubPackageRegistries(context.repository);
+assert.equal(candidate.registry, registries.npm);
 const consumer = await mkdtemp(join(tmpdir(), 'api-docs-public-npm-consumer-'));
 const destination = join(root, '.api-docs/published-consumers/npm');
 await mkdir(destination, { recursive: true });
@@ -39,15 +41,47 @@ const config = [
   '--userconfig',
   join(consumer, 'npmrc'),
 ];
-const run = (file, args, timeout = 180_000) =>
-  exec(file, args, {
-    cwd: consumer,
-    timeout,
-    maxBuffer: 16 * 1024 * 1024,
-    env: { ...process.env, NODE_PATH: '' },
-  });
+const run = async (file, args, timeout = 180_000) => {
+  try {
+    return await exec(file, args, {
+      cwd: consumer,
+      timeout,
+      maxBuffer: 16 * 1024 * 1024,
+      env: { ...process.env, NODE_PATH: '' },
+    });
+  } catch {
+    throw new Error(
+      'Fresh GitHub npm consumer command failed. Inspect package visibility, authorization and the retained verification receipts.',
+    );
+  }
+};
 try {
-  await writeFile(join(consumer, 'npmrc'), '', { mode: 0o600, flag: 'wx' });
+  await writeFile(
+    join(consumer, 'npmrc'),
+    registries.scope +
+      ':registry=' +
+      registries.npm +
+      '\n//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}\n',
+    { mode: 0o600, flag: 'wx' },
+  );
+  const visibility = [];
+  for (const pkg of candidate.packages) {
+    const result = await inspectNpmVersion(pkg, {
+      registry: registries.npm,
+      acceptArchive: async (bytes) => {
+        const path = join(consumer, pkg.filename);
+        await writeFile(path, bytes, { flag: 'wx' });
+        const proof = await verifyProducerSubject(path, context);
+        await writeFile(
+          join(destination, pkg.filename + '.provenance.json'),
+          JSON.stringify(proof, null, 2) + '\n',
+          { flag: 'wx' },
+        );
+      },
+    });
+    assert(result.exists, `GitHub npm package is missing: ${pkg.name}.`);
+    visibility.push(await githubNpmVisibility(pkg.name, context.repository));
+  }
   await writeFile(
     join(consumer, 'package.json'),
     JSON.stringify(
@@ -88,21 +122,13 @@ try {
     const installed = lock.packages[`node_modules/${pkg.name}`];
     assert.equal(installed?.version, pkg.version);
     assert.equal(installed.integrity, pkg.integrity);
-    assert.equal(
-      new URL(installed.resolved).origin,
-      'https://registry.npmjs.org',
-    );
+    assert.equal(new URL(installed.resolved).origin, registries.npm);
     assert.notEqual(
       installed.link,
       true,
       'Registry acceptance cannot use workspace links.',
     );
   }
-  const signatures = await run('npm', ['audit', 'signatures', ...config]);
-  await writeFile(
-    join(destination, 'signature-verification.txt'),
-    signatures.stdout,
-  );
   await run('npm', ['audit', '--audit-level=moderate', ...config], 60_000);
   await run('npm', [
     'ci',
@@ -134,10 +160,13 @@ try {
         ...context,
         passed: true,
         packages: candidate.packages.length,
+        registry: registries.npm,
+        visibility,
         checks: [
-          'fresh-empty-cache-public-registry-install',
+          'fresh-empty-cache-authenticated-github-registry-install',
           'registry-archive-hashes',
-          'registry-signatures-and-provenance',
+          'exact-github-producer-attestations',
+          'public-repository-linked-package-visibility',
           'dependency-audit',
           'offline-lockfile-reinstall',
           'public-types-cli-and-authenticated-adapters',
@@ -157,7 +186,7 @@ try {
     { flag: 'wx' },
   );
   console.log(
-    'Fresh public npm consumer, signatures, provenance, audit and offline reinstall passed.',
+    'Fresh authenticated GitHub npm consumer, producer provenance, public visibility, audit and offline reinstall passed.',
   );
 } finally {
   await rm(consumer, { recursive: true, force: true });

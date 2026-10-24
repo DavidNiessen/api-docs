@@ -38,7 +38,7 @@ The 2026-10-22 development run passed all six archive inspections, the five-prop
 
 ## Selected publishing namespace
 
-The selected Maven group is `dev.niessen`. Parent/module dependencies, consumer fixtures and embedded-coordinate/SBOM checks use that group. The `api-docs` artifact names remain placeholders pending the product rename; Java source packages retain their existing API identities. Namespace selection does not establish Maven Central authorization or signed registry publication.
+The selected Maven group is `dev.niessen`. Parent/module dependencies, consumer fixtures and embedded-coordinate/SBOM checks use that group. The `api-docs` artifact names remain placeholders pending the product rename; Java source packages retain their existing API identities. The configured target is [GitHub Packages](github-packages.md), which needs GitHub authentication rather than a Maven Central account or production GPG key. Actual signed-producer/registry acceptance remains separate from local candidate tests.
 
 A local follow-up from source `568f2ad` with the namespace changes in its working tree passes all six JDK 17/21/25 × Boot 3.5.16/4.1.1 combinations (60 tests, no skips) and all 12 physically installed MVC/WebFlux consumers (48 tests, no skips, with offline compilation). Candidate reports record the dirty source and unverified publication/signature state. Older evidence below uses the previous development coordinates.
 

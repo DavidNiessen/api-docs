@@ -1,15 +1,28 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, readFile, stat } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import {
+  access,
+  readFile,
+  stat,
+  mkdtemp,
+  mkdir,
+  writeFile,
+  rm,
+} from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
 import {
   githubPackageRegistries,
   githubPackageHeaders,
+  validateGitHubNpmVisibility,
+  githubPackageRepository,
+  githubNpmVisibility,
 } from '../lib/github-packages.mjs';
 import {
   inspectGitHubMaven,
   publishGitHubMaven,
+  verifyGitHubMavenCache,
 } from '../lib/github-maven-publication.mjs';
 import { mavenPublicationFiles } from '../lib/maven-publication.mjs';
 import {
@@ -21,11 +34,100 @@ const env = {
   GITHUB_ACTOR: 'release-automation[bot]',
   GITHUB_PACKAGES_TOKEN: 'unit-test-only-token',
 };
+
+test('an authenticated install cannot claim an open source package while it remains private or disconnected', () => {
+  const metadata = {
+    name: 'contracts',
+    package_type: 'npm',
+    visibility: 'public',
+    repository: { full_name: 'DavidNiessen/api-docs' },
+  };
+  assert.equal(
+    validateGitHubNpmVisibility(
+      metadata,
+      '@davidniessen/contracts',
+      'DavidNiessen/api-docs',
+    ).visibility,
+    'public',
+  );
+  assert.throws(
+    () =>
+      validateGitHubNpmVisibility(
+        { ...metadata, visibility: 'private' },
+        '@davidniessen/contracts',
+        'DavidNiessen/api-docs',
+      ),
+    /visibility to Public/,
+  );
+  assert.throws(
+    () =>
+      validateGitHubNpmVisibility(
+        { ...metadata, repository: { full_name: 'another/repository' } },
+        '@davidniessen/contracts',
+        'DavidNiessen/api-docs',
+      ),
+    /source repository/,
+  );
+  assert.throws(() =>
+    validateGitHubNpmVisibility(
+      { ...metadata, name: 'another-package' },
+      '@davidniessen/contracts',
+      'DavidNiessen/api-docs',
+    ),
+  );
+});
 const registries = githubPackageRegistries('DavidNiessen/api-docs');
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const response = (bytes, status = 200) => ({
   status,
   bytes: Buffer.isBuffer(bytes) ? bytes : Buffer.from(JSON.stringify(bytes)),
+});
+
+test('package visibility follows verified user or organization ownership and rejects private distribution repositories', async () => {
+  for (const type of ['User', 'Organization']) {
+    const calls = [];
+    const run = async (_command, args) => {
+      const endpoint = args.at(-1);
+      calls.push(endpoint);
+      return {
+        stdout: JSON.stringify(
+          endpoint.startsWith('repos/')
+            ? {
+                full_name: 'DavidNiessen/api-docs',
+                private: false,
+                owner: { type, login: 'DavidNiessen' },
+              }
+            : {
+                name: 'contracts',
+                package_type: 'npm',
+                visibility: 'public',
+                repository: { full_name: 'DavidNiessen/api-docs' },
+              },
+        ),
+      };
+    };
+    await githubNpmVisibility(
+      '@davidniessen/contracts',
+      'DavidNiessen/api-docs',
+      { run },
+    );
+    assert.equal(
+      calls[1],
+      (type === 'User' ? 'users' : 'orgs') +
+        '/DavidNiessen/packages/npm/contracts',
+    );
+  }
+  await assert.rejects(
+    githubPackageRepository('DavidNiessen/api-docs', {
+      run: async () => ({
+        stdout: JSON.stringify({
+          full_name: 'DavidNiessen/api-docs',
+          private: true,
+        }),
+      }),
+    }),
+    /public source repository/,
+  );
 });
 
 test('GitHub registry coordinates and credentials reject foreign repositories and header injection', () => {
@@ -77,13 +179,17 @@ const metadata = () => ({
   version: pkg.version,
   dist: { integrity: pkg.integrity, tarball },
 });
+const packument = (value = metadata()) => ({
+  name: pkg.name,
+  versions: { [pkg.version]: value },
+});
 
 test('GitHub npm downloads use scoped authentication and verify bytes before provenance callbacks', async () => {
   let verified = false;
   const request = async (url, options) => {
     assert.equal(new URL(url).origin, registries.npm);
     assert.deepEqual(options.headers, githubPackageHeaders('npm', env));
-    return response(url === tarball ? archive : metadata());
+    return response(url === tarball ? archive : packument());
   };
   const result = await inspectNpmVersion(pkg, {
     registry: registries.npm,
@@ -96,6 +202,24 @@ test('GitHub npm downloads use scoped authentication and verify bytes before pro
   });
   assert.equal(verified, true);
   assert.equal(
+    (
+      await inspectNpmVersion(pkg, {
+        registry: registries.npm,
+        env,
+        request: async () => response({ name: pkg.name, versions: {} }),
+      })
+    ).exists,
+    false,
+  );
+  await assert.rejects(
+    inspectNpmVersion(pkg, {
+      registry: registries.npm,
+      env,
+      request: async () => response({ name: pkg.name }),
+    }),
+    /Malformed/,
+  );
+  assert.equal(
     result.provenance,
     null,
     'GitHub producer attestations are verified separately; native npm provenance is not claimed.',
@@ -105,13 +229,15 @@ test('GitHub npm downloads use scoped authentication and verify bytes before pro
       registry: registries.npm,
       env,
       request: async () =>
-        response({
-          ...metadata(),
-          dist: {
-            ...metadata().dist,
-            tarball: 'https://registry.npmjs.org/leak',
-          },
-        }),
+        response(
+          packument({
+            ...metadata(),
+            dist: {
+              ...metadata().dist,
+              tarball: 'https://registry.npmjs.org/leak',
+            },
+          }),
+        ),
     }),
     /selected registry/,
   );
@@ -138,7 +264,10 @@ test('GitHub npm publishing keeps tokens out of files and arguments and skips un
     {
       env,
       request: async (url) =>
-        response(url === tarball ? archive : metadata(), published ? 200 : 404),
+        response(
+          url === tarball ? archive : packument(),
+          published ? 200 : 404,
+        ),
       run: async (command, args) => {
         assert.equal(command, 'npm');
         assert(!args.includes('--provenance'));
@@ -178,6 +307,42 @@ function mavenFixture() {
     bytes,
   };
 }
+
+test('fresh Maven cache validation rejects different bytes and non-GitHub origin markers', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ad-gh-maven-cache-'));
+  const { candidate, bytes } = mavenFixture();
+  try {
+    for (const file of candidate.files) {
+      const path = join(directory, file.path);
+      await mkdir(dirname(path), { recursive: true });
+      await writeFile(path, bytes.get(file.path));
+      const marker = join(dirname(path), '_remote.repositories');
+      await writeFile(marker, file.name + '>github=\n', { flag: 'a' });
+    }
+    assert.equal(
+      (await verifyGitHubMavenCache(candidate.files, directory)).length,
+      5,
+    );
+    const file = candidate.files.find((item) => item.name.endsWith('.jar'));
+    await writeFile(join(directory, file.path), 'different bytes');
+    await assert.rejects(
+      verifyGitHubMavenCache(candidate.files, directory),
+      /different project bytes/,
+    );
+    await writeFile(join(directory, file.path), bytes.get(file.path));
+    const marker = join(directory, dirname(file.path), '_remote.repositories');
+    await writeFile(
+      marker,
+      (await readFile(marker, 'utf8')).replaceAll('>github=', '>central='),
+    );
+    await assert.rejects(
+      verifyGitHubMavenCache(candidate.files, directory),
+      /must resolve from GitHub/,
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 test('GitHub Maven resumes complete artifact groups using exact accepted files and private environment-reference settings', async () => {
   const { candidate, bytes } = mavenFixture();

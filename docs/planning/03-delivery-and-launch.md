@@ -107,7 +107,7 @@ Files alone cannot activate all GitHub protections. Maintainers must configure a
 1. Require PRs and review on `master`, with required quality checks, stale approval dismissal, resolved conversations, and no routine direct pushes/force pushes. Consider merge queue after `merge_group` checks are verified.
 2. Restrict release tags and publishing environments; require approval for stable production publication. Grant bots only the package/repository capabilities they need.
 3. Enable dependency alerts, secret scanning/push protection where available, private vulnerability reporting, and appropriate code scanning for the repository's GitHub plan and visibility.
-4. Configure npm trusted publishing, Maven Central namespace/signing, container registry ownership, and docs deployment credentials. Keep all secrets in approved secret stores/environments.
+4. Configure repository-bound GitHub Packages npm/Maven publication with short-lived Actions tokens, public package visibility, read-only authenticated consumers, GHCR and documentation deployment. The selected GitHub workflow does not require npm/Maven Central accounts or a production OpenPGP key. Keep any external consumer tokens in approved secret stores.
 5. Set squash-merge conventions, default branch, issue templates, Discussions policy, repository description/topics, website/demo, and security contact routes.
 6. Verify permissions using a contributor/fork PR and a dry-run release. Record the checks and date in the release checklist.
 

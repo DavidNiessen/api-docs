@@ -45,7 +45,8 @@ export async function inspectNpmVersion(
       pkg.bytes <= 64 * 1024 * 1024,
   );
   const result = await request(
-    `${destination}/${encodeURIComponent(pkg.name)}/${encodeURIComponent(pkg.version)}`,
+    `${destination}/${encodeURIComponent(pkg.name)}` +
+      (destination === registry ? `/${encodeURIComponent(pkg.version)}` : ''),
     { headers },
   );
   if (result.status === 404) return { exists: false };
@@ -54,7 +55,22 @@ export async function inspectNpmVersion(
     200,
     `Cannot inspect npm publication ${pkg.name}.`,
   );
-  const metadata = JSON.parse(result.bytes.toString('utf8'));
+  const document = JSON.parse(result.bytes.toString('utf8'));
+  if (destination === githubNpmRegistry) {
+    assert.equal(document.name, pkg.name);
+    assert(
+      document.versions &&
+        typeof document.versions === 'object' &&
+        !Array.isArray(document.versions),
+      'Malformed GitHub npm package metadata.',
+    );
+  }
+  const metadata =
+    destination === githubNpmRegistry
+      ? document.versions?.[pkg.version]
+      : document;
+  if (destination === githubNpmRegistry && metadata === undefined)
+    return { exists: false };
   assert.equal(metadata.name, pkg.name);
   assert.equal(metadata.version, pkg.version);
   assert.equal(
@@ -135,6 +151,13 @@ export async function loadNpmPublication(root, context, plan) {
     .filter((pkg) => pkg.path && pkg.metadata.private !== true)
     .map((pkg) => pkg.metadata);
   const names = metadata.map((pkg) => pkg.name).sort();
+  if (plan.npm.registry)
+    assert(
+      metadata.every(
+        (pkg) => pkg.publishConfig?.registry === plan.npm.registry,
+      ),
+      'Package publishConfig must match the reviewed npm registry.',
+    );
   assert.deepEqual([...plan.npm.packages].sort(), names);
   assert.deepEqual(report.packages.map((pkg) => pkg.name).sort(), names);
   for (const pkg of report.packages) {

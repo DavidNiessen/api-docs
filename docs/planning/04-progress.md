@@ -2,7 +2,17 @@
 
 Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current namespace increment
+## Current GitHub Packages increment
+
+**Distributions now target the selected GitHub account for npm, Maven and GHCR.** npm uses `@davidniessen` at `npm.pkg.github.com`; Maven keeps `dev.niessen` at the repository's GitHub Maven endpoint. Publication needs the repository's short-lived Actions token rather than external npm/Central accounts or a production GPG key. Schema-2 source policy binds destinations to the source repository and keeps publication disabled with five independent launch reviews pending: six source-policy blockers. Package manifests, the Java POM and installation guides select the same destinations.
+
+New npm/Maven transports preserve accepted bytes, reject conflicts, keep credentials out of arguments/files and retain partial receipts. Fresh authenticated consumers verify downloaded bytes against original producer attestations, use empty package caches, run installed npm/Java journeys and offline compilation, and retain origin/integrity evidence. The npm gate additionally checks public visibility and the source-repository link; private access by the workflow token is insufficient. New npm/GHCR package visibility can require a one-time owner change after first publication.
+
+The native Maven deployment plugin copied all nine real candidate POM/JAR files unchanged into an owned file-protocol repository. Its explicit local-only receipt does not claim GitHub registry publication. Hosted checks also exposed a namespace-dependent rollback import and two CodeQL URL-check findings; the recovery verifier now loads through its stable in-image package path, and registry allowlists use explicit equality with adversarial lookalike-host tests. A constrained read-only probe of the retained pre-rename image loads its own verifier successfully. Fresh hosted acceptance of the final configuration remains required. The estimate remains approximately **97%, pre-release**.
+
+Local validation passes **178 tooling tests**, **1,049 source tests**, all **12 installed npm components**, frozen pnpm policy/lockfile validation and baseline Java 21/Boot 3.5.16 MVC/WebFlux consumers (**8 tests, no skips**, plus both offline compilations). An additional native Maven file-repository rehearsal starts with an empty external Maven cache, passes both installed hosts and offline compilation again, and verifies all five installed project POM/binary hashes and real Maven resolver-origin markers; this remains local protocol evidence. [Hosted Quality 40090660979](https://github.com/DavidNiessen/api-docs/actions/runs/40090660979) passes every job at `f6c3362`, confirming the rollback and source-scanning fixes before the final workflow switch. The GitHub Packages wiring still requires its own fresh hosted checks, matching signed candidate and actual protected registry acceptance.
+
+## Previous namespace increment
 
 **The selected npm scope is `@davidniessen`, while Maven retains `dev.niessen`.** Every workspace manifest, internal import, both lockfiles, installed-consumer fixture, CI command and current integration guide now uses that npm scope. The product name remains provisional. Namespace ownership and publication are still explicitly unverified; choosing coordinates does not create registry credentials. The original `v0.2.0-candidate.1` evidence is retained for its original source/scope and cannot authorize relabeled archives.
 

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { releaseCommand } from './release-command.mjs';
 
 export const githubNpmRegistry = 'https://npm.pkg.github.com';
 
@@ -40,6 +41,93 @@ export function githubPackageHeaders(kind, env = process.env) {
         'base64',
       ),
   };
+}
+
+export function validateGitHubNpmVisibility(metadata, name, repository) {
+  const { scope } = githubPackageRegistries(repository);
+  assert(name.startsWith(scope + '/'));
+  assert.equal(metadata.package_type, 'npm');
+  assert([name, name.slice(scope.length + 1)].includes(metadata.name));
+  assert.equal(
+    metadata.repository?.full_name,
+    repository,
+    'Connect the GitHub npm package to its source repository.',
+  );
+  assert.equal(
+    metadata.visibility,
+    'public',
+    `Set ${name} visibility to Public in GitHub Packages settings, then rerun all publication jobs.`,
+  );
+  return { name, repository, visibility: 'public' };
+}
+
+export async function githubPackageRepository(
+  repository,
+  { run = releaseCommand } = {},
+) {
+  githubPackageRegistries(repository);
+  let result;
+  try {
+    result = await run(
+      'gh',
+      ['api', '--hostname', 'github.com', `repos/${repository}`],
+      { timeout: 60_000, maxBuffer: 1024 * 1024 },
+    );
+  } catch {
+    throw new Error(
+      'Cannot inspect the distribution repository. Check repository read access.',
+    );
+  }
+  const metadata = JSON.parse(result.stdout);
+  assert.equal(metadata.full_name, repository);
+  assert.equal(
+    metadata.private,
+    false,
+    'Open source distribution acceptance requires a public source repository.',
+  );
+  assert(['User', 'Organization'].includes(metadata.owner?.type));
+  assert.equal(
+    metadata.owner.login.toLowerCase(),
+    repository.split('/')[0].toLowerCase(),
+  );
+  return {
+    repository,
+    visibility: 'public',
+    ownerKind: metadata.owner.type === 'Organization' ? 'orgs' : 'users',
+  };
+}
+
+export async function githubNpmVisibility(
+  name,
+  repository,
+  { run = releaseCommand } = {},
+) {
+  const { scope } = githubPackageRegistries(repository);
+  assert(name.startsWith(scope + '/'));
+  const [owner] = repository.split('/');
+  const { ownerKind } = await githubPackageRepository(repository, { run });
+  let result;
+  try {
+    result = await run(
+      'gh',
+      [
+        'api',
+        '--hostname',
+        'github.com',
+        `${ownerKind}/${owner}/packages/npm/${encodeURIComponent(name.slice(scope.length + 1))}`,
+      ],
+      { timeout: 60_000, maxBuffer: 1024 * 1024 },
+    );
+  } catch {
+    throw new Error(
+      'Cannot verify GitHub package visibility. Grant the workflow read access to the repository-linked package.',
+    );
+  }
+  return validateGitHubNpmVisibility(
+    JSON.parse(result.stdout),
+    name,
+    repository,
+  );
 }
 
 /** Maven expands environment references itself; credential values never enter settings files. */

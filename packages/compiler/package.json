@@ -18,5 +18,8 @@
     "@davidniessen/content": "0.2.0-candidate.2",
     "@davidniessen/plugin-sdk": "0.2.0-candidate.2",
     "@davidniessen/search": "0.2.0-candidate.2"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

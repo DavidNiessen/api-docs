@@ -16,5 +16,8 @@
   "dependencies": {
     "@davidniessen/domain": "0.2.0-candidate.2",
     "pg": "8.23.1"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

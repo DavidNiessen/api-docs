@@ -15,5 +15,8 @@
   },
   "dependencies": {
     "@davidniessen/contracts": "0.2.0-candidate.2"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

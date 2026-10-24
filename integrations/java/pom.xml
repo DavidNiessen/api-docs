@@ -4,6 +4,7 @@
   <licenses><license><name>Apache License, Version 2.0</name><url>https://www.apache.org/licenses/LICENSE-2.0</url></license></licenses>
   <scm child.scm.connection.inherit.append.path="false" child.scm.url.inherit.append.path="false"><connection>scm:git:https://github.com/DavidNiessen/api-docs.git</connection><url>https://github.com/DavidNiessen/api-docs</url></scm>
   <developers><developer><id>DavidNiessen</id><name>DavidNiessen</name><url>https://github.com/DavidNiessen</url></developer></developers>
+  <distributionManagement><repository><id>github</id><url>https://maven.pkg.github.com/davidniessen/api-docs</url></repository></distributionManagement>
   <modules><module>core</module><module>spring-boot-starter</module></modules>
   <properties><maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding><spring-boot.version>3.5.16</spring-boot.version></properties>
   <dependencyManagement><dependencies><dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-dependencies</artifactId><version>${spring-boot.version}</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement>

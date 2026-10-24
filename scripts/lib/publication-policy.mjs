@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { prerelease } from 'semver';
 import { validateReleaseContext } from './release-assets.mjs';
+import { githubPackageRegistries } from './github-packages.mjs';
 
 function fields(value, names) {
   assert(
@@ -33,15 +34,11 @@ export function publicationPlan(policy, context, { packages, mavenGroup }) {
     'container',
     'reviews',
   ]);
-  assert.equal(policy.schemaVersion, 1);
+  assert.equal(policy.schemaVersion, 2);
   boolean(policy.publicationEnabled);
   assert.equal(policy.environment, 'release');
-  fields(policy.npm, ['scope', 'ownershipVerified']);
-  fields(policy.maven, [
-    'groupId',
-    'ownershipVerified',
-    'signingKeyFingerprint',
-  ]);
+  fields(policy.npm, ['scope', 'registry', 'ownershipVerified']);
+  fields(policy.maven, ['groupId', 'ownershipVerified', 'registry']);
   fields(policy.container, ['repository', 'ownershipVerified']);
   fields(policy.reviews, [
     'security',
@@ -51,6 +48,14 @@ export function publicationPlan(policy, context, { packages, mavenGroup }) {
     'pilot',
   ]);
   assert.match(policy.npm.scope, /^@[a-z0-9][a-z0-9._-]{0,63}$/);
+  const destinations = githubPackageRegistries(context.repository);
+  assert.equal(
+    policy.npm.scope,
+    destinations.scope,
+    'GitHub npm scope must match the source repository owner.',
+  );
+  assert.equal(policy.npm.registry, destinations.npm);
+  assert.equal(policy.maven.registry, destinations.maven);
   assert.match(
     policy.maven.groupId,
     /^[a-z][a-z0-9_-]*(?:\.[a-z][a-z0-9_-]*)+$/,
@@ -64,11 +69,10 @@ export function publicationPlan(policy, context, { packages, mavenGroup }) {
     policy.container.repository,
     /^ghcr\.io\/[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/,
   );
-  if (policy.maven.signingKeyFingerprint !== null)
-    assert.match(
-      policy.maven.signingKeyFingerprint,
-      /^(?:[A-F0-9]{40}|[A-F0-9]{64})$/,
-    );
+  assert.equal(
+    policy.container.repository,
+    'ghcr.io/' + context.repository.toLowerCase(),
+  );
   assert(
     Array.isArray(packages) && packages.length > 0 && packages.length <= 64,
   );
@@ -91,28 +95,27 @@ export function publicationPlan(policy, context, { packages, mavenGroup }) {
     if (!policy[kind].ownershipVerified)
       blockers.push(`${kind} namespace ownership is unverified.`);
   }
-  if (policy.maven.signingKeyFingerprint === null)
-    blockers.push('Maven signing key fingerprint is unconfigured.');
   for (const [kind, approved] of Object.entries(policy.reviews)) {
     boolean(approved);
     if (!approved) blockers.push(`${kind} launch review is pending.`);
   }
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...context,
     policyApproved: blockers.length === 0,
     publicationApproved: false,
     blockers,
     environment: policy.environment,
     npm: {
+      registry: policy.npm.registry,
       packages: [...packages].sort(),
       version: context.version,
       tag: prerelease(context.version) ? 'next' : 'latest',
     },
     maven: {
+      registry: policy.maven.registry,
       groupId: policy.maven.groupId,
       version: context.version,
-      signingKeyFingerprint: policy.maven.signingKeyFingerprint,
     },
     container: {
       repository: policy.container.repository,

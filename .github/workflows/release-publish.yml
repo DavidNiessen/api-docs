@@ -134,7 +134,7 @@ jobs:
       contents: read
       actions: read
       attestations: read
-      id-token: write
+      packages: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -151,9 +151,9 @@ jobs:
           candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
           require-approval: 'true'
       - uses: ./.github/actions/verify-publication-preflight
-      - name: Publish exact npm archives with native provenance
+      - name: Publish exact npm archives to GitHub Packages
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
         run: node scripts/publish-npm.mjs
       - name: Retain publication evidence
         if: always()
@@ -177,6 +177,7 @@ jobs:
       contents: read
       actions: read
       attestations: read
+      packages: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -193,11 +194,13 @@ jobs:
           candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
           require-approval: 'true'
       - uses: ./.github/actions/verify-publication-preflight
-      - name: Sign exact Java files, validate and publish Central deployment
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Deploy exact Java files to GitHub Packages
         env:
-          MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
-          MAVEN_SIGNING_KEY: ${{ secrets.MAVEN_SIGNING_KEY }}
-          MAVEN_SIGNING_PASSPHRASE: ${{ secrets.MAVEN_SIGNING_PASSPHRASE }}
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
         run: node scripts/publish-maven.mjs
       - name: Retain publication evidence
         if: always()
@@ -271,7 +274,7 @@ jobs:
           retention-days: 14
 
   verify-npm:
-    name: Fresh public npm consumer
+    name: Fresh GitHub Packages npm consumer
     needs: publish-npm
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -279,6 +282,7 @@ jobs:
       contents: read
       actions: read
       attestations: read
+      packages: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -295,7 +299,10 @@ jobs:
           candidate-run-attempt: ${{ inputs.candidate-run-attempt }}
           require-approval: 'true'
       - uses: ./.github/actions/verify-publication-preflight
-      - name: Verify public bytes, signatures and installed behavior
+      - name: Verify GitHub bytes, producer provenance and installed behavior
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/verify-published-npm.mjs
       - name: Retain publication evidence
         if: always()
@@ -309,7 +316,7 @@ jobs:
           retention-days: 14
 
   verify-maven:
-    name: Fresh public maven consumer
+    name: Fresh GitHub Packages maven consumer
     needs: publish-maven
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -317,6 +324,7 @@ jobs:
       contents: read
       actions: read
       attestations: read
+      packages: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -339,7 +347,10 @@ jobs:
           java-version: '21'
       - name: Build only JavaScript tooling and documentation assets
         run: npm run build
-      - name: Verify public bytes, signatures and installed behavior
+      - name: Verify GitHub bytes, producer provenance and installed behavior
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/verify-published-maven.mjs
       - name: Retain publication evidence
         if: always()

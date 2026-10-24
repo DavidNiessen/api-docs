@@ -154,10 +154,15 @@ test('release approval requires genuine approving reviews that expire on source 
   );
 });
 
-test('the default policy lists pending ownership and reviews without approving publication', () => {
+test('the GitHub policy lists pending launch decisions without approving publication', () => {
   const plan = publicationPlan(policy, context, source);
   assert.equal(plan.policyApproved, false);
-  assert.equal(plan.blockers.length, 10);
+  assert.equal(plan.blockers.length, 6);
+  assert.equal(plan.npm.registry, 'https://npm.pkg.github.com');
+  assert.equal(
+    plan.maven.registry,
+    'https://maven.pkg.github.com/davidniessen/api-docs',
+  );
   assert.equal(plan.npm.tag, 'latest');
   assert.deepEqual(plan.npm.packages, [
     '@davidniessen/cli',
@@ -173,12 +178,11 @@ test('the default policy lists pending ownership and reviews without approving p
   );
 });
 
-test('all source policy decisions and a signing identity are necessary for an approved plan', () => {
+test('all source policy decisions are necessary even with repository-owned GitHub destinations', () => {
   const ready = structuredClone(policy);
   ready.publicationEnabled = true;
   for (const kind of ['npm', 'maven', 'container'])
     ready[kind].ownershipVerified = true;
-  ready.maven.signingKeyFingerprint = 'A'.repeat(40);
   for (const kind of Object.keys(ready.reviews)) ready.reviews[kind] = true;
   assert.equal(publicationPlan(ready, context, source).policyApproved, true);
   ready.reviews.licenses = false;
@@ -203,6 +207,12 @@ test('policy typos, embedded credentials, mismatched namespaces and truthy strin
     },
     (p) => {
       p.maven.signingKeyFingerprint = 'unverified';
+    },
+    (p) => {
+      p.npm.registry = 'https://registry.npmjs.org';
+    },
+    (p) => {
+      p.maven.registry = 'https://maven.pkg.github.com/another/repository';
     },
     (p) => {
       p.container.repository = 'https://user:password@ghcr.io/owner/image';

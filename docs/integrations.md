@@ -1,5 +1,7 @@
 # Framework integrations
 
+Published npm and Maven distributions use [GitHub Packages](github-packages.md). Configure its registry and GitHub authentication before installing a released package; source-checkout examples below remain usable without publishing accounts.
+
 All integrations serve the same verified static publication. Build it once with the CLI; no Node process is required inside a Java application. Adapter code does not generate OpenAPI from arbitrary application source: consume your framework's established OpenAPI generator instead.
 
 ## Express

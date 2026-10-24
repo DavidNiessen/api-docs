@@ -20,5 +20,8 @@
     "proxy-from-env": "2.1.0",
     "yaml": "2.9.1",
     "zod": "4.6.6"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }
