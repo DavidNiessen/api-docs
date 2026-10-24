@@ -60,9 +60,9 @@ function computeReadableAccent(
   mode: 'light' | 'dark',
   colors?: Pick<Palette, 'surface' | 'background'>,
 ): string {
-  const surface = colors?.surface ?? (mode === 'light' ? '#f8fafb' : '#161b20');
-  const background =
-    colors?.background ?? (mode === 'light' ? '#ffffff' : '#101316');
+  const palette = mode === 'light' ? light : dark;
+  const surface = colors?.surface ?? palette.surface;
+  const background = colors?.background ?? palette.background;
   const tinted = blend(background, accent, 0.08);
   const destination = ['#111b27', '#ffffff'].sort(
     (a, b) =>

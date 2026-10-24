@@ -425,6 +425,7 @@ kbd {
   gap: 34px;
 }
 .article {
+  overflow-wrap: anywhere;
   min-width: 0;
   max-width: 850px;
   padding-bottom: 30px;
@@ -2703,12 +2704,6 @@ a,
 summary {
   -webkit-tap-highlight-color: transparent;
 }
-button {
-  transition:
-    background-color var(--ui-duration),
-    border-color var(--ui-duration),
-    color var(--ui-duration);
-}
 button:active:not(:disabled) {
   filter: brightness(0.94);
 }
@@ -2757,19 +2752,6 @@ label:has(input[type='checkbox']),
 label:has(input[type='radio']) {
   min-height: var(--ui-control-height);
   align-content: center;
-}
-@keyframes workspace-enter {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.reader-settings[open],
-.playground-dialog[open],
-.search-dialog[open] {
-  animation: workspace-enter var(--ui-duration) ease-out;
 }
 @media (max-width: 760px) {
   .playground-heading {

@@ -3,7 +3,11 @@ import { mkdtemp, mkdir, writeFile, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadGuides, renderMarkdown } from '@davidniessen/content';
-import { contrastRatio, readableAccent } from '@davidniessen/contracts';
+import {
+  contrastRatio,
+  readableAccent,
+  resolvePalette,
+} from '@davidniessen/contracts';
 async function project(source: string, filename = 'intro.md') {
   const root = await mkdtemp(join(tmpdir(), 'api-docs-content-'));
   await mkdir(join(root, 'guides'));
@@ -141,12 +145,14 @@ describe('brand color accessibility', () => {
   it.each(['#16a076', '#ffffff', '#000000', '#ffff00', '#ff0000', '#0000ff'])(
     'derives readable light/dark text for %s',
     (accent) => {
-      expect(
-        contrastRatio(readableAccent(accent, 'light'), '#f8fafb'),
-      ).toBeGreaterThanOrEqual(5);
-      expect(
-        contrastRatio(readableAccent(accent, 'dark'), '#161b20'),
-      ).toBeGreaterThanOrEqual(5);
+      for (const mode of ['light', 'dark'] as const) {
+        const palette = resolvePalette({}, mode);
+        for (const background of [palette.background, palette.surface]) {
+          expect(
+            contrastRatio(readableAccent(accent, mode), background),
+          ).toBeGreaterThanOrEqual(5);
+        }
+      }
     },
   );
 });

@@ -30,6 +30,9 @@
 body {
   margin: 0;
 }
+.studio {
+  overflow-wrap: anywhere;
+}
 button,
 input,
 select {
@@ -625,9 +628,6 @@ button,
 .primary,
 .secondary {
   min-height: var(--ui-control-height);
-  transition:
-    background-color var(--ui-duration),
-    color var(--ui-duration);
 }
 button:active:not(:disabled) {
   filter: brightness(0.94);
