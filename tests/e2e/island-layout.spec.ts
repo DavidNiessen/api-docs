@@ -183,17 +183,23 @@ test('Studio uses responsive islands with a persistent accessible navigation wid
   await expect(
     page.getByRole('heading', { name: 'Overview', exact: true }),
   ).toBeVisible();
-  const slider = page.getByRole('slider', { name: /Navigation width/ });
-  await slider.press('End');
-  await expect(slider).toHaveValue('360');
+  const divider = page.getByRole('separator', {
+    name: 'Resize navigation panel',
+  });
+  await expect(page.getByRole('slider')).toHaveCount(0);
+  await divider.press('End');
+  await expect(divider).toHaveAttribute('aria-valuenow', '360');
   await expect
     .poll(() => width(page.locator('.studio-layout > aside')))
     .toBe(360);
   await page.reload();
-  await expect(slider).toHaveValue('360');
+  await expect(divider).toHaveAttribute('aria-valuenow', '360');
+  await expect
+    .poll(() => width(page.locator('.studio-layout > aside')))
+    .toBe(360);
   await page.screenshot({ path: '.api-docs/island-studio-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(slider).not.toBeVisible();
+  await expect(divider).not.toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
