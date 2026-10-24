@@ -2,7 +2,13 @@
 
 Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current full-build performance increment
+## Current Studio publication-loading increment
+
+**Candidate `.4` passed compiler performance but exposed a WebKit Studio publication failure.** The failed trace shows no artifact/publication mutation request and an empty artifact field around initial history loading. Publication controls now stay disabled until history has loaded for the current request scope and while another action is running. A failed initial load provides an explicit retry. Navigation, authentication or project changes invalidate readiness through the existing scope cancellation.
+
+The browser journey holds the initial history request, checks the disabled controls, exercises a controlled 503 and retry, confirms the entered artifact value, then performs the existing real publication, reader, audit and sign-out checks. The loading assertion fails against the prior code. Formatting/lint, all **180 tooling tests**, **1,050 source tests** and all **15 Studio Chromium journeys in four isolated server groups** pass, including the controlled load failure and retry. The temporary test database/role were removed after acceptance. Hosted engine acceptance and a new matching candidate remain required. The estimate stays approximately **97%, pre-release**. Independent reviews remain deferred by the owner and actual registry acceptance remains outstanding.
+
+## Previous full-build performance increment
 
 **Candidate `.3` failed the unchanged 10k compiler budget: 121.31 seconds against 120 seconds.** Its 949.5 MiB RSS, 9.78 ms warm-search p95 and 267.14 ms incremental-guide p95 passed. The failure is retained in [candidate run 40097708002](https://github.com/DavidNiessen/api-docs/actions/runs/40097708002), not rerun for a lucky timing. The immutable tag remains unchanged and cannot authorize publication.
 

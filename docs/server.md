@@ -35,6 +35,8 @@ Session cookies are opaque, HttpOnly, Secure on HTTPS, SameSite=Lax, and backed 
 
 Studio binds requests to the current project and screen. Navigation cancels outstanding requests, clears displayed tokens and resets project-specific forms. Late responses cannot populate a different project or restore an old token. Multi-request workflows stop before their next request when their originating screen closes. A 401 clears private workspace state and returns to sign-in; a 403 leaves the authenticated session available for permitted actions.
 
+Publication controls wait for the current project's history before accepting an artifact or activating it. An initial history failure keeps the controls disabled and offers **Retry publication history**. Entry and activation also stay disabled while an action is pending. Switching projects or screens invalidates the prior readiness; returning loads history again.
+
 Sign-out immediately cancels workspace requests and clears any displayed token. The workspace is disabled while server sign-out is pending. Confirmed sign-out clears session-local state, including pending build actions. If server sign-out cannot be confirmed, Studio reports that uncertainty and keeps **Sign out** available for retry. It does not claim the remote session has ended. A delayed startup authentication probe cannot override a later successful sign-in.
 
 Cancelling a request does not undo an action already accepted by the server. Review publication/build history and audit events after an uncertain response. A token created before navigation may remain valid even though its response was discarded; use its creation audit entry to find the token ID and revoke it if needed. Never put a token in an issue, screenshot or build log.

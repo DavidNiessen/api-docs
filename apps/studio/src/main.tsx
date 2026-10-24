@@ -80,11 +80,15 @@ function Studio() {
     [transport, connected, selected, tab, requestEpoch],
   );
   const api = scope.api;
+  const [publicationsScope, setPublicationsScope] = useState<ReturnType<
+    typeof createStudioRequestScope
+  > | null>(null);
   const access = useProjectCapabilities(connected ? selected : '', api);
   const running = useRef<typeof scope | null>(null);
   useLayoutEffect(() => {
     setBusy(false);
     setPublications([]);
+    setPublicationsScope(null);
     setAudit([]);
     setIssuedToken('');
     return scope.cancel;
@@ -132,6 +136,13 @@ function Studio() {
     const data = await api<Project[]>('/api/projects');
     setProjects(data);
     if (selected && !data.some((item) => item.id === selected)) setSelected('');
+  }
+  async function loadPublications() {
+    const items = await api<Publication[]>(
+      `/api/projects/${selected}/publications`,
+    );
+    setPublications(items);
+    setPublicationsScope(scope);
   }
   async function connect() {
     if (connection.current || logoutRequest.current) return;
@@ -240,10 +251,7 @@ function Studio() {
     )
       return;
     void work(async () => {
-      if (tab === 'Publications')
-        setPublications(
-          await api<Publication[]>(`/api/projects/${selected}/publications`),
-        );
+      if (tab === 'Publications') await loadPublications();
       if (tab === 'Audit log')
         setAudit(
           await api<Record<string, unknown>[]>(
@@ -284,9 +292,7 @@ function Studio() {
       idempotencyKey: crypto.randomUUID(),
     });
     await refresh();
-    setPublications(
-      await api<Publication[]>(`/api/projects/${project.id}/publications`),
-    );
+    await loadPublications();
     setMessage(
       'Publication activated. The prior release remains available for rollback.',
     );
@@ -701,6 +707,18 @@ function Studio() {
                     <code>basePath: /docs/{project?.slug ?? 'project'}</code>{' '}
                     and stage the output before activation.
                   </p>
+                  {publicationsScope !== scope &&
+                    (error ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void work(loadPublications)}
+                      >
+                        Retry publication history
+                      </button>
+                    ) : (
+                      <p role="status">Loading publication history…</p>
+                    ))}
                   <form
                     onSubmit={(event) => {
                       event.preventDefault();
@@ -713,6 +731,9 @@ function Studio() {
                       <input
                         name="artifact"
                         value={artifactDraft}
+                        disabled={
+                          busy || !project || publicationsScope !== scope
+                        }
                         onChange={(event) =>
                           setArtifactDraft(event.target.value)
                         }
@@ -721,7 +742,10 @@ function Studio() {
                         placeholder="64-character verified artifact id"
                       />
                     </label>
-                    <button className="primary" disabled={busy || !project}>
+                    <button
+                      className="primary"
+                      disabled={busy || !project || publicationsScope !== scope}
+                    >
                       Verify and publish →
                     </button>
                   </form>
