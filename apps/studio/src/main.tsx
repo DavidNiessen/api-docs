@@ -44,8 +44,24 @@ function WorkspaceMark() {
 }
 function Studio() {
   const layout = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLElement>(null);
   const [token, setToken] = useState('');
   const [connected, setConnected] = useState(false);
+  useLayoutEffect(() => {
+    const chrome = header.current;
+    const workspace = layout.current;
+    if (!connected || !chrome || !workspace) return;
+    const measure = () => {
+      workspace.style.setProperty(
+        '--studio-header-height',
+        `${chrome.getBoundingClientRect().height}px`,
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(chrome);
+    return () => observer.disconnect();
+  }, [connected]);
   const [signingOut, setSigningOut] = useState(false);
   const [requestEpoch, setRequestEpoch] = useState(0);
   const connection = useRef<AbortController | null>(null);
@@ -315,7 +331,7 @@ function Studio() {
   }
   return (
     <div className="studio">
-      <header>
+      <header ref={header}>
         <a className="studio-brand" href="/admin/">
           <span>
             <WorkspaceMark />

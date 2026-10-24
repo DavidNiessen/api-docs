@@ -138,7 +138,19 @@ test('blocked storage preserves usable appearance and sizing controls, including
     'background-color',
     'rgb(24, 24, 27)',
   );
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.evaluate(() => window.scrollTo(0, 120));
+  await expect
+    .poll(async () => {
+      const header = (await page.locator('.studio > header').boundingBox())!;
+      const navigation = (await page
+        .locator('#studio-navigation')
+        .boundingBox())!;
+      return navigation.y - (header.y + header.height);
+    })
+    .toBeGreaterThanOrEqual(10);
   await page.setViewportSize({ width: 360, height: 900 });
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%';
   });
