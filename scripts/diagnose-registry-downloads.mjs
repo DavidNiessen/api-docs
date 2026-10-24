@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { appendFile } from 'node:fs/promises';
+import { releaseRequest } from './lib/release-http.mjs';
 import {
   githubPackageHeaders,
   githubPackageRegistries,
@@ -30,9 +32,14 @@ async function observe(address, kind, label, metadata = false) {
       redirectHasQuery: target ? Boolean(target.search) : false,
     });
     if (metadata && response.status === 200) {
-      const text = await response.text();
-      assert(text.length <= 16 * 1024 * 1024);
-      return JSON.parse(text);
+      const chunks = [];
+      let bytes = 0;
+      for await (const chunk of response.body) {
+        bytes += chunk.byteLength;
+        assert(bytes <= 16 * 1024 * 1024);
+        chunks.push(chunk);
+      }
+      return JSON.parse(Buffer.concat(chunks, bytes).toString('utf8'));
     }
     await response.body?.cancel();
   } catch (error) {
@@ -47,6 +54,26 @@ async function observe(address, kind, label, metadata = false) {
     });
   }
 }
+async function download(address, kind, label, integrity) {
+  const result = await releaseRequest(address, {
+    headers: githubPackageHeaders(kind),
+    maximum: 1024 * 1024,
+    allowGitHubArtifactRedirect: true,
+  });
+  const sha256 = createHash('sha256').update(result.bytes).digest('hex');
+  const integrityMatches = integrity
+    ? integrity ===
+      `sha512-${createHash('sha512').update(result.bytes).digest('base64')}`
+    : null;
+  observations.push({
+    label,
+    status: result.status,
+    bytes: result.bytes.length,
+    sha256,
+    integrityMatches,
+  });
+  if (integrity) assert.equal(integrityMatches, true);
+}
 const name = `${registry.scope}/contracts`;
 const metadata = await observe(
   `${registry.npm}/${encodeURIComponent(name)}`,
@@ -55,12 +82,18 @@ const metadata = await observe(
   true,
 );
 const archive = metadata?.versions?.[version]?.dist?.tarball;
-if (typeof archive === 'string') await observe(archive, 'npm', 'npm-archive');
-await observe(
-  `${registry.maven}/dev/niessen/api-docs-parent/${version}/api-docs-parent-${version}.pom`,
-  'maven',
-  'maven-parent',
-);
+if (typeof archive === 'string') {
+  await observe(archive, 'npm', 'npm-archive');
+  await download(
+    archive,
+    'npm',
+    'npm-verified-download',
+    metadata.versions[version].dist.integrity,
+  );
+}
+const pom = `${registry.maven}/dev/niessen/api-docs-parent/${version}/api-docs-parent-${version}.pom`;
+await observe(pom, 'maven', 'maven-parent');
+await download(pom, 'maven', 'maven-download');
 const report = JSON.stringify({ repository, version, observations }, null, 2);
 console.log(report);
 if (process.env.GITHUB_STEP_SUMMARY)

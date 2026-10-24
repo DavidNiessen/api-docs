@@ -101,7 +101,11 @@ export async function inspectNpmVersion(
     'npm tarball must come from the selected registry.',
   );
   assert(!url.username && !url.password && !url.hash && !url.search);
-  const archive = await request(url.href, { maximum: pkg.bytes, headers });
+  const archive = await request(url.href, {
+    maximum: pkg.bytes,
+    headers,
+    allowGitHubArtifactRedirect: destination === githubNpmRegistry,
+  });
   assert.equal(archive.status, 200);
   assert.equal(archive.bytes.length, pkg.bytes);
   assert.equal(

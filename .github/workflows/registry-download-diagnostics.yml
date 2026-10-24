@@ -9,9 +9,10 @@ on:
         default: '0.2.0-candidate.6'
         required: true
   push:
-    branches: ['fix/github-registry-downloads']
+    branches: ['**']
     paths:
       - scripts/diagnose-registry-downloads.mjs
+      - scripts/lib/release-http.mjs
       - .github/workflows/registry-download-diagnostics.yml
 
 permissions:
