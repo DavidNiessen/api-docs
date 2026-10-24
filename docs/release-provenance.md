@@ -1,6 +1,6 @@
 # Verified release candidates
 
-The manual **Verified release candidate** workflow collects and attests the exact npm packages, Java distributions and server image that pass their producing jobs. It does not publish registries, create tags or approve a release. Namespace ownership, independent reviews and protected publication remain separate gates.
+The manual **Verified release candidate** workflow collects and attests the exact npm packages, Java distributions and server image that pass their producing jobs. It does not publish registries, create tags or approve a release. Namespace ownership, independent reviews and protected publication are separate gates. [Published prerelease .7](release-acceptance.md) passed its candidate and protected registry acceptance; independent reviews remain deferred.
 
 ## Source requirements
 
@@ -32,4 +32,4 @@ Local tooling tests exercise clean-tag/ancestor checks, identity substitutions, 
 
 The actual clean-tag [candidate run 40043580095](https://github.com/DavidNiessen/api-docs/actions/runs/40043580095) passed at `v0.2.0-candidate.1` / `c380ae159983025a519bbe706ecec049b755e8d8`, including all required Quality, Java/Spring, browser and performance jobs. Its three producers issued GitHub OIDC-backed attestations, and final verification accepted all 39 subjects against their exact bytes, source tag/commit and hosted producer identity. The nonpublishing fresh image scan also passed. Local fixture results remain separate from this hosted evidence.
 
-The default read-only [publication plan 40045907895](https://github.com/DavidNiessen/api-docs/actions/runs/40045907895) independently verified that candidate and passed with ten explicit source-policy blockers; every publishing job was skipped. Stable registry publication, production Maven signatures and registry-image provenance remain pending. These workflows supply reviewable candidate bytes and verified destinations, not publication approval. See the [publication planner](publication-plans.md).
+The default read-only [publication plan 40045907895](https://github.com/DavidNiessen/api-docs/actions/runs/40045907895) independently verified that earlier candidate and passed with ten explicit source-policy blockers; every publishing job was skipped. Later .7 acceptance passed original Maven producer verification and registry-image promotion attestation under the selected GitHub Packages policy; no production OpenPGP key is required. Candidate and read-only workflows supply reviewable bytes and destinations, not publication approval. See the [publication planner](publication-plans.md).

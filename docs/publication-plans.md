@@ -4,6 +4,8 @@ Distributions use GitHub Packages for npm and Maven, and GHCR for containers. Pu
 
 The [distribution decision](adr/0001-github-packages-distributions.md) records the selected identity, authentication trade-offs and remaining acceptance requirements.
 
+[Prerelease 0.2.0-candidate.7](release-acceptance.md) passed all nine protected publication and fresh-consumer jobs after owner environment approval. Its exact files are published to all three selected registries. Independent reviews remain deferred; future versions must repeat these gates.
+
 The manual **Review or publish verified distributions** workflow defaults to `confirm-publication: false`. That path has read-only permissions, verifies an existing signed candidate and retains a reviewable plan. Confirmed publication additionally requires approved source policy, current repository protections, a fresh scan of the accepted image and approval of the protected `release` environment.
 
 ## Source policy and destinations
@@ -31,7 +33,7 @@ Dispatch `.github/workflows/release-publish.yml` from the candidate's canonical 
 
 Only the candidate's named npm/Java/container bundles are downloaded. Verification checks complete file sets, sizes, SHA-256 hashes and source/run bindings, then checks GitHub attestations for every subject against the exact producer workflow, source tag/commit and GitHub-hosted runner identity. A signature on an unrelated workflow or artifact cannot substitute.
 
-The earlier [candidate 40043580095](https://github.com/DavidNiessen/api-docs/actions/runs/40043580095) and read-only [plan 40045907895](https://github.com/DavidNiessen/api-docs/actions/runs/40045907895) passed for `v0.2.0-candidate.1` / `c380ae159983025a519bbe706ecec049b755e8d8`. The GitHub Packages [candidate 40093764410](https://github.com/DavidNiessen/api-docs/actions/runs/40093764410) then passed all 22 jobs for `v0.2.0-candidate.2` / `700f6e47dd5c0299df12ef6edad383aa7fa508da`. Its [read-only plan 40095165927](https://github.com/DavidNiessen/api-docs/actions/runs/40095165927) independently reverified all 39 subjects with six source-policy blockers and every publisher skipped. Both tags remain immutable. The new deferral policy requires its own matching candidate and actual registry acceptance.
+The earlier [candidate 40043580095](https://github.com/DavidNiessen/api-docs/actions/runs/40043580095) and read-only [plan 40045907895](https://github.com/DavidNiessen/api-docs/actions/runs/40045907895) passed for `v0.2.0-candidate.1` / `c380ae159983025a519bbe706ecec049b755e8d8`. The GitHub Packages [candidate 40093764410](https://github.com/DavidNiessen/api-docs/actions/runs/40093764410) then passed all 22 jobs for `v0.2.0-candidate.2` / `700f6e47dd5c0299df12ef6edad383aa7fa508da`. Its [read-only plan 40095165927](https://github.com/DavidNiessen/api-docs/actions/runs/40095165927) independently reverified all 39 subjects with six source-policy blockers and every publisher skipped. Both tags remain immutable. Later .7 acceptance above includes its own matching candidate, explicit review deferral and actual registry consumption.
 
 ## Repository and environment protection
 

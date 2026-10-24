@@ -170,7 +170,7 @@ Owner decision on 2026-10-24: defer the independent security, isolation, accessi
 - [ ] Performance budgets are met on documented fixtures or openly revised with justification before release claims.
 - [ ] Versioned npm packages, Java artifacts, container images, static bundles, SBOMs, checksums, signatures, and provenance agree.
 - [ ] Stable release uses reviewed tags and protected publication; release notes include migrations and known limitations.
-- [ ] Verify installation from published registries, not only local build output.
+- [x] Verify installation from published registries, not only local build output: [prerelease .7 acceptance](../release-acceptance.md) passed fresh npm/Maven and anonymous container consumers; repeat for the stable candidate.
 - [ ] Assign post-release monitoring, triage, and rollback ownership.
 
 ## 7. Principal risks and mitigations
@@ -188,6 +188,6 @@ Owner decision on 2026-10-24: defer the independent security, isolation, accessi
 | Multi-replica complexity undermines reliability | Launch with a proven single-instance topology; advertise high availability only after shared-state/failover tests  |
 | Project lacks long-term maintenance capacity    | Clear maintainers, support window, triage cadence, dependency policy, and realistic published roadmap              |
 
-## 8. Immediate next implementation step
+## 8. Current next release step
 
-After this planning foundation, start M1 with a single realistic fixture and one complete guide/endpoint journey. First create the workspace and strict TypeScript foundation; then implement the design tokens and reader shell, the smallest compiler slice, static output, search, and a real mock-API request. Add the corresponding typecheck, unit, browser, accessibility, and build jobs as each runnable capability lands. Commit and push each validated increment with conventional messages.
+The implementation has a [published, signed and registry-accepted prerelease](../release-acceptance.md). Keep its immutable version and evidence intact. Complete the explicitly deferred independent reviews and pilots before stable approval, resolve blocking findings, finalize naming and support commitments, and repeat all exact-candidate and protected publication gates for the stable version. Continue conventional commits and pushes for each validated increment; prerelease environment approval does not approve a future stable release.

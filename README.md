@@ -2,13 +2,13 @@
 
 An open source, self-hosted API documentation platform: polished documentation, interactive API references, and framework integrations without a required hosted service.
 
-**Status: implementation in progress.** The OpenAPI compiler, React reader, worker-based local search, API explorer, CLI, publication server, Studio, and Java/Spring Boot/Node integrations are runnable. Container deployment and recovery are available. Production acceptance, independent reviews and signed distribution gates remain open. `api-docs` is a temporary name pending the product rename.
+**Status: published prerelease.** [0.2.0-candidate.7](https://github.com/DavidNiessen/api-docs/releases/tag/v0.2.0-candidate.7) includes the OpenAPI compiler, React reader, worker-based local search, API explorer, CLI, publication server, Studio, and Java/Spring Boot/Node integrations. Signed candidate acceptance, protected publication and all three fresh registry consumers passed. See the [release evidence and limitations](docs/release-acceptance.md). `api-docs` is a temporary name pending the product rename.
 
 The owner has [deferred independent launch reviews and pilots for prereleases](docs/adr/0002-deferred-prerelease-reviews.md). Those reviews remain unfinished; automated checks and protected registry installation acceptance remain required. This deferral is not a stable production release approval.
 
 Try the [GitHub Pages demo](https://davidniessen.github.io/api-docs/): bundled mock responses run entirely in your browser, with no API server or credentials. See [demo deployment and local preview](docs/pages-demo.md).
 
-Distributions target [GitHub Packages and GHCR](docs/github-packages.md). npm/Maven installation requires GitHub authentication; running generated static documentation requires no account. Actual protected publication and fresh registry acceptance remain release gates.
+Install the prerelease from [GitHub Packages and GHCR](docs/github-packages.md). npm/Maven installation requires GitHub authentication; running generated static documentation requires no account. Independent reviews and stable production approval remain open.
 
 ## Product direction
 
