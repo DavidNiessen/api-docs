@@ -2,7 +2,11 @@
 
 Performance numbers describe measured fixtures, not a universal service guarantee. Run `node --max-old-space-size=1536 scripts/benchmark.mjs 10000` after `npm run build`. The script builds real static pages, verifies output, checks 100 local search queries, records peak process RSS, and fails when its declared budgets are exceeded. Generated fixtures and reports stay under ignored `.api-docs` paths.
 
-The latest hosted reader and 10k compiler budgets pass. Indexed endpoint lookup brought the full compiler run back under its unchanged 120-second ceiling; the observed results and earlier failed run are recorded below.
+Candidate `.3` exposed a full-build budget failure: [run 40097708002](https://github.com/DavidNiessen/api-docs/actions/runs/40097708002) built 10,000 operations/50,000 schema nodes in **121.31 seconds**, over the unchanged 120-second ceiling. Peak RSS **949.5 MiB**, search p95 **9.78 ms** and incremental guide p95 **267.14 ms** passed their existing budgets. Source was clean at `4817011`, tool/publication version `0.2.0-candidate.3`; artifact digest was `2b477e6c653d7ba2d86fbf9baa839ad77291c1d7d4e92b92266a2d70229e86ff`. This candidate cannot authorize publication. Earlier passing runs below remain historical evidence.
+
+The follow-up indexes bounded navigation selection once per immutable graph instead of rescanning every API operation for every page. It preserves source ordering, tag quotas, repeated active identities and route-specific content. Static output writes overlap in batches of four; every write settles before staging cleanup can run after a failure. Regression coverage compares direct/indexed projections across a 10k-operation graph and bounds full-graph reads during repeated projections.
+
+A local 1,000-operation smoke run completes in **8.57 seconds**, **423.5 MiB** RSS, with identical full-build artifact digest `2198d67d7ed35e2b9fcdefb28abb4ca3bd86f2079d53d72d76c44acb25527c1c` before and after the optimization. Its modified source and reduced fixture do not satisfy the full-size release gate. The preceding 11.12-second observation had CPU profiling enabled and is not a controlled speed comparison. A fresh hosted 10k run and a new matching signed candidate remain required; no threshold or fixture size was relaxed.
 
 ## Prepared candidate acceptance
 

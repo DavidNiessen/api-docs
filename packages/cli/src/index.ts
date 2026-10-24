@@ -153,23 +153,31 @@ export async function buildSite(
       `<!doctype html><html lang="${site.config.defaultLocale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'"><title>Complete authorization</title><link rel="stylesheet" href="${site.config.basePath}/assets/reader.css"></head><body><main id="main-content" class="oauth-callback"><h1>Complete authorization</h1><p id="oauth-result" role="status">Completing authorization…</p></main><script type="module" src="${site.config.basePath}/assets/oauth-callback.js"></script></body></html>`,
     );
     const pageData = createPageDataFactory(site);
-    for (const [path, title] of pages) {
-      const destination = join(stage, path, 'index.html');
-      await mkdir(dirname(destination), { recursive: true });
-      const page = pageData(path);
-      await writeFile(
-        destination,
-        renderDocument(page, path, {
-          title:
-            page.contentLocale === site.config.defaultLocale
-              ? title
-              : pageMetadata(page, path).title,
+    const pageEntries = [...pages];
+    for (let cursor = 0; cursor < pageEntries.length; cursor += 4) {
+      const results = await Promise.allSettled(
+        pageEntries.slice(cursor, cursor + 4).map(async ([path, title]) => {
+          const destination = join(stage, path, 'index.html');
+          await mkdir(dirname(destination), { recursive: true });
+          const page = pageData(path);
+          await writeFile(
+            destination,
+            renderDocument(page, path, {
+              title:
+                page.contentLocale === site.config.defaultLocale
+                  ? title
+                  : pageMetadata(page, path).title,
+            }),
+          );
+          await writeFile(
+            join(dirname(destination), 'page-data.json'),
+            JSON.stringify(page),
+          );
         }),
       );
-      await writeFile(
-        join(dirname(destination), 'page-data.json'),
-        JSON.stringify(page),
-      );
+      // Finish every bounded write before propagating an error and cleaning staging.
+      for (const result of results)
+        if (result.status === 'rejected') throw result.reason;
     }
     await writeFile(
       join(stage, '404.html'),

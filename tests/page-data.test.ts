@@ -130,3 +130,43 @@ it('route indexes belong to their graph and preserve first-match behavior withou
     first.description,
   );
 });
+
+it('indexed navigation preserves tag quotas, source order and repeated active identities without full graph scans per page', async () => {
+  const site = await compileProject(resolve('examples/demo'));
+  const api = site.apis[0]!;
+  const template = api.operations[0]!;
+  const operations = Array.from({ length: 10_000 }, (_, index) => ({
+    ...template,
+    id: `entry-${index}`,
+    slug: `entry-${index}`,
+    tags: index < 30 ? ['First'] : index < 70 ? [] : [`Group ${index % 4}`],
+    description: `Only entry ${index} has this description`,
+  }));
+  operations.push(operations[20]!);
+  api.operations = operations;
+  const indexed = createPageDataFactory(site);
+  for (const position of [0, 19, 20, 29, 30, 69, 70, 199, 200, 9999]) {
+    const path = operationHref(api, operations[position]!);
+    expect(indexed(path)).toEqual(createPageData(site, path));
+  }
+  const path = operationHref(api, operations[9999]!);
+  const page = indexed(path);
+  const preview = page.apis[0]!.operations[0]!;
+  expect(preview.description).toBe('');
+  preview.description = 'A caller changed its own page projection';
+  expect(indexed(path).apis[0]!.operations[0]!.description).toBe('');
+
+  let reads = 0;
+  api.operations = new Proxy(operations, {
+    get(target, property, receiver) {
+      if (typeof property === 'string' && /^\d+$/.test(property)) reads++;
+      return Reflect.get(target, property, receiver);
+    },
+  });
+  const bounded = createPageDataFactory(site);
+  bounded('/');
+  reads = 0;
+  for (let index = 0; index < 10; index++)
+    bounded(operationHref(api, operations[9999 - index]!));
+  expect(reads).toBeLessThan(2500);
+});
