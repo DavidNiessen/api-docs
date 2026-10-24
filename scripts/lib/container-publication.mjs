@@ -28,7 +28,7 @@ export async function ghcrAuthorization(
   if (authenticated)
     assert(
       typeof username === 'string' &&
-        /^[a-zA-Z0-9][a-zA-Z0-9-]{0,99}$/.test(username),
+        /^[a-zA-Z0-9][a-zA-Z0-9-]{0,99}(?:\[bot\])?$/.test(username),
     );
   const result = await request(
     `https://ghcr.io/token?service=ghcr.io&scope=${encodeURIComponent(`repository:${path}:${authenticated ? 'pull,push' : 'pull'}`)}`,

@@ -161,7 +161,13 @@ test('actual ephemeral OpenPGP signatures bind the exact copied Maven bytes and 
   const bundle = await signMavenBundle(
     { directory: root, files, fingerprint },
     output,
-    { env: { ...process.env, MAVEN_SIGNING_KEY: key.stdout } },
+    {
+      env: {
+        ...process.env,
+        MAVEN_SIGNING_KEY: key.stdout,
+        MAVEN_SIGNING_PASSPHRASE: '',
+      },
+    },
   );
   assert.equal(bundle.fingerprint, fingerprint);
   const listing = await runSigningTool('unzip', ['-Z1', bundle.archive]);
@@ -203,7 +209,13 @@ test('actual ephemeral OpenPGP signatures bind the exact copied Maven bytes and 
     signMavenBundle(
       { directory: root, files, fingerprint: 'A'.repeat(40) },
       join(root, 'wrong-key'),
-      { env: { ...process.env, MAVEN_SIGNING_KEY: key.stdout } },
+      {
+        env: {
+          ...process.env,
+          MAVEN_SIGNING_KEY: key.stdout,
+          MAVEN_SIGNING_PASSPHRASE: '',
+        },
+      },
     ),
   );
   assert.throws(() =>

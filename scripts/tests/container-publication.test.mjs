@@ -68,6 +68,31 @@ test('GHCR anonymous checks request only public pull scope and never inherit pub
   );
 });
 
+test('GHCR publishing supports GitHub App actor names while rejecting invalid Basic authentication usernames', async () => {
+  const token = 'unit-test-publisher-token';
+  const username = 'release-automation[bot]';
+  await ghcrAuthorization(repository, {
+    username,
+    token,
+    request: async (_url, options) => {
+      assert.equal(
+        options.headers.Authorization,
+        'Basic ' + Buffer.from(username + ':' + token).toString('base64'),
+      );
+      return auth;
+    },
+  });
+  await assert.rejects(
+    ghcrAuthorization(repository, {
+      username: 'invalid:user',
+      token,
+      request: async () => {
+        throw new Error('Must not request');
+      },
+    }),
+  );
+});
+
 test('GHCR binds actual manifest bytes, immutable digest and config identity', async () => {
   const result = await inspectGhcrManifest(
     repository,

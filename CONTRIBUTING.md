@@ -6,6 +6,8 @@ The project is implementing its roadmap. Start with the [product](docs/planning/
 
 Install the Node.js version in `.node-version` and npm 11. The workspace pins pnpm 11.25.0 in `packageManager`; install it with `npm install --global pnpm@11.25.0` or use Corepack when available.
 
+Local helper checks use Bash, Git, OpenSSL, GnuPG (`gpg` and `gpgconf`), `zip` and `unzip`. Use Linux, macOS or WSL for these checks. The signing fixtures generate and remove disposable keys in private temporary directories; publishing credentials are unnecessary for development checks. Optional Java, PostgreSQL and Docker acceptance requirements are described below and in their linked guides.
+
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
 pnpm run check
@@ -13,10 +15,10 @@ pnpm run check
 
 Prettier and ESLint are pinned development dependencies. `pnpm run format` applies formatting; `pnpm run format:check` and `pnpm run lint` enforce it. Dependency build scripts are disabled by the pnpm workspace policy. The committed `pnpm-workspace.yaml` links local packages and mirrors npm's security overrides.
 
-The npm 11.9.0 installation path remains supported for container builds and physically installed package-consumer checks:
+The npm 11 installation path is used for container builds and physically installed package-consumer checks:
 
 ```sh
-npm ci
+npm ci --ignore-scripts
 npm run check
 ```
 
@@ -51,7 +53,7 @@ PR_TITLE='docs(product): clarify release scope' npm run check:pr-title
 
 ## Automation and release status
 
-The `Repository quality` workflow runs on branch pushes, PRs (including title edits), merge queue candidates, and manual dispatch. Its stable job name is `Quality`. It installs locked tooling and runs the same checks as local development; PR events also validate the title. It uses read-only permissions and retains validation artifacts. Its required Static mock demo job builds and tests the [local-only Pages demo](docs/pages-demo.md). A separate Pages workflow deploys the exact tested artifact only after a successful quality run for a push to master; only its deployment job receives Pages write/OIDC permissions.
+The `Repository quality` workflow runs on branch pushes, PRs (including title edits), merge queue candidates, and manual dispatch. Its stable job name is `Quality`. It installs locked tooling and runs the same checks as local development; PR events also validate the title. Ordinary checks retain validation artifacts and publish no registry distributions. Producer-capable jobs declare OIDC/attestation permissions; their signing steps require an explicit release-candidate invocation and clean upstream tag guards. GitHub restricts fork PR token permissions. The required Static mock demo job builds and tests the [local-only Pages demo](docs/pages-demo.md). A separate Pages workflow deploys the exact tested artifact only after a successful quality run for a push to master; its deployment job receives Pages write/OIDC permissions.
 
 The required pnpm job starts from a fresh checkout, installs the pinned manager and frozen lockfile, audits dependencies, and runs formatting, ESLint, types, tooling tests, source tests and production builds. The existing npm source/browser and installed-consumer jobs remain required as well.
 
@@ -65,4 +67,4 @@ Dependabot checks npm dependencies and GitHub Actions weekly. Actions are pinned
 
 CI also runs PostgreSQL/server and Studio browser integration tests and a Java 17/21/25 × Spring Boot 3.5/4.1 consumer matrix. PostgreSQL integration tests require a disposable `TEST_DATABASE_URL`; the schema-upgrade/runtime-grant fixture additionally needs a test identity with `CREATEROLE` or superuser privileges so it can create and remove its isolated runtime role. This test permission is not a production migration-role requirement. See [build queue acceptance](docs/build-jobs.md#schema-upgrades-and-acceptance). Dependency audits block moderate or higher known advisories. See [governance](GOVERNANCE.md), [security reporting](SECURITY.md), and the [code of conduct](CODE_OF_CONDUCT.md). Contributions are licensed under Apache-2.0; no separate CLA or DCO sign-off is required.
 
-Release automation, container scanning, and package publication are still tracked in the [launch plan](docs/planning/03-delivery-and-launch.md). No production release or package publication is configured at this stage.
+The [candidate workflow](docs/release-provenance.md) tests and signs exact npm, Java and server-image assets from a clean canonical tag. The [publication workflow](docs/publication-plans.md) defaults to a read-only review plan. Confirmed publishing requires the reviewed source policy, repository/tag protections and protected release environment, refreshes security for the accepted image, then runs separate registry publishers and fresh public consumers. Source publication policy remains disabled while namespace, signing and launch decisions are pending; no production release is claimed. See the [launch plan](docs/planning/03-delivery-and-launch.md) for the remaining acceptance gates.
