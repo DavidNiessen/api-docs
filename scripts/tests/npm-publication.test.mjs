@@ -40,6 +40,27 @@ const response = (value, status = 200) => ({
   bytes: Buffer.isBuffer(value) ? value : Buffer.from(JSON.stringify(value)),
 });
 
+test('npm destinations reject lookalike hosts and URLs containing an allowed registry name before any request', async () => {
+  for (const registry of [
+    'https://registry.npmjs.org.attacker.example',
+    'https://attacker.example/https://registry.npmjs.org',
+    'https://npm.pkg.github.com.attacker.example',
+  ]) {
+    let requests = 0;
+    await assert.rejects(
+      inspectNpmVersion(pkg, {
+        registry,
+        request: async () => {
+          requests++;
+          throw new Error('Must not request');
+        },
+      }),
+      /Unexpected npm registry/,
+    );
+    assert.equal(requests, 0);
+  }
+});
+
 test('immutable npm version reuse requires matching metadata and actual public archive bytes', async () => {
   const request = async (url) => response(url === tarball ? bytes : metadata());
   assert.equal((await inspectNpmVersion(pkg, { request })).exists, true);

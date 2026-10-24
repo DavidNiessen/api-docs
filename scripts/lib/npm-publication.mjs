@@ -28,7 +28,7 @@ export async function inspectNpmVersion(
   } = {},
 ) {
   assert(
-    [registry, githubNpmRegistry].includes(destination),
+    destination === registry || destination === githubNpmRegistry,
     'Unexpected npm registry.',
   );
   const headers =
@@ -173,7 +173,7 @@ export async function publishNpmArchives(
 ) {
   assert(['next', 'latest'].includes(candidate.tag));
   const destination = candidate.registry ?? registry;
-  assert([registry, githubNpmRegistry].includes(destination));
+  assert(destination === registry || destination === githubNpmRegistry);
   const states = [];
   for (const pkg of candidate.packages)
     states.push(
