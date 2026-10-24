@@ -1,6 +1,6 @@
 {
   "name": "@davidniessen/explorer",
-  "version": "0.2.0-candidate.4",
+  "version": "0.2.0-candidate.5",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -13,7 +13,7 @@
     }
   },
   "dependencies": {
-    "@davidniessen/contracts": "0.2.0-candidate.4"
+    "@davidniessen/contracts": "0.2.0-candidate.5"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

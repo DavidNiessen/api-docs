@@ -8,6 +8,8 @@ Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an eng
 
 The browser journey holds the initial history request, checks the disabled controls, exercises a controlled 503 and retry, confirms the entered artifact value, then performs the existing real publication, reader, audit and sign-out checks. The loading assertion fails against the prior code. Formatting/lint, all **180 tooling tests**, **1,050 source tests** and all **15 Studio Chromium journeys in four isolated server groups** pass, including the controlled load failure and retry. The temporary test database/role were removed after acceptance. Hosted engine acceptance and a new matching candidate remain required. The estimate stays approximately **97%, pre-release**. Independent reviews remain deferred by the owner and actual registry acceptance remains outstanding.
 
+A source-bound preparation aligns `0.2.0-candidate.5` across all 16 npm packages, both locks, runtime identity and three Java POMs. Its fresh production build and all **12 installed npm components** pass, including audit and offline reinstall. Hosted WebKit/Firefox/Chromium checks are repeated before tagging this replacement candidate.
+
 ## Previous full-build performance increment
 
 **Candidate `.3` failed the unchanged 10k compiler budget: 121.31 seconds against 120 seconds.** Its 949.5 MiB RSS, 9.78 ms warm-search p95 and 267.14 ms incremental-guide p95 passed. The failure is retained in [candidate run 40097708002](https://github.com/DavidNiessen/api-docs/actions/runs/40097708002), not rerun for a lucky timing. The immutable tag remains unchanged and cannot authorize publication.
