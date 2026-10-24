@@ -43,8 +43,49 @@ test('an operator creates a private project, publishes, reads it and audits the 
     resolve('.api-docs/studio-test/artifacts'),
   );
   temporary.push(resolve('.api-docs/studio-test/artifacts', artifact));
+  let releaseHistory!: () => void;
+  let historyRequested!: () => void;
+  const history = new Promise<void>((resolve) => {
+    releaseHistory = resolve;
+  });
+  const requested = new Promise<void>((resolve) => {
+    historyRequested = resolve;
+  });
+  let intercepted = false;
+  await page.route('**/api/projects/*/publications', async (route) => {
+    if (route.request().method() === 'GET' && !intercepted) {
+      intercepted = true;
+      historyRequested();
+      await history;
+      await route.fulfill({
+        status: 503,
+        json: { error: 'Publication history is temporarily unavailable.' },
+      });
+      return;
+    }
+    await route.continue();
+  });
   await page.getByRole('button', { name: 'Publications', exact: true }).click();
-  await page.getByLabel('Artifact SHA-256').fill(artifact);
+  await requested;
+  const artifactInput = page.getByLabel('Artifact SHA-256');
+  try {
+    await expect(artifactInput).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: 'Verify and publish' }),
+    ).toBeDisabled();
+  } finally {
+    releaseHistory();
+  }
+  await expect(
+    page
+      .getByRole('alert')
+      .filter({ hasText: 'Publication history is temporarily unavailable.' }),
+  ).toBeVisible();
+  await expect(artifactInput).toBeDisabled();
+  await page.getByRole('button', { name: 'Retry publication history' }).click();
+  await expect(artifactInput).toBeEnabled();
+  await artifactInput.fill(artifact);
+  await expect(artifactInput).toHaveValue(artifact);
   await page.getByRole('button', { name: 'Verify and publish' }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'Publication activated' }),
