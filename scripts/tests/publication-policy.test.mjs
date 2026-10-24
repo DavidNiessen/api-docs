@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   npmPublicationOrder,
@@ -10,6 +12,11 @@ import {
   validatePublicationRulesets,
 } from '../lib/publication-policy.mjs';
 import { readWorkspacePackages } from '../lib/workspaces.mjs';
+import {
+  createPublicationProtectionSnapshot,
+  validatePublicationProtectionSnapshot,
+  inspectPublicationProtections,
+} from '../lib/publication-protection.mjs';
 
 const repositoryPolicy = JSON.parse(
   await readFile(new URL('../../release-policy.json', import.meta.url)),
@@ -69,6 +76,191 @@ const tagRules = {
   conditions: { ref_name: { include: ['refs/tags/v*'], exclude: [] } },
   rules: [{ type: 'update' }, { type: 'deletion' }],
 };
+
+function protectionSnapshotFixture() {
+  const metadata = {
+    source: context.repository,
+    source_type: 'Repository',
+    updated_at: '2026-10-24T00:00:00.000Z',
+  };
+  const branch = {
+    ...structuredClone(masterRules),
+    ...metadata,
+    name: 'Protect master',
+  };
+  const tags = {
+    ...structuredClone(tagRules),
+    ...metadata,
+    name: 'Protect release tags',
+  };
+  branch.bypass_actors = [
+    { actor_id: 5, actor_type: 'RepositoryRole', bypass_mode: 'always' },
+  ];
+  const snapshot = createPublicationProtectionSnapshot(
+    context.repository,
+    branch,
+    tags,
+  );
+  return { branch, tags, snapshot };
+}
+
+test('redacted bypass actors require a source snapshot bound to the exact live ruleset revisions', () => {
+  const { branch, tags, snapshot } = protectionSnapshotFixture();
+  const full = validatePublicationProtectionSnapshot(
+    context.repository,
+    branch,
+    tags,
+    snapshot,
+  );
+  assert.equal(full.administratorBypasses.branch, 1);
+  assert.equal(full.bypassEvidence.branchActorsVisible, true);
+  const redacted = structuredClone(branch);
+  delete redacted.bypass_actors;
+  redacted.current_user_can_bypass = 'never';
+  const verified = validatePublicationProtectionSnapshot(
+    context.repository,
+    redacted,
+    { ...tags, bypass_actors: null },
+    snapshot,
+  );
+  assert.equal(verified.bypassEvidence.branchActorsVisible, false);
+  assert.equal(verified.bypassEvidence.tagActorsVisible, false);
+  assert.equal(verified.administratorBypasses.branch, 1);
+  assert.throws(() =>
+    createPublicationProtectionSnapshot(context.repository, redacted, tags),
+  );
+  assert.throws(() => validatePublicationRulesets(redacted, tags));
+});
+
+test('ruleset revision drift, forged snapshots and inconsistent visible bypass lists fail closed', () => {
+  for (const change of [
+    (b) => {
+      b.updated_at = '2026-10-24T00:00:00.001Z';
+    },
+    (b, t) => {
+      t.updated_at = '2026-10-24T00:00:00.001Z';
+    },
+    (b) => {
+      delete b.updated_at;
+    },
+    (b) => {
+      b.updated_at = 'not-a-revision';
+    },
+    (b) => {
+      b.id = 999;
+    },
+    (b) => {
+      b.source = 'another/repository';
+    },
+    (b) => {
+      b.source_type = 'Organization';
+    },
+    (b) => {
+      b.conditions.ref_name.exclude = ['refs/heads/master'];
+    },
+    (b) => {
+      b.rules[0].parameters.required_approving_review_count = 0;
+    },
+    (b) => {
+      b.bypass_actors = [];
+    },
+    (b) => {
+      b.bypass_actors = 'hidden';
+    },
+    (b, t, s) => {
+      s.repository = 'another/repository';
+    },
+    (b, t, s) => {
+      s.schemaVersion = 999;
+    },
+    (b, t, s) => {
+      s.unknown = true;
+    },
+    (b, t, s) => {
+      delete s.branch.bypass_actors;
+    },
+    (b, t, s) => {
+      s.branch.bypass_actors[0].actor_id = 4;
+    },
+    (b, t, s) => {
+      s.branch.rules[0].parameters.required_approving_review_count = 0;
+      b.rules[0].parameters.required_approving_review_count = 0;
+    },
+  ]) {
+    const { branch, tags, snapshot } = protectionSnapshotFixture();
+    change(branch, tags, snapshot);
+    assert.throws(() =>
+      validatePublicationProtectionSnapshot(
+        context.repository,
+        branch,
+        tags,
+        snapshot,
+      ),
+    );
+  }
+});
+
+test('read-only inspection verifies environment protections and retains actual observations on drift', async (t) => {
+  const { branch, tags, snapshot } = protectionSnapshotFixture();
+  const root = await mkdtemp(join(tmpdir(), 'ad-protections-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    join(root, 'publication-protections.json'),
+    JSON.stringify(snapshot),
+  );
+  const liveBranch = { ...branch };
+  delete liveBranch.bypass_actors;
+  const environment = {
+    name: 'release',
+    deployment_branch_policy: {
+      custom_branch_policies: true,
+      protected_branches: false,
+    },
+    protection_rules: [
+      {
+        type: 'required_reviewers',
+        reviewers: [{ type: 'User', reviewer: { id: 42 } }],
+      },
+    ],
+  };
+  const api = async (path) =>
+    ({
+      '': { default_branch: 'master' },
+      'environments/release': environment,
+      'environments/release/deployment-branch-policies': {
+        branch_policies: [{ name: 'v*', type: 'tag' }],
+      },
+      'rulesets?includes_parents=true': [branch, tags],
+      'rulesets/12': liveBranch,
+      'rulesets/13': tags,
+    })[path];
+  const result = await inspectPublicationProtections(
+    root,
+    context.repository,
+    api,
+  );
+  assert.equal(result.environmentProtection.reviewers, 1);
+  assert.equal(
+    result.repositoryProtection.bypassEvidence.branchActorsVisible,
+    false,
+  );
+  assert.match(result.repositoryProtection.snapshotSha256, /^[a-f0-9]{64}$/);
+  liveBranch.updated_at = '2026-10-24T00:00:01.000Z';
+  await assert.rejects(
+    inspectPublicationProtections(root, context.repository, api),
+  );
+  const observed = JSON.parse(
+    await readFile(
+      join(root, '.api-docs/publication/protection-observation.json'),
+    ),
+  );
+  assert.equal(observed.branch.updated_at, liveBranch.updated_at);
+  assert.equal(Object.hasOwn(observed.branch, 'bypass_actors'), false);
+  environment.deployment_branch_policy.protected_branches = true;
+  await assert.rejects(
+    inspectPublicationProtections(root, context.repository, api),
+  );
+});
 
 test('actual repository rulesets must protect reviewed master and immutable version tags', () => {
   assert.deepEqual(validatePublicationRulesets(masterRules, tagRules), {

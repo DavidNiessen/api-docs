@@ -39,6 +39,19 @@ Approval-check mode inspects GitHub's actual metadata: active `Protect master` a
 
 Verified on 2026-10-24: those ruleset/environment requirements and private vulnerability reporting are enabled. The repository owner completed the settings because the integration returns `403` for administrative writes. Source booleans cannot substitute for these checks or a protected-job approval.
 
+GitHub redacts bypass actors from ordinary workflow tokens. `publication-protections.json` therefore captures an administrator-read source snapshot and binds it to the exact live ruleset IDs, update revisions, conditions and rules. Configuration drift fails closed; visible bypass lists are also compared directly. Receipts identify whether the actors were visible or verified through the source snapshot. This is source-reviewed policy evidence, not a claim that a read-only token enumerated hidden settings. See [ADR 0003](adr/0003-source-bound-protection-snapshots.md).
+
+After an intentional ruleset change, use an administrator-readable GitHub CLI connection:
+
+```sh
+node scripts/snapshot-publication-protections.mjs
+node scripts/check-publication-protections.mjs
+```
+
+Review and commit the public snapshot, then test a new matching candidate. The manual/daily **Publication protection drift** workflow checks the same live settings with the normal read-only token. No administration-write token or extra publishing credential is needed. Required environment reviewers and version-tag policies are always read live.
+
+Relevant source pushes also run the drift check. Ordinary forks skip a snapshot belonging to the original repository; generate a matching snapshot when configuring fork releases. Actual publication never skips repository identity validation.
+
 ## Fresh security for the accepted image
 
 A confirmed run audits locked dependencies and rescans the original accepted Docker archive with pinned inventory/scanner tools and current official vulnerability data. It never rebuilds the image to refresh its security evidence. The preflight job signs only the three scan reports it generated.

@@ -1,8 +1,18 @@
 # Implementation progress
 
-Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-24. **Approximately 98% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current Studio publication-loading increment
+## Current workflow protection-evidence increment
+
+**Signed candidate `.5` passed all 22 jobs, but confirmed publication stopped before registry writes on GitHub's redacted bypass metadata.** [Candidate 40102334422](https://github.com/DavidNiessen/api-docs/actions/runs/40102334422), main Quality and the deployed mock demo passed on `6fb08cf`. The compiler measured 99.95 seconds for 10k operations. [Preview 40103554382](https://github.com/DavidNiessen/api-docs/actions/runs/40103554382) verified all 39 subjects with zero prerelease blockers and all five reviews explicitly deferred. [Confirmed run 40103828095](https://github.com/DavidNiessen/api-docs/actions/runs/40103828095) failed closed because the workflow token could not enumerate ruleset bypass actors; every publisher was skipped.
+
+The follow-up records an administrator-read public snapshot bound to live GitHub ruleset revisions and visible configuration. It validates the original protections, rejects drift and malformed/redacted snapshots, compares visible actors when available and identifies the evidence source in receipts. Native environment approval, security, signatures and registry consumers remain required. A read-only drift workflow exercises the normal token before another candidate is tagged. See [ADR 0003](../adr/0003-source-bound-protection-snapshots.md). Readiness remains approximately **98%, pre-release**, with actual registry acceptance still outstanding.
+
+Local formatting/lint, all **183 tooling tests** and **1,050 source tests** pass; actionlint accepts the new drift workflow. The administrator-readable generator and checker pass against the actual repository, including invocation outside the checkout directory. Regression coverage rejects changed revisions/conditions, foreign or malformed snapshots and visible bypass mismatches, and retains API observations when drift fails validation. Workflow-token acceptance remains required before preparing the replacement candidate.
+
+[Read-only drift run 40105494720](https://github.com/DavidNiessen/api-docs/actions/runs/40105494720) now passes at `6b466c7`: both bypass lists are hidden, while live revisions/configuration and the native environment policy match the validated source snapshot. No extra credential or permission was added. Source-bound preparation aligns `0.2.0-candidate.6` across all npm/Java metadata and both locks; its fresh production build and all **12 installed npm components** pass audit, offline reinstall and public SDK/CLI/framework journeys. Fresh hosted checks and the new matching candidate remain required before registry publication.
+
+## Previous Studio publication-loading increment
 
 **Candidate `.4` passed compiler performance but exposed a WebKit Studio publication failure.** The failed trace shows no artifact/publication mutation request and an empty artifact field around initial history loading. Publication controls now stay disabled until history has loaded for the current request scope and while another action is running. A failed initial load provides an explicit retry. Navigation, authentication or project changes invalidate readiness through the existing scope cancellation.
 

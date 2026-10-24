@@ -1,6 +1,6 @@
 {
   "name": "@davidniessen/node",
-  "version": "0.2.0-candidate.5",
+  "version": "0.2.0-candidate.6",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -17,8 +17,8 @@
     }
   },
   "dependencies": {
-    "@davidniessen/compiler": "0.2.0-candidate.5",
-    "@davidniessen/contracts": "0.2.0-candidate.5",
+    "@davidniessen/compiler": "0.2.0-candidate.6",
+    "@davidniessen/contracts": "0.2.0-candidate.6",
     "@fastify/static": "10.1.7",
     "express-rate-limit": "8.7.1"
   },

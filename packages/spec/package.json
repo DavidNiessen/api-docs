@@ -1,6 +1,6 @@
 {
   "name": "@davidniessen/spec",
-  "version": "0.2.0-candidate.5",
+  "version": "0.2.0-candidate.6",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -13,7 +13,7 @@
     }
   },
   "dependencies": {
-    "@davidniessen/contracts": "0.2.0-candidate.5",
+    "@davidniessen/contracts": "0.2.0-candidate.6",
     "@apidevtools/swagger-parser": "13.1.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",

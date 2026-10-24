@@ -2,6 +2,16 @@
 
 <!-- markdownlint-configure-file {"MD024": {"siblings_only": true}} -->
 
+## 0.2.0-candidate.6 - 2026-10-24
+
+Verify repository protection with an administrator-read source snapshot bound to GitHub's live ruleset revisions. This supports read-only workflow tokens without treating hidden bypass actors as an empty list. Drift, visible bypass mismatches and malformed evidence remain blocking. No new secret or elevated workflow permission is required; native approval, signatures, security and fresh registry installation remain required. Independent launch reviews remain deferred for prereleases.
+
+### Fixes
+
+- **release:** bind protection snapshots to live ruleset revisions ([6b466c7](https://github.com/DavidNiessen/api-docs/commit/6b466c778869a80101c378ef11e701bda0049639))
+
+[Full changelog](https://github.com/DavidNiessen/api-docs/compare/v0.2.0-candidate.5...v0.2.0-candidate.6)
+
 ## 0.2.0-candidate.5 - 2026-10-24
 
 Studio waits for the current view's publication history before enabling artifact entry and activation, and offers an explicit retry after an initial load failure. The delayed-load browser journey verifies failure recovery and real publication. Earlier candidates remain immutable; this version requires its own full browser matrix, signed acceptance and registry checks. Independent launch reviews and pilots remain deferred for prereleases.
