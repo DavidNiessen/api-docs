@@ -117,6 +117,20 @@ test('release source accepts a clean aligned ancestor tag and refuses other iden
     GITHUB_WORKFLOW_REF: `${context.repository}/.github/workflows/release-candidate.yml@refs/tags/v${BASE_VERSION}`,
   };
   assert.equal((await releaseSource(root, env)).commit, commit);
+  const publication = {
+    ...env,
+    GITHUB_WORKFLOW_REF: `${context.repository}/.github/workflows/release-publish.yml@refs/tags/v${BASE_VERSION}`,
+  };
+  assert.equal(
+    (
+      await releaseSource(root, publication, {
+        workflow: 'release-publish.yml',
+      })
+    ).commit,
+    commit,
+  );
+  await assert.rejects(releaseSource(root, publication));
+  await assert.rejects(releaseSource(root, env, { workflow: 'untrusted.yml' }));
   for (const override of [
     { GITHUB_REPOSITORY: 'untrusted/fork' },
     { GITHUB_REF: 'refs/heads/master' },

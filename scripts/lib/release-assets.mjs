@@ -24,7 +24,12 @@ const filename = (value) => {
 };
 
 /** A release candidate must be a clean, aligned tag already reviewed on master. */
-export async function releaseSource(root, env = process.env) {
+export async function releaseSource(
+  root,
+  env = process.env,
+  { workflow = 'release-candidate.yml' } = {},
+) {
+  assert(['release-candidate.yml', 'release-publish.yml'].includes(workflow));
   const git = async (...args) =>
     (
       await exec('git', args, {
@@ -46,8 +51,8 @@ export async function releaseSource(root, env = process.env) {
   );
   assert.equal(
     env.GITHUB_WORKFLOW_REF,
-    `${env.GITHUB_REPOSITORY}/.github/workflows/release-candidate.yml@${env.GITHUB_REF}`,
-    'Use the release-candidate workflow at the tag.',
+    `${env.GITHUB_REPOSITORY}/.github/workflows/${workflow}@${env.GITHUB_REF}`,
+    'Use the expected release workflow at the tag.',
   );
   assert.match(env.GITHUB_SHA ?? '', /^[a-f0-9]{40}$/);
   for (const key of ['GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT'])

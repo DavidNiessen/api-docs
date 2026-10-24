@@ -1,14 +1,14 @@
 {
   "name": "@api-docs/worker",
-  "version": "0.1.0",
+  "version": "0.2.0-candidate.1",
   "type": "module",
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
-    "@api-docs/cli": "0.1.0",
-    "@api-docs/compiler": "0.1.0",
-    "@api-docs/contracts": "0.1.0",
-    "@api-docs/domain": "0.1.0",
-    "@api-docs/spec": "0.1.0"
+    "@api-docs/cli": "0.2.0-candidate.1",
+    "@api-docs/compiler": "0.2.0-candidate.1",
+    "@api-docs/contracts": "0.2.0-candidate.1",
+    "@api-docs/domain": "0.2.0-candidate.1",
+    "@api-docs/spec": "0.2.0-candidate.1"
   }
 }

@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated: 2026-10-23. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
+Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
 ## Current milestone status
 
@@ -16,6 +16,62 @@ Updated: 2026-10-23. **Approximately 97% complete; pre-release.** This is an eng
 | M7 — Launch              | Local automated validation and documented performance experiments                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Independent pilots, security/accessibility review, complete license/distribution audit, protected release approval and registry installation verification |
 
 ## Latest completed increment
+
+**Public distribution checks now cover two registry edge cases.** Maven can return a bounded HTML 404 page larger than a small POM without being mistaken for a corrupt existing version. Container pushes explicitly select the tested Linux/amd64 platform, and anonymous acceptance verifies both the advertised version tag and immutable digest so a moved tag cannot pass through a valid older digest.
+
+All **166 tooling tests** pass locally, including regression cases for both behaviors. The ordinary hosted push and PR Quality runs passed every job for the prepared `eb66189` tree; its full browser/performance matrix is running. This release-only transport increment needs its own hosted checks. Clean-tag producer signing, protected registry acceptance and maintainer launch decisions remain pending; approximately **97%, pre-release**.
+
+## Previous prepared-candidate increment
+
+**An unpublished `0.2.0-candidate.1` is prepared for clean-tag acceptance.** Saved source-bound planning and a preview aligned all 16 npm packages, both lockfiles, runtime identity and three Java POMs, then generated the initial changelog from conventional commits. No tag, registry distribution or GitHub release has been published by this preparation. Names remain provisional and source publication policy stays disabled.
+
+The prepared tree passes release-mode alignment, frozen pnpm policy/lockfile checks, formatting/lint, all **164 tooling** and **1,049 source tests**, all **12 installed npm components**, and baseline Java 21/Spring Boot 3.5.16 MVC/WebFlux consumers (**8 tests, no skips**, plus both offline compilations). The full hosted matrix, actual clean-tag keyless verification and protected registry acceptance remain pending. Hosted [Quality 40039470302](https://github.com/DavidNiessen/api-docs/actions/runs/40039470302) passed every job at `bb02e9d`, confirming the subprocess-input fix before this prepared-version increment. The estimate stays approximately **97%, pre-release**.
+
+## Previous fresh-security increment
+
+**Publication now refreshes dependency and image security for the original accepted bytes.** A confirmed run audits the lockfile, loads the tested Docker archive and scans it with current pinned tools/official data. The scanner signs only the reports it generated. Publishers and public consumers verify those signatures, image/archive/source/run bindings, raw hashes and the existing unsuppressed severity/freshness policy. Delayed approval can rerun all publication jobs without rebuilding accepted artifacts. The candidate workflow has a separate nonpublishing rehearsal path that cannot authorize publication.
+
+All **164 tooling tests** and local formatting/lint/workflow checks pass. New cases reject stale audits/scans, mismatched publishing attempts or images, changed raw data and newly blocking findings. Hosted source/browser acceptance at `bb02e9d` passes after the pipe fix; fresh hosted acceptance of this preflight increment and actual clean-tag execution remain pending. The estimate stays approximately **97%, pre-release**.
+
+## Previous subprocess-input increment
+
+**Release subprocess input now handles early pipe closure without an uncaught Node stream error.** Hosted source acceptance at `4ebcb50` exposed an `EPIPE` in the real GnuPG fixture, despite the local and pnpm suites passing. Signing and Docker commands now share a helper that awaits both stdin completion and process exit, closes empty input without a write, and converts pipe failure through the existing sanitized error paths. Regression tests force repeated early child exits with large binary input and verify diagnostic redaction. Actual protected publication remains pending.
+
+All **160 tooling tests** and local formatting/lint checks pass. Both hosted push and proposed-merge Quality runs passed every job for `e3ca622`; raw source/image reports were rehashed and reassessed, retaining zero High/Critical source findings, zero High/Critical/unknown image findings, five source Medium and three image Medium findings. The final workflow and pipe fix still require fresh hosted acceptance. Repository rulesets and a tag-only release environment exist, but conversation resolution, a required release reviewer and private vulnerability reporting remain owner-controlled settings to complete. The estimate stays approximately **97%, pre-release**.
+
+## Previous protected-publishing increment
+
+**The release workflow now connects all three exact-byte publishers to protected approval and independent public consumers.** Default runs stay read-only. Explicit confirmation first requires approved source policy, actual active branch/tag rulesets with recorded administrator-only bypasses and a tag-only reviewer environment. Separate npm, Maven and OCI jobs receive only their own publishing capabilities; fresh consumer runners have only read permissions. The OCI job signs a promotion predicate. A final acceptance gate rejects any failed, cancelled or skipped distribution. GitHub release announcements remain a separate owner decision.
+
+All **158 tooling tests**, workflow syntax, lint and formatting checks pass locally. New checks cover default-deny publishing, registry-specific permissions, isolated consumers, actual protection metadata, predicate identity and shell argument boundaries. All 12 installed archive consumers also pass. Signing preflight rejects private, missing or mismatched source keys, and signature checks reject expired/revoked statuses. Actual clean-tag producer signing, protected registry publication, fresh public installations and independent launch reviews remain pending. The estimate stays approximately **97%, pre-release**.
+
+## Previous container-publication increment
+
+**Container promotion now preserves the tested image ID and has an anonymous public verification path.** The transport loads the accepted archive without rebuilding, rejects conflicting immutable tags and binds the registry manifest digest/config to producer evidence. A separate promotion predicate supports keyless signing without claiming the publisher built the image. Public acceptance uses anonymous registry credentials, an empty Docker configuration, a digest pull, constrained attestation verification and an owned read-only runtime probe with failure cleanup. Protected workflow integration and actual public publishing remain pending.
+
+All **152 tooling tests** pass. Read-only anonymous GHCR manifest/config verification passes against a public runner image. The new managed-daemon helper and restricted runtime/cleanup probe pass against the retained local `0.1.0` image; this is not a new-image or public-project publication claim. Completion remains approximately **97%, pre-release**.
+
+## Previous Maven-publication increment
+
+**The Maven transport signs and promotes accepted Java files with explicit Central validation and separate public consumer acceptance.** All nine POM/binary/source/Javadoc files retain their tested hashes; local signing verifies every detached signature and produces Central's required layout/checksums. Uploads use manual validation before publication, retain safe deployment receipts and refuse conflicting/partially visible public coordinates. Fresh public acceptance verifies signatures with the reviewed public key, then runs MVC/WebFlux and offline compilation from an empty Maven repository without installing project JARs. Workflow integration and actual registry publication remain pending.
+
+All **146 tooling tests** pass. Real ephemeral-key signing and tamper rejection pass for the nine-file bundle; mocked Central states enforce validation-before-publication and retain failed deployment IDs. The extracted fixture-only compiler builds all three Java publication fixtures with matching manifest digests. No production key, registry write or public installation is claimed. Completion remains approximately **97%, pre-release**.
+
+## Previous npm-publication increment
+
+**The npm transport now promotes exact tested archives and has a separate fresh public-registry consumer verifier.** It preflights all immutable versions, rejects conflicting or unprovenanced existing bytes, orders workspace dependencies, disables lifecycle scripts and keeps token values out of arguments, files and receipts. Public verification starts with an empty cache, requires registry integrity/signatures/provenance, then runs audit, offline reinstall and the installed CLI/type/adapter journeys. The current workflow remains read-only; publishing integration, actual registry acceptance, Maven/container transports and owner launch decisions remain pending.
+
+All **141 tooling tests** pass, including new conflict, archive-integrity, credential-cleanup, redaction and bounded registry HTTP cases. A real read-only npm registry request also passes through the session proxy. These results do not claim a registry write, public installation of this project's packages or completed cryptographic release acceptance. Completion remains approximately **97%, pre-release**.
+
+## Previous publication-plan increment
+
+**Publication plans now verify successful candidate identity and authentic producer bytes before listing destinations and blockers.** A read-only tag workflow checks the exact upstream candidate workflow/attempt and remote tag, shares signature/hash verification with candidate acceptance, and evaluates public namespace, signing and launch-review decisions. It keeps policy decisions separate from publication approval. A further approval-check mode validates the actual reviewer/tag environment configuration. Dependency ordering is checked against all public workspaces. See [publication plans](../publication-plans.md).
+
+All **136 tooling cases** pass, including eight new policy/verification cases and expanded release-source workflow-identity checks. Tests cover command constraints and failure handling; actual GitHub OIDC/signature acceptance still requires a clean-tag run. Registry transports, published installation and protected release approval remain pending; the estimate stays approximately **97%, pre-release**.
+
+Hosted [Quality run 40034353999](https://github.com/DavidNiessen/api-docs/actions/runs/40034353999) passes every job at `4042c8f`, including both CodeQL languages, both package managers, source/browser, all Java combinations and deployment/image security. The parser/receipt fixes are merged into `master`. The new planning/verification increment remains subject to fresh hosted checks.
+
+## Previous parser-and-receipt increment
 
 **Both package managers now require patched `body-parser` 2.4.0.** The pnpm gate caught High advisory GHSA-27r3-jxmh-p828 in 2.3.0; npm's lock already used 2.4.0. Matching overrides and the pnpm lock now select the patch, and both local advisory audits report zero findings. All 1,049 source cases, 128 tooling cases, strict types, formatting/lint and 12 installed npm components pass. Release image collection also selects its subject from the accepted deployment receipt and cross-checks the inventory/security receipts, removing reliance on a globally named temporary identifier. Fresh hosted source/security and package-manager checks remain required for these fixes.
 

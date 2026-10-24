@@ -113,6 +113,10 @@ Prepared [rehearsal 40000268183](https://github.com/DavidNiessen/api-docs/action
 
 The [verified release-candidate workflow](release-provenance.md) reuses the required quality, browser and performance gates against reviewed, clean release metadata. It retains the exact tested npm/Java files and Docker image, attests them in their producing jobs and verifies source-bound signatures and bytes after download. This manual tag-only path creates no registry packages or release entries; it does not turn the dirty prepared-version rehearsal into a signed stable release.
 
+## Review publication destinations and blockers
+
+The [publication workflow](publication-plans.md) verifies the exact successful candidate run/attempt, remote tag, producer signatures, bytes and namespace policy. Its default read-only run retains reviewable digests and pending owner decisions. Explicit publication requires approved policy, actual branch/tag protections and the protected release environment; separate npm, Maven and OCI publishers promote exact accepted bytes, followed by fresh public consumer verification. Namespace/signing setup, actual end-to-end acceptance and owner approval remain launch gates.
+
 ## Still required before publication
 
 Confirm owned npm/Maven/container namespaces and the final project name. Complete the advertised support matrix, independent security/accessibility review and pilots; verify branch/tag/environment protection; then test the exact candidate from a clean checkout. Registry release workflows, reviewed final version/changelog changes, final container inventory review, signatures, provenance, upgrade/install rehearsals and release-owner approval remain launch gates. A local tarball install and a cache-only npm reinstall do not establish installation from public registries or a fully air-gapped server deployment.

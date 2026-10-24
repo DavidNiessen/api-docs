@@ -311,46 +311,7 @@ export async function buildJavaCandidate({
       scopes: ['compile', 'provided', 'runtime'],
       testScopeExcluded: true,
     };
-    const publications = [
-      {
-        name: 'fixture',
-        basePath: '/gateway/docs',
-        pathKey: 'publication',
-        digestKey: 'artifactDigest',
-      },
-      {
-        name: 'fixture-root',
-        basePath: '/gateway',
-        pathKey: 'rootPublication',
-        digestKey: 'rootArtifactDigest',
-      },
-      {
-        name: 'fixture-standalone',
-        basePath: '',
-        pathKey: 'standalonePublication',
-        digestKey: 'standaloneArtifactDigest',
-      },
-    ];
-    for (const item of publications) {
-      const publication = join(output, item.name);
-      await cp(join(repository, 'examples/demo'), publication, {
-        recursive: true,
-        filter: (file) => !file.includes('.api-docs'),
-      });
-      const config = join(publication, 'docs.config.yaml');
-      const value = parseSource(
-        await readFile(config, 'utf8'),
-        'docs.config.yaml',
-      );
-      value.basePath = item.basePath;
-      await writeFile(config, JSON.stringify(value, null, 2) + '\n');
-      await buildSite(publication);
-      candidate[item.pathKey] = join(publication, '.api-docs/site');
-      const manifest = JSON.parse(
-        await readFile(join(candidate[item.pathKey], 'manifest.json'), 'utf8'),
-      );
-      report[item.digestKey] = manifest.artifactDigest;
-    }
+    await prepareJavaPublications(candidate);
     await saveJavaCandidate(candidate);
     return candidate;
   } catch (error) {
@@ -358,6 +319,49 @@ export async function buildJavaCandidate({
       'Candidate build or inspection failed; inspect its retained logs.';
     await saveJavaCandidate(candidate);
     throw error;
+  }
+}
+/** Build only documentation fixtures; public registry consumers must never install project JARs. */
+export async function prepareJavaPublications(candidate) {
+  const publications = [
+    {
+      name: 'fixture',
+      basePath: '/gateway/docs',
+      pathKey: 'publication',
+      digestKey: 'artifactDigest',
+    },
+    {
+      name: 'fixture-root',
+      basePath: '/gateway',
+      pathKey: 'rootPublication',
+      digestKey: 'rootArtifactDigest',
+    },
+    {
+      name: 'fixture-standalone',
+      basePath: '',
+      pathKey: 'standalonePublication',
+      digestKey: 'standaloneArtifactDigest',
+    },
+  ];
+  for (const item of publications) {
+    const publication = join(candidate.output, item.name);
+    await cp(join(repository, 'examples/demo'), publication, {
+      recursive: true,
+      filter: (file) => !file.includes('.api-docs'),
+    });
+    const config = join(publication, 'docs.config.yaml');
+    const value = parseSource(
+      await readFile(config, 'utf8'),
+      'docs.config.yaml',
+    );
+    value.basePath = item.basePath;
+    await writeFile(config, JSON.stringify(value, null, 2) + '\n');
+    await buildSite(publication);
+    candidate[item.pathKey] = join(publication, '.api-docs/site');
+    const manifest = JSON.parse(
+      await readFile(join(candidate[item.pathKey], 'manifest.json'), 'utf8'),
+    );
+    candidate.report[item.digestKey] = manifest.artifactDigest;
   }
 }
 export async function saveJavaCandidate(candidate) {

@@ -1,6 +1,6 @@
 {
   "name": "@api-docs/content",
-  "version": "0.1.0",
+  "version": "0.2.0-candidate.1",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -13,8 +13,8 @@
     }
   },
   "dependencies": {
-    "@api-docs/contracts": "0.1.0",
-    "@api-docs/spec": "0.1.0",
+    "@api-docs/contracts": "0.2.0-candidate.1",
+    "@api-docs/spec": "0.2.0-candidate.1",
     "@mdx-js/mdx": "3.1.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
