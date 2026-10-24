@@ -1,6 +1,6 @@
 {
   "name": "@davidniessen/studio",
-  "version": "0.2.0-candidate.6",
+  "version": "0.2.0-candidate.7",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
   "dependencies": {
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "@davidniessen/domain": "0.2.0-candidate.6",
-    "@davidniessen/contracts": "0.2.0-candidate.6"
+    "@davidniessen/domain": "0.2.0-candidate.7",
+    "@davidniessen/contracts": "0.2.0-candidate.7"
   }
 }

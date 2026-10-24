@@ -24,7 +24,7 @@ env:
 
 jobs:
   observe:
-    name: Observe registry response metadata without following redirects
+    name: Inspect redirects and verify bounded artifact downloads
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
