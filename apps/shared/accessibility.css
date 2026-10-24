@@ -1,0 +1,41 @@
+/* Load after component skins so preference fallbacks win the cascade. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .site-header,
+  .studio > header {
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .playground-dialog::backdrop,
+  .reader-settings::backdrop,
+  .response-fullscreen-dialog::backdrop,
+  .search-dialog::backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.docs-shell, .studio),
+  :is(.docs-shell, .studio) *,
+  :is(.docs-shell, .studio) *::before,
+  :is(.docs-shell, .studio) *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (forced-colors: active) {
+  .docs-shell,
+  .studio {
+    --ui-border: CanvasText;
+    --ui-field-border: ButtonText;
+    --ui-shadow: none;
+  }
+  :is(.docs-shell, .studio)
+    :is(button, a, input, select, textarea, summary):focus-visible {
+    outline: 2px solid Highlight;
+  }
+  :is(.docs-shell, .studio) :is(button, input, select, textarea) {
+    border-color: ButtonText;
+  }
+}

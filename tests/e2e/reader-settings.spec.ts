@@ -167,8 +167,8 @@ test('response editor follows reader appearance and presets across tabs without 
     .selectOption('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(editor).toHaveClass(/vs-dark/);
-  expect(await shellBackground()).toBe('#101316');
-  await expect(editor).toHaveCSS('background-color', 'rgb(16, 19, 22)');
+  expect(await shellBackground()).toBe('#18181b');
+  await expect(editor).toHaveCSS('background-color', 'rgb(24, 24, 27)');
   await expect(
     editor.locator('.codicon-folding-collapsed').first(),
   ).toBeVisible();
@@ -206,7 +206,7 @@ test('response editor follows reader appearance and presets across tabs without 
   await expect(fullscreen.locator('.monaco-editor')).toHaveClass(/vs-dark/);
   await expect(fullscreen.locator('.monaco-editor')).toHaveCSS(
     'background-color',
-    'rgb(16, 19, 22)',
+    'rgb(24, 24, 27)',
   );
   await page.keyboard.press('Escape');
   await expect(playground).toBeVisible();

@@ -60,9 +60,9 @@ function computeReadableAccent(
   mode: 'light' | 'dark',
   colors?: Pick<Palette, 'surface' | 'background'>,
 ): string {
-  const surface = colors?.surface ?? (mode === 'light' ? '#f8fafb' : '#161b20');
-  const background =
-    colors?.background ?? (mode === 'light' ? '#ffffff' : '#101316');
+  const palette = mode === 'light' ? light : dark;
+  const surface = colors?.surface ?? palette.surface;
+  const background = colors?.background ?? palette.background;
   const tinted = blend(background, accent, 0.08);
   const destination = ['#111b27', '#ffffff'].sort(
     (a, b) =>
@@ -97,21 +97,21 @@ export const themePresets = {
 } as const;
 const light: Palette = {
   background: '#ffffff',
-  surface: '#f8fafb',
-  subtle: '#f4f6f8',
-  border: '#e8ebee',
-  text: '#202a35',
-  muted: '#596572',
-  heading: '#111b27',
+  surface: '#f5f5f7',
+  subtle: '#eeeff2',
+  border: '#e0e0e4',
+  text: '#343438',
+  muted: '#61616b',
+  heading: '#1d1d20',
 };
 const dark: Palette = {
-  background: '#101316',
-  surface: '#161b20',
-  subtle: '#1d232a',
-  border: '#293038',
-  text: '#cbd3dc',
-  muted: '#a1adba',
-  heading: '#f1f5f9',
+  background: '#18181b',
+  surface: '#202024',
+  subtle: '#28282c',
+  border: '#36363c',
+  text: '#dedee4',
+  muted: '#aaaab4',
+  heading: '#f5f5f7',
 };
 export function resolvePalette(
   theme: {

@@ -2,11 +2,17 @@
 
 Updated: 2026-10-24. **Approximately 99% complete; published prerelease.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. Independent reviews explicitly deferred by the owner remain unfinished; this is not a claim of stable production approval. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current launch-checklist and maintenance audit
+## Current documentation workspace redesign
+
+Applied the user-provided [Apple Design skill](https://github.com/dickwu/apple-design-skill/blob/914b6a377c22755597e4405e54911b996de822d7/SKILL.md) to the React reader and Studio. Shared semantic tokens, readable relative typography, comfortable controls, quieter islands, centered guide content, grouped preferences, coherent SVG icons and system-aware Studio appearance preserve the existing navigation, classic reference and request/response features. Accessibility preference fallbacks include opaque chrome, reduced motion and forced colors. See the [design review and local results](../design/apple-workspace.md).
+
+Local production builds, formatting/lint/type checks, 42 targeted unit tests and all 11 static-demo browser checks pass. Enlarged-text Studio previews pass axe in light/dark. The unchanged mobile browser budgets pass ten cold samples per route. Hosted source, real Studio and three-engine acceptance for this increment are tracked in [PR 19](https://github.com/DavidNiessen/api-docs/pull/19) and its linked workflow runs. The redesign updates source and the automatic demo; published `.7` packages remain immutable and retain their prior UI. The overall prerelease estimate remains approximately 99%; this UI work does not complete the explicitly deferred independent launch reviews.
+
+## Previous launch-checklist and maintenance audit
 
 The [support and release-operations policy](../../SUPPORT.md) now records the existing maintainer's monitoring, triage, incident and rollback responsibilities, current supported configurations and label conventions, best-effort prerelease maintenance and the stable security-window policy. The launch checklist links delivered documentation and completed candidate, performance, TLS, recovery, scan and registry evidence instead of retaining stale implementation placeholders. Adopted Apache-2.0 licensing is separate from the deferred independent license audit.
 
-All **28 deployed reader assets** were downloaded from the public demo and compared byte-for-byte with both the original tested demo artifact and the exact producer-verified, registry-accepted `@davidniessen/reader` archive. CSS, JavaScript, workers, source maps, the icon font and notices all match. The [release evidence index](../release-evidence/0.2.0-candidate.7.json) retains the hashes and comparison boundary. This does not replace pilot, linguistic, real-device or independent accessibility review.
+Before this redesign, all **28 deployed reader assets** were downloaded from the public demo and compared byte-for-byte with both the original tested demo artifact and the exact producer-verified, registry-accepted `@davidniessen/reader` archive. CSS, JavaScript, workers, source maps, the icon font and notices all match. The [release evidence index](../release-evidence/0.2.0-candidate.7.json) retains the hashes and comparison boundary. This does not replace pilot, linguistic, real-device or independent accessibility review.
 
 The engineering estimate remains **approximately 99%, published prerelease**. The five explicitly deferred independent reviews/pilots, deferred naming decision and separately accepted stable release remain unfinished. This documentation audit does not change runtime files, published artifacts, source publication policy or approval status.
 

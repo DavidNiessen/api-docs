@@ -719,10 +719,6 @@ export function App({
               {t('navigation.deprecations')}
             </a>
           )}
-          <span className="header-version">
-            <span className="live-dot" />
-            {t('navigation.builtFor')}
-          </span>
         </nav>
       </header>
       <div className="docs-layout">
@@ -1168,22 +1164,6 @@ export function App({
                       </a>
                     ))}
                 </nav>
-                <div className="toc-help">
-                  <Icon name="code" />
-                  <strong>Build something great</strong>
-                  <p>
-                    Explore endpoints and try your first request in the API
-                    playground.
-                  </p>
-                  {activeApi && firstApi && (
-                    <a
-                      href={docHref(operationHref(activeApi, firstApi))}
-                      data-doc-route
-                    >
-                      Explore the API <Icon name="arrow" size={14} />
-                    </a>
-                  )}
-                </div>
               </aside>
             </>
           ) : (

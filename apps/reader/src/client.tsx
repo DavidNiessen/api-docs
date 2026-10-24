@@ -2,11 +2,13 @@ import { hydrateRoot } from 'react-dom/client';
 import { App } from './components/App.js';
 import { normalizePagePath } from '@davidniessen/contracts';
 import type { SiteData } from '@davidniessen/contracts';
+import '../../shared/design-tokens.css';
 import './styles.css';
 import './island-layout.css';
 import './reader-settings.css';
 import './classic-reference.css';
 import '../../shared/scrollbars.css';
+import '../../shared/accessibility.css';
 const data = document.getElementById('docs-data');
 const root = document.getElementById('root');
 if (data && root) {

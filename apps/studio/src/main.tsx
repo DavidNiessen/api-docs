@@ -13,10 +13,33 @@ import { createStudioRequestScope } from './request-scope.js';
 import { useProjectCapabilities } from './use-project-capabilities.js';
 import { createRoot } from 'react-dom/client';
 import type { Project, Publication } from '@davidniessen/domain';
+import '../../shared/design-tokens.css';
 import './styles.css';
 import './island-layout.css';
 import '../../shared/scrollbars.css';
+import '../../shared/accessibility.css';
 const Builds = lazy(() => import('./Builds.js'));
+const navigationIcons: Record<string, string> = {
+  Overview: 'M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z',
+  Builds: 'm5 7 4 5-4 5m8 0h6',
+  Publications: 'M5 12h14m-6-6 6 6-6 6',
+  'Access control': 'M5 10h14v11H5zM8 10V6a4 4 0 0 1 8 0v4',
+  'Audit log': 'M4 6h16M4 12h16M4 18h16',
+};
+function WorkspaceMark() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.65"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3z" />
+    </svg>
+  );
+}
 function Studio() {
   const [sidebarWidth, setSidebarWidth] = useState(240);
   useEffect(() => {
@@ -301,7 +324,10 @@ function Studio() {
     <div className="studio">
       <header>
         <a className="studio-brand" href="/admin/">
-          <span>✧</span>api-docs <small>Studio</small>
+          <span>
+            <WorkspaceMark />
+          </span>
+          api-docs <small>Studio</small>
         </a>
         <span className="self-hosted">Self-hosted workspace</span>
         {connected && (
@@ -316,7 +342,9 @@ function Studio() {
       </header>
       {!connected ? (
         <main className="login">
-          <div className="login-mark">✧</div>
+          <div className="login-mark">
+            <WorkspaceMark />
+          </div>
           <p className="eyebrow">YOUR DOCUMENTATION, YOUR INFRASTRUCTURE</p>
           <h1>Welcome to your workspace</h1>
           <p>Publish beautiful documentation. Keep complete control.</p>
@@ -366,7 +394,7 @@ function Studio() {
           }}
         >
           <aside>
-            <div className="workspace-label">WORKSPACE</div>
+            <div className="workspace-label">Workspace</div>
             <label className="project-picker">
               Current project
               <select
@@ -414,20 +442,23 @@ function Studio() {
                   type="button"
                   key={name}
                   className={tab === name ? 'selected' : ''}
+                  aria-current={tab === name ? 'page' : undefined}
                   aria-label={name}
                   onClick={() => navigate(name)}
                 >
-                  <span>
-                    {
-                      {
-                        Overview: '◈',
-                        Builds: '⚒',
-                        Publications: '↗',
-                        'Access control': '⊙',
-                        'Audit log': '≡',
-                      }[name]
-                    }
-                  </span>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.65"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d={navigationIcons[name]} />
+                  </svg>
                   {name}
                 </button>
               ))}
@@ -471,7 +502,7 @@ function Studio() {
             <div className="workspace-heading">
               <div>
                 <p className="eyebrow">
-                  WORKSPACE / {project?.name ?? 'PROJECTS'}
+                  Workspace / {project?.name ?? 'Projects'}
                 </p>
                 <h1>{tab}</h1>
                 <p>

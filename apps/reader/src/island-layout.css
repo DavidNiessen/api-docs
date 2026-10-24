@@ -1,25 +1,32 @@
 /* A shared canvas separates the navigation, article and inspector into islands. */
 .docs-shell {
-  --island-radius: max(14px, calc(var(--radius) + 6px));
-  --canvas: color-mix(in srgb, var(--subtle) 78%, var(--bg));
+  --island-radius: max(var(--ui-panel-radius), calc(var(--radius) + 8px));
+  --canvas: color-mix(in srgb, var(--subtle) 72%, var(--bg));
+  --workspace-header-size: calc(7rem + 2px);
+  --workspace-top: calc(var(--workspace-header-size) + 24px);
   background: var(--canvas);
-  padding: 12px;
+  padding: 10px 12px;
 }
 .site-header {
   top: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: var(--island-radius);
   background: var(--bg);
-  box-shadow: 0 2px 8px #00000003;
+  box-shadow: var(--ui-shadow);
+  background: var(--ui-chrome);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  backdrop-filter: blur(20px) saturate(1.15);
 }
 .header-main {
-  height: 66px;
+  height: 4.25rem;
   padding: 0 24px;
   max-width: none;
   gap: 32px;
 }
 .header-tabs {
-  height: 43px;
+  height: 2.75rem;
+  gap: 6px;
+  align-items: center;
   max-width: none;
   padding: 0 24px;
 }
@@ -27,7 +34,10 @@
   min-width: 210px;
 }
 .search-trigger {
-  border-radius: 999px;
+  border-radius: var(--ui-control-radius);
+  min-height: var(--ui-control-height);
+  background: var(--bg);
+  box-shadow: 0 1px 2px #00000003;
 }
 .docs-layout {
   max-width: none;
@@ -42,13 +52,14 @@
 .sidebar {
   width: auto;
   min-width: 0;
-  top: 135px;
-  height: calc(100dvh - 147px);
-  border: 1px solid var(--border);
+  top: var(--workspace-top);
+  height: calc(100dvh - var(--workspace-top) - 12px);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: var(--island-radius);
-  padding: 24px 16px 0;
+  padding: 24px 12px 0;
   background: var(--bg);
   scrollbar-gutter: stable;
+  box-shadow: var(--ui-shadow);
 }
 .sidebar-project {
   margin-bottom: 22px;
@@ -58,6 +69,8 @@
 }
 .nav-link {
   border-radius: max(8px, var(--radius));
+  min-height: 40px;
+  padding: 9px 12px;
 }
 .main-area {
   padding: 0;
@@ -79,27 +92,35 @@
 .article {
   width: 100%;
   max-width: none;
-  min-height: calc(100dvh - 147px);
-  padding: clamp(24px, 3vw, 48px);
+  min-height: calc(100dvh - var(--workspace-top) - 12px);
+  padding: clamp(28px, 3.4vw, 56px);
+  box-shadow: var(--ui-shadow);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: var(--island-radius);
 }
 .guide-content {
   max-width: var(--content-width, 760px);
 }
+.guide-article {
+  display: grid;
+  grid-template-columns: minmax(0, var(--content-width, 760px));
+  justify-content: center;
+  align-content: start;
+}
 .page-toc,
 .inspector-island {
   min-width: 0;
   position: sticky;
-  top: 135px;
-  border: 1px solid var(--border);
+  top: var(--workspace-top);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: var(--island-radius);
   background: var(--bg);
   overflow: clip;
 }
 .page-toc {
-  padding: 22px 18px;
+  padding: 24px 20px;
+  box-shadow: var(--ui-shadow);
 }
 .playground-preview {
   position: static;
@@ -121,6 +142,8 @@
   touch-action: none;
   outline: none;
   position: relative;
+  width: calc(100% + 12px);
+  margin-inline: -6px;
 }
 .panel-resize-handle > span {
   width: 3px;
@@ -130,7 +153,7 @@
   transition: background 120ms;
 }
 .panel-resize-handle:hover > span {
-  background: var(--border);
+  background: var(--ui-border, var(--border));
 }
 .panel-resize-handle:focus-visible > span,
 .panel-resize-handle[data-dragging] > span {
@@ -143,16 +166,16 @@
 }
 .navigation-resize-controls {
   position: sticky;
-  top: 135px;
-  height: calc(100dvh - 147px);
+  top: var(--workspace-top);
+  height: calc(100dvh - var(--workspace-top) - 12px);
 }
 .navigation-resize {
   height: 100%;
 }
 .inspector-resize {
   position: sticky;
-  top: 135px;
-  height: calc(100dvh - 147px);
+  top: var(--workspace-top);
+  height: calc(100dvh - var(--workspace-top) - 12px);
   min-height: 240px;
   align-self: start;
 }
@@ -166,7 +189,7 @@
 .lifecycle-layout > section {
   background: var(--bg);
   padding: 32px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: var(--island-radius);
 }
 
@@ -181,9 +204,9 @@
 }
 .playground-heading {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: 14px;
-  padding: 12px;
+  padding: 10px 12px;
 }
 .playground-panels {
   grid-template-columns:
@@ -192,7 +215,7 @@
 }
 .playground-inputs,
 .playground-output {
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: 14px;
   background: var(--bg);
 }
@@ -200,11 +223,12 @@
   margin: 16px 0;
 }
 .playground-output {
-  padding: 16px;
+  padding: 20px;
 }
 .response-editor-toolbar > button {
-  min-height: 28px;
-  border-radius: 5px;
+  min-height: var(--ui-control-height);
+  border-radius: 8px;
+  padding-inline: 8px;
 }
 .response-editor-toolbar > button:hover {
   background: var(--subtle);
@@ -225,7 +249,7 @@
   padding: 0;
   background: var(--bg);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--ui-border, var(--border));
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 24px 90px #0004;
@@ -253,7 +277,7 @@
   max-height: none;
 }
 .response-fullscreen-dialog .response-editor-toolbar > span:first-child {
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 
 @media (max-width: 1200px) and (min-width: 761px) {
@@ -285,13 +309,15 @@
 @media (max-width: 760px) {
   .docs-shell {
     padding: 6px;
+    --workspace-header-size: calc(6.75rem + 2px);
+    --workspace-top: calc(var(--workspace-header-size) + 12px);
   }
   .site-header {
     top: 6px;
     border-radius: 14px;
   }
   .header-main {
-    height: 60px;
+    height: 3.75rem;
     padding: 0 12px;
     gap: 8px;
   }
@@ -299,8 +325,9 @@
     min-width: 0;
   }
   .header-tabs {
-    padding: 0 12px;
-    height: 40px;
+    padding: 0 8px;
+    height: 3rem;
+    gap: 2px;
   }
   .docs-layout {
     display: block;
@@ -313,10 +340,10 @@
     display: none;
   }
   .sidebar {
-    top: 114px;
+    top: var(--workspace-top);
     left: 6px;
     width: min(320px, calc(100vw - 12px));
-    height: calc(100dvh - 120px);
+    height: calc(100dvh - var(--workspace-top) - 6px);
     z-index: 45;
   }
   .main-area {
@@ -326,7 +353,7 @@
     gap: 6px;
   }
   .article {
-    padding: 26px 18px;
+    padding: 28px 22px;
     min-height: auto;
     border-radius: 14px;
   }
