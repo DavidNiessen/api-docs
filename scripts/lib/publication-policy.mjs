@@ -223,9 +223,21 @@ export function validatePublicationRulesets(branch, tags) {
   const branchTypes = new Set(branch.rules.map((rule) => rule.type));
   for (const type of ['pull_request', 'non_fast_forward', 'deletion'])
     assert(branchTypes.has(type), `Missing master protection: ${type}.`);
+  const pullRequest = branch.rules.find(
+    (rule) => rule.type === 'pull_request',
+  )?.parameters;
+  assert(
+    Number.isSafeInteger(pullRequest?.required_approving_review_count) &&
+      pullRequest.required_approving_review_count > 0,
+    'master requires at least one approving PR review.',
+  );
   assert.equal(
-    branch.rules.find((rule) => rule.type === 'pull_request')?.parameters
-      ?.required_review_thread_resolution,
+    pullRequest.dismiss_stale_reviews_on_push,
+    true,
+    'Dismiss stale PR approvals when new commits are pushed.',
+  );
+  assert.equal(
+    pullRequest.required_review_thread_resolution,
     true,
     'Resolve PR conversations before merging.',
   );
@@ -253,6 +265,8 @@ export function validatePublicationRulesets(branch, tags) {
     tagRulesetId: tags.id,
     requiredCheck: 'Quality',
     checksAppId: 15368,
+    requiredApprovals: pullRequest.required_approving_review_count,
+    dismissStaleReviews: true,
     administratorBypasses: {
       branch: branch.bypass_actors.length,
       tags: tags.bypass_actors.length,

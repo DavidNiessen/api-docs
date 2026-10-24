@@ -38,7 +38,8 @@ const masterRules = {
       type: 'pull_request',
       parameters: {
         required_review_thread_resolution: true,
-        required_approving_review_count: 0,
+        required_approving_review_count: 1,
+        dismiss_stale_reviews_on_push: true,
       },
     },
     { type: 'non_fast_forward' },
@@ -67,6 +68,8 @@ test('actual repository rulesets must protect reviewed master and immutable vers
     tagRulesetId: 13,
     requiredCheck: 'Quality',
     checksAppId: 15368,
+    requiredApprovals: 1,
+    dismissStaleReviews: true,
     administratorBypasses: { branch: 0, tags: 0 },
   });
   const branch = structuredClone(masterRules);
@@ -124,6 +127,31 @@ test('inactive, bypassed, excluded, mutable or unchecked release rulesets fail a
     mutate(branch, tags);
     assert.throws(() => validatePublicationRulesets(branch, tags));
   }
+});
+
+test('release approval requires genuine approving reviews that expire on source changes', () => {
+  for (const count of [undefined, null, 0, -1, 0.5, '1', true]) {
+    const branch = structuredClone(masterRules);
+    branch.rules[0].parameters.required_approving_review_count = count;
+    assert.throws(
+      () => validatePublicationRulesets(branch, tagRules),
+      /at least one approving PR review/,
+    );
+  }
+  for (const dismiss of [undefined, null, false, 'true', 1]) {
+    const branch = structuredClone(masterRules);
+    branch.rules[0].parameters.dismiss_stale_reviews_on_push = dismiss;
+    assert.throws(
+      () => validatePublicationRulesets(branch, tagRules),
+      /Dismiss stale PR approvals/,
+    );
+  }
+  const branch = structuredClone(masterRules);
+  branch.rules[0].parameters.required_approving_review_count = 2;
+  assert.equal(
+    validatePublicationRulesets(branch, tagRules).requiredApprovals,
+    2,
+  );
 });
 
 test('the default policy lists pending ownership and reviews without approving publication', () => {

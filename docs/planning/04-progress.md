@@ -2,7 +2,13 @@
 
 Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current verified-candidate increment
+## Current repository-protection increment
+
+**Three owner-controlled GitHub settings are now verified.** API inspection confirms resolved PR conversations, the required `release` reviewer with version-tag-only deployment, and private vulnerability reporting. The release transport/contributor fixes in [PR #10](https://github.com/DavidNiessen/api-docs/pull/10) are merged after all **31 current-head checks** passed, including both hosted Quality runs. Registry publication remains disabled.
+
+The publication guard now also enforces the launch plan's required approving-review count and stale approval dismissal. Previously, a ruleset could satisfy the guard with zero required approvals; regression cases now reject absent, malformed or zero counts and disabled/malformed stale-dismissal settings. The owner enabled stale approval dismissal after the attempted settings update returned `403 Resource not accessible by integration`. Actual branch/tag/environment metadata now passes the strengthened guard, retaining one required review, the matching GitHub Actions Quality check and explicit administrator-only bypasses. All **168 tooling tests** pass locally, including isolated disposable signing fixtures. The estimate stays approximately **97%, pre-release**, with namespace/signing setup, independent reviews and actual public-registry acceptance still open.
+
+## Previous verified-candidate increment
 
 **The first actual signed candidate and read-only publication plan pass.** The immutable `v0.2.0-candidate.1` tag points to merged source `c380ae159983025a519bbe706ecec049b755e8d8`. [Candidate run 40043580095](https://github.com/DavidNiessen/api-docs/actions/runs/40043580095) passes the full Quality, Java/Spring, three-browser and compiler/mobile-performance matrix. All three producing jobs issued actual keyless attestations; the final verifier accepted all **39 subjects** and the fresh nonpublishing image scan passed. [Publication plan 40045907895](https://github.com/DavidNiessen/api-docs/actions/runs/40045907895) independently reverified the exact candidate and passed, retaining ten explicit source-policy blockers with every registry publisher skipped. [Pages deployment 40044528478](https://github.com/DavidNiessen/api-docs/actions/runs/40044528478) also passes on that merged source.
 
