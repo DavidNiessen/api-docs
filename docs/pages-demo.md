@@ -6,6 +6,8 @@ The public demo is intended for [davidniessen.github.io/api-docs](https://davidn
 
 [Quality run 39983896039](https://github.com/DavidNiessen/api-docs/actions/runs/39983896039) passed all required jobs at `6f1e5ce`. [Deployment run 39984904851](https://github.com/DavidNiessen/api-docs/actions/runs/39984904851) deployed that exact tested demo artifact and passed all five browser journeys against the public Pages URL on 23 October 2026. This is development-demo evidence, with bundled fixture data and no live API service.
 
+The later [published .7 acceptance](release-acceptance.md) includes signed candidate and actual registry-consumer verification. After documentation-only changes, [main 40118398261](https://github.com/DavidNiessen/api-docs/actions/runs/40118398261) passed all 15 jobs and [Pages 40118976356](https://github.com/DavidNiessen/api-docs/actions/runs/40118976356) passed deployment and hosted browser checks. All 28 deployed reader assets also match the exact published reader archive and original tested demo artifact byte-for-byte; hashes are recorded in the [release index](release-evidence/0.2.0-candidate.7.json). This asset comparison does not claim a registry-installed demo build or independent pilot acceptance.
+
 ## What visitors can try
 
 The static site contains fictional Orbit projects and webhooks, authored guides, local search, API schemas, request examples, prepared themes, modern/classic layouts, resizable panels and the modal playground. **Send mock** generates a documented success response entirely in the browser. Mock controls also preview error statuses, named examples and seeded schema data. Highlighting, folding, fullscreen and complete-response copying work normally.
