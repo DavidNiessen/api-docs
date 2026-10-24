@@ -5,8 +5,8 @@ import {
   CREDENTIAL_MEMORY_MS,
 } from '../apps/reader/src/credential-session.js';
 import type { CredentialValues } from '../apps/reader/src/credential-session.js';
-import type { SecurityScheme } from '@api-docs/contracts';
-import { parseConfig } from '@api-docs/spec';
+import type { SecurityScheme } from '@davidniessen/contracts';
+import { parseConfig } from '@davidniessen/spec';
 const api = {
   id: 'public',
   version: 'v1',

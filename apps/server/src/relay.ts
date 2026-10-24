@@ -1,12 +1,12 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { requestAllowedOrigin, OutboundRequestError } from '@api-docs/spec';
-import { toolVersion } from '@api-docs/contracts';
+import { requestAllowedOrigin, OutboundRequestError } from '@davidniessen/spec';
+import { toolVersion } from '@davidniessen/contracts';
 import type {
   Project,
   RelayAuditWriter,
   Role,
   RelayAudit,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 import type { RelayPolicy } from './relay-policy.js';
 import { relayDestination } from './relay-policy.js';
 import { z } from 'zod';

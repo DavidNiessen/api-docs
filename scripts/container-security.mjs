@@ -10,7 +10,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
-import { toolVersion } from '@api-docs/contracts';
+import { toolVersion } from '@davidniessen/contracts';
 import { sha256, verifyScanner } from './lib/container-inventory.mjs';
 import {
   validateContainerSecurity,

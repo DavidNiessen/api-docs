@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
-import type { Media, Operation } from '@api-docs/contracts';
+import type { Media, Operation } from '@davidniessen/contracts';
 import {
   createMultipartParts,
   generateSnippet,
@@ -11,8 +11,8 @@ import {
   prepareRequest,
   redactRequest,
   toFetchRequest,
-} from '@api-docs/explorer';
-import type { MultipartFiles, PreparedRequest } from '@api-docs/explorer';
+} from '@davidniessen/explorer';
+import type { MultipartFiles, PreparedRequest } from '@davidniessen/explorer';
 
 const type = 'multipart/form-data';
 const media: Media = {

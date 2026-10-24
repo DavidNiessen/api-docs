@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { BuildPage, ProjectBuildCapabilities } from '@api-docs/domain';
+import type { BuildPage, ProjectBuildCapabilities } from '@davidniessen/domain';
 import {
   readCapabilities,
   readJob,

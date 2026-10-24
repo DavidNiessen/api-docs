@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { mkdtemp, mkdir, writeFile, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { artifactIdentity } from '@api-docs/compiler';
-import type { ArtifactManifest } from '@api-docs/contracts';
+import { artifactIdentity } from '@davidniessen/compiler';
+import type { ArtifactManifest } from '@davidniessen/contracts';
 import { PublicationManifestCache } from '../apps/server/src/artifacts.js';
 async function artifact(root: string, value = 'one') {
   const metadata: Omit<ArtifactManifest, 'artifactDigest'> = {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFile, realpath } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { toolVersion } from '@api-docs/contracts';
+import { toolVersion } from '@davidniessen/contracts';
 import {
   inventoryContext,
   requireCompleteInventory,

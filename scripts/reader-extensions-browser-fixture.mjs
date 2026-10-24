@@ -1,4 +1,4 @@
-import { buildSite, createStaticServer } from '@api-docs/cli';
+import { buildSite, createStaticServer } from '@davidniessen/cli';
 const built = await buildSite(
   new URL('../examples/reader-extensions/', import.meta.url).pathname,
   { trustPlugins: true },

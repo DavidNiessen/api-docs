@@ -132,7 +132,7 @@ export async function packNpmCandidates() {
         ),
         `${metadata.name}: forbidden package content`,
       );
-      if (metadata.name === '@api-docs/reader')
+      if (metadata.name === '@davidniessen/reader')
         assert(
           files.has('dist/client/assets/reader.js') &&
             files.has('dist/client/assets/reader.css') &&

@@ -3,15 +3,15 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
-import { loadSpec, readTextFile, parseConfig } from '@api-docs/spec';
+import { loadSpec, readTextFile, parseConfig } from '@davidniessen/spec';
 import {
   createPageData,
   exampleFor,
   operationHref,
   resolveSchema,
-} from '@api-docs/contracts';
-import { prepareRequest } from '@api-docs/explorer';
-import { renderDocument } from '@api-docs/reader/render';
+} from '@davidniessen/contracts';
+import { prepareRequest } from '@davidniessen/explorer';
+import { renderDocument } from '@davidniessen/reader/render';
 
 const response = { description: 'Accepted' };
 function fixture(version = '3.1.0'): Record<string, unknown> {

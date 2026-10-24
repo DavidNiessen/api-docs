@@ -1,5 +1,5 @@
-import { resolveSchema } from '@api-docs/contracts';
-import type { Schema, UiText } from '@api-docs/contracts';
+import { resolveSchema } from '@davidniessen/contracts';
+import type { Schema, UiText } from '@davidniessen/contracts';
 import { useUi } from '../ui-translation.js';
 const object = (value: unknown): Schema =>
   value !== null && typeof value === 'object' && !Array.isArray(value)

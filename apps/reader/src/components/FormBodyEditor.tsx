@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { encodeFormBody } from '@api-docs/explorer';
-import type { Media, Schema } from '@api-docs/contracts';
+import { encodeFormBody } from '@davidniessen/explorer';
+import type { Media, Schema } from '@davidniessen/contracts';
 import { BodyEditor } from './BodyEditor.js';
 
 export function FormBodyEditor({

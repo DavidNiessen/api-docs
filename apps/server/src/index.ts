@@ -6,8 +6,8 @@ import fastifyStatic from '@fastify/static';
 import { randomBytes } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
-import { verifyArtifact } from '@api-docs/compiler';
-import { confinedPath } from '@api-docs/spec';
+import { verifyArtifact } from '@davidniessen/compiler';
+import { confinedPath } from '@davidniessen/spec';
 import {
   can,
   ConflictError,
@@ -16,7 +16,7 @@ import {
   BuildLeaseLostError,
   BuildCapacityError,
   BuildNotFoundError,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 import type {
   Principal,
   Project,
@@ -25,7 +25,7 @@ import type {
   Role,
   RelayAuditWriter,
   BuildJobRepository,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 import { equalSecret, registerOidc, tokenHash } from './oidc.js';
 import type { OidcOptions } from './oidc.js';
 import {

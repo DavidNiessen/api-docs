@@ -4,8 +4,8 @@ import {
   formatExample,
   hasExternalExamples,
   isJsonMediaType,
-} from '@api-docs/contracts';
-import type { Media, Schema } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { Media, Schema } from '@davidniessen/contracts';
 import { CodeBlock } from './CodeBlock.js';
 import { useUi } from '../ui-translation.js';
 export function MediaExamples({

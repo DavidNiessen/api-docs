@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { feedbackHref, safeFeedbackUrl } from '@api-docs/contracts';
-import { parseConfig } from '@api-docs/spec';
+import { feedbackHref, safeFeedbackUrl } from '@davidniessen/contracts';
+import { parseConfig } from '@davidniessen/spec';
 
 const input = {
   name: 'Feedback fixture',

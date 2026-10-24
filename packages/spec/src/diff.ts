@@ -1,12 +1,15 @@
 import { isDeepStrictEqual as equal } from 'node:util';
-import { resolveSchema, parseOperationLifecycle } from '@api-docs/contracts';
+import {
+  resolveSchema,
+  parseOperationLifecycle,
+} from '@davidniessen/contracts';
 import type {
   ApiDocument,
   Operation,
   Schema,
   Media,
   SecurityScheme,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import { record } from './source.js';
 
 export interface ContractChange {

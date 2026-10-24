@@ -5,7 +5,7 @@ import { readdir, lstat } from 'node:fs/promises';
 import { requestAllowedOrigin, abortableOutbound } from './outbound.js';
 import { importDestination } from './remote-policy.js';
 import { confinedPath, readTextFile, readBoundedFile } from './source.js';
-import { toolVersion } from '@api-docs/contracts';
+import { toolVersion } from '@davidniessen/contracts';
 import {
   parseReferencePolicy,
   parseReferenceManifest,

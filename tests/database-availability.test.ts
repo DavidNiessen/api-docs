@@ -5,8 +5,11 @@ import { createServer as createTcpServer } from 'node:net';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { RepositoryUnavailableError, type Repository } from '@api-docs/domain';
-import { PostgresRepository } from '@api-docs/storage';
+import {
+  RepositoryUnavailableError,
+  type Repository,
+} from '@davidniessen/domain';
+import { PostgresRepository } from '@davidniessen/storage';
 import { databaseError } from '../packages/storage/src/database-error.js';
 import { createServer } from '../apps/server/src/index.js';
 

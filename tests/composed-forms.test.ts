@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { objectFieldSchema } from '@api-docs/contracts';
-import type { Media, Schema } from '@api-docs/contracts';
+import { objectFieldSchema } from '@davidniessen/contracts';
+import type { Media, Schema } from '@davidniessen/contracts';
 import {
   encodeFormBody,
   createMultipartParts,
   redactRequest,
   toFetchRequest,
-} from '@api-docs/explorer';
+} from '@davidniessen/explorer';
 import {
   multipartEditorModel,
   multipartExampleBody,

@@ -5,9 +5,9 @@ import { execFileSync } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
-import { createStaticServer } from '@api-docs/cli';
-import { verifyArtifact } from '@api-docs/compiler';
-import { toolVersion } from '@api-docs/contracts';
+import { createStaticServer } from '@davidniessen/cli';
+import { verifyArtifact } from '@davidniessen/compiler';
+import { toolVersion } from '@davidniessen/contracts';
 const count = Number(process.argv[2] ?? 10);
 if (!Number.isInteger(count) || count < 5 || count > 30)
   throw new Error('Choose 5–30 cold samples per route');

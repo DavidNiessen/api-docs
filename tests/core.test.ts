@@ -8,14 +8,14 @@ import {
   parseSource,
   confinedPath,
   exampleFor,
-} from '@api-docs/spec';
+} from '@davidniessen/spec';
 import {
   prepareRequest,
   generateSnippet,
   redactRequest,
-} from '@api-docs/explorer';
-import { definePlugin, applyPlugins } from '@api-docs/plugin-sdk';
-import type { Operation, SiteData } from '@api-docs/contracts';
+} from '@davidniessen/explorer';
+import { definePlugin, applyPlugins } from '@davidniessen/plugin-sdk';
+import type { Operation, SiteData } from '@davidniessen/contracts';
 
 const fixture = {
   openapi: '3.1.0',

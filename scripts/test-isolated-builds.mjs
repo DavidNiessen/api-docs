@@ -98,7 +98,7 @@ import assert from 'node:assert/strict';
 import { access, writeFile } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
 import { spawn } from 'node:child_process';
-import { definePlugin } from '@api-docs/plugin-sdk';
+import { definePlugin } from '@davidniessen/plugin-sdk';
 assert.equal(process.env.API_DOCS_ISOLATION_TEST_SECRET, undefined);
 for (const name of ['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy']) assert.equal(process.env[name] ?? '', '');
 await assert.rejects(access(${JSON.stringify(sentinel)}));

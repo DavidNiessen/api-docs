@@ -71,7 +71,7 @@ Navigation inside the reader updates page snapshots and recreates widgets. Reade
 
 ## TypeScript and framework widgets
 
-`@api-docs/plugin-sdk/browser` exports `ReaderPage`, `ReaderWidget`, `ReaderExtensionContext`, `ReaderExtension`, `defineReaderExtension` and `createReaderExtensionSession`. The subpath has no Node build-worker imports and can be used by browser bundlers. `defineReaderExtension` preserves typed context callbacks and validates metadata. Custom hosts can use `createReaderExtensionSession` with a widget-mount callback; the built-in React host additionally validates actual DOM elements and asset paths.
+`@davidniessen/plugin-sdk/browser` exports `ReaderPage`, `ReaderWidget`, `ReaderExtensionContext`, `ReaderExtension`, `defineReaderExtension` and `createReaderExtensionSession`. The subpath has no Node build-worker imports and can be used by browser bundlers. `defineReaderExtension` preserves typed context callbacks and validates metadata. Custom hosts can use `createReaderExtensionSession` with a widget-mount callback; the built-in React host additionally validates actual DOM elements and asset paths.
 
 A bundled React extension can create its own root inside the provided footer element and return `dispose: () => root.unmount()`. Vue, web components and plain DOM code use the same element/disposer contract. Bundle runtime dependencies into the declared ESM packet. The docs reader does not expose its own React root or require sharing a React version with widgets.
 

@@ -2,7 +2,7 @@ import {
   isJsonMediaType,
   parseJsonValue,
   serializeJsonValue,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 
 export function responseLanguage(
   contentType: string,

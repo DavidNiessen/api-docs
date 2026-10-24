@@ -23,7 +23,7 @@ const context = {
   runAttempt: '1',
 };
 const source = {
-  packages: ['@api-docs/contracts', '@api-docs/cli'],
+  packages: ['@davidniessen/contracts', '@davidniessen/cli'],
   mavenGroup: 'dev.niessen',
 };
 
@@ -38,7 +38,8 @@ const masterRules = {
       type: 'pull_request',
       parameters: {
         required_review_thread_resolution: true,
-        required_approving_review_count: 0,
+        required_approving_review_count: 1,
+        dismiss_stale_reviews_on_push: true,
       },
     },
     { type: 'non_fast_forward' },
@@ -67,6 +68,8 @@ test('actual repository rulesets must protect reviewed master and immutable vers
     tagRulesetId: 13,
     requiredCheck: 'Quality',
     checksAppId: 15368,
+    requiredApprovals: 1,
+    dismissStaleReviews: true,
     administratorBypasses: { branch: 0, tags: 0 },
   });
   const branch = structuredClone(masterRules);
@@ -126,12 +129,45 @@ test('inactive, bypassed, excluded, mutable or unchecked release rulesets fail a
   }
 });
 
-test('the default policy lists pending ownership and reviews without approving publication', () => {
+test('release approval requires genuine approving reviews that expire on source changes', () => {
+  for (const count of [undefined, null, 0, -1, 0.5, '1', true]) {
+    const branch = structuredClone(masterRules);
+    branch.rules[0].parameters.required_approving_review_count = count;
+    assert.throws(
+      () => validatePublicationRulesets(branch, tagRules),
+      /at least one approving PR review/,
+    );
+  }
+  for (const dismiss of [undefined, null, false, 'true', 1]) {
+    const branch = structuredClone(masterRules);
+    branch.rules[0].parameters.dismiss_stale_reviews_on_push = dismiss;
+    assert.throws(
+      () => validatePublicationRulesets(branch, tagRules),
+      /Dismiss stale PR approvals/,
+    );
+  }
+  const branch = structuredClone(masterRules);
+  branch.rules[0].parameters.required_approving_review_count = 2;
+  assert.equal(
+    validatePublicationRulesets(branch, tagRules).requiredApprovals,
+    2,
+  );
+});
+
+test('the GitHub policy lists pending launch decisions without approving publication', () => {
   const plan = publicationPlan(policy, context, source);
   assert.equal(plan.policyApproved, false);
-  assert.equal(plan.blockers.length, 10);
+  assert.equal(plan.blockers.length, 6);
+  assert.equal(plan.npm.registry, 'https://npm.pkg.github.com');
+  assert.equal(
+    plan.maven.registry,
+    'https://maven.pkg.github.com/davidniessen/api-docs',
+  );
   assert.equal(plan.npm.tag, 'latest');
-  assert.deepEqual(plan.npm.packages, ['@api-docs/cli', '@api-docs/contracts']);
+  assert.deepEqual(plan.npm.packages, [
+    '@davidniessen/cli',
+    '@davidniessen/contracts',
+  ]);
   assert.equal(
     publicationPlan(
       policy,
@@ -142,12 +178,11 @@ test('the default policy lists pending ownership and reviews without approving p
   );
 });
 
-test('all source policy decisions and a signing identity are necessary for an approved plan', () => {
+test('all source policy decisions are necessary even with repository-owned GitHub destinations', () => {
   const ready = structuredClone(policy);
   ready.publicationEnabled = true;
   for (const kind of ['npm', 'maven', 'container'])
     ready[kind].ownershipVerified = true;
-  ready.maven.signingKeyFingerprint = 'A'.repeat(40);
   for (const kind of Object.keys(ready.reviews)) ready.reviews[kind] = true;
   assert.equal(publicationPlan(ready, context, source).policyApproved, true);
   ready.reviews.licenses = false;
@@ -172,6 +207,12 @@ test('policy typos, embedded credentials, mismatched namespaces and truthy strin
     },
     (p) => {
       p.maven.signingKeyFingerprint = 'unverified';
+    },
+    (p) => {
+      p.npm.registry = 'https://registry.npmjs.org';
+    },
+    (p) => {
+      p.maven.registry = 'https://maven.pkg.github.com/another/repository';
     },
     (p) => {
       p.container.repository = 'https://user:password@ghcr.io/owner/image';

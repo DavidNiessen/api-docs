@@ -1,5 +1,5 @@
-import { isJsonMediaType, resolveSchema } from '@api-docs/contracts';
-import type { Parameter, Schema } from '@api-docs/contracts';
+import { isJsonMediaType, resolveSchema } from '@davidniessen/contracts';
+import type { Parameter, Schema } from '@davidniessen/contracts';
 
 export const encodeValue = (value: unknown): string =>
   encodeURIComponent(String(value)).replace(

@@ -14,9 +14,12 @@ import {
   loadReferenceSnapshot,
   readBoundedFile,
   parseReferencePolicy,
-} from '@api-docs/spec';
-import type { ReferencePolicy, ReferenceSnapshotOptions } from '@api-docs/spec';
-import { digest } from '@api-docs/compiler';
+} from '@davidniessen/spec';
+import type {
+  ReferencePolicy,
+  ReferenceSnapshotOptions,
+} from '@davidniessen/spec';
+import { digest } from '@davidniessen/compiler';
 export interface VendorSpecOptions extends ReferenceSnapshotOptions {
   output?: string;
 }

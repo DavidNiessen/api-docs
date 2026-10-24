@@ -1,9 +1,13 @@
-import { guideHref, operationHref, guidesForLocale } from '@api-docs/contracts';
+import {
+  guideHref,
+  operationHref,
+  guidesForLocale,
+} from '@davidniessen/contracts';
 import type {
   SearchDocument,
   SearchResult,
   SiteData,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 
 export function createSearchIndex(
   site: SiteData,

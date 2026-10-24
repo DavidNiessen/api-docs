@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { Schema } from '@api-docs/contracts';
-import { serializeJsonValue } from '@api-docs/contracts';
+import type { Schema } from '@davidniessen/contracts';
+import { serializeJsonValue } from '@davidniessen/contracts';
 import {
   bodyFieldModel as createModel,
   bodyFieldLabel,

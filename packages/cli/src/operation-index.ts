@@ -1,4 +1,4 @@
-import type { SiteData } from '@api-docs/contracts';
+import type { SiteData } from '@davidniessen/contracts';
 
 /** Small overview pages keep large API schemas out of the collapsed reference list. */
 export function* operationIndexAssets(

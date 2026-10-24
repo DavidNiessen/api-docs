@@ -25,7 +25,7 @@ import {
   loadReaderExtensions,
   digest,
   createArtifactPathFilter,
-} from '@api-docs/compiler';
+} from '@davidniessen/compiler';
 import {
   guideHref,
   operationHref,
@@ -36,12 +36,12 @@ import {
   localeRoute,
   pageContentLocale,
   pageMetadata,
-} from '@api-docs/contracts';
-import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
-import { renderDocument } from '@api-docs/reader/render';
+} from '@davidniessen/contracts';
+import type { SiteData, ArtifactManifest } from '@davidniessen/contracts';
+import { renderDocument } from '@davidniessen/reader/render';
 import { searchAssets } from './search-assets.js';
 import { operationIndexAssets } from './operation-index.js';
-import { confinedPath, readTextFile } from '@api-docs/spec';
+import { confinedPath, readTextFile } from '@davidniessen/spec';
 import { activateDirectory } from './activate.js';
 export { vendorRemoteSpec } from './vendor-spec.js';
 export type { VendorSpecOptions } from './vendor-spec.js';
@@ -92,7 +92,7 @@ export async function buildSite(
     const assets = fileURLToPath(
       new URL(
         './client/assets',
-        import.meta.resolve('@api-docs/reader/render'),
+        import.meta.resolve('@davidniessen/reader/render'),
       ),
     );
     await cp(assets, join(stage, 'assets'), { recursive: true });

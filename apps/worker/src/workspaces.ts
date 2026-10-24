@@ -8,8 +8,8 @@ import {
 } from 'node:fs/promises';
 import { uptime } from 'node:os';
 import { basename, join } from 'node:path';
-import { safeOutput } from '@api-docs/compiler';
-import { readTextFile } from '@api-docs/spec';
+import { safeOutput } from '@davidniessen/compiler';
+import { readTextFile } from '@davidniessen/spec';
 import { record, identifier } from './config.js';
 
 const markerName = 'worker-owner.json';

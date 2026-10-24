@@ -1,6 +1,6 @@
 {
-  "name": "@api-docs/node",
-  "version": "0.2.0-candidate.1",
+  "name": "@davidniessen/node",
+  "version": "0.2.0-candidate.2",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -17,8 +17,8 @@
     }
   },
   "dependencies": {
-    "@api-docs/compiler": "0.2.0-candidate.1",
-    "@api-docs/contracts": "0.2.0-candidate.1",
+    "@davidniessen/compiler": "0.2.0-candidate.2",
+    "@davidniessen/contracts": "0.2.0-candidate.2",
     "@fastify/static": "10.1.7",
     "express-rate-limit": "8.7.1"
   },
@@ -33,5 +33,8 @@
     "fastify": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

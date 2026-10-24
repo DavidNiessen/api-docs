@@ -37,5 +37,5 @@ assert.deepEqual(
   source,
 );
 console.log(
-  'The accepted npm archives are publicly available with matching hashes. Fresh registry consumer acceptance is still required.',
+  'The accepted npm archives are available from the selected registry with matching hashes. Fresh registry consumer acceptance is still required.',
 );

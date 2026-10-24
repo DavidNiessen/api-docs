@@ -2,7 +2,7 @@ import { afterEach, expect, it } from 'vitest';
 import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, parse } from 'node:path';
-import { confinedPath } from '@api-docs/spec';
+import { confinedPath } from '@davidniessen/spec';
 
 const roots: string[] = [];
 afterEach(async () => {

@@ -2,13 +2,13 @@ import { afterEach, expect, it, vi } from 'vitest';
 import {
   createReaderExtensionSession,
   defineReaderExtension,
-} from '@api-docs/plugin-sdk/browser';
+} from '@davidniessen/plugin-sdk/browser';
 import type {
   ReaderExtension,
   ReaderExtensionContext,
   ReaderPage,
   ReaderWidget,
-} from '@api-docs/plugin-sdk/browser';
+} from '@davidniessen/plugin-sdk/browser';
 const page: ReaderPage = {
   path: '/guides/start/',
   title: 'Start',

@@ -4,8 +4,8 @@ import {
   formatExample,
   hasExternalExamples,
   isJsonMediaType,
-} from '@api-docs/contracts';
-import type { ApiDocument, Operation, Media } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { ApiDocument, Operation, Media } from '@davidniessen/contracts';
 import {
   generateSnippet,
   generateMockResponse,
@@ -17,14 +17,14 @@ import {
   toFetchRequest,
   isMultipartMediaType,
   canSerializeEmptyParameter,
-} from '@api-docs/explorer';
+} from '@davidniessen/explorer';
 import type {
   PreparedRequest,
   SnippetLanguage,
   MultipartFiles,
   MultipartHeaders,
   MockResponse,
-} from '@api-docs/explorer';
+} from '@davidniessen/explorer';
 import { CodeBlock } from './CodeBlock.js';
 import { Icon } from './Icon.js';
 import { CopyButton } from './CopyButton.js';

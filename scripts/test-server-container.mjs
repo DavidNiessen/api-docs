@@ -14,8 +14,8 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
-import { verifyArtifact } from '@api-docs/compiler';
-import { toolVersion } from '@api-docs/contracts';
+import { verifyArtifact } from '@davidniessen/compiler';
+import { toolVersion } from '@davidniessen/contracts';
 import { assertOwnedCompose } from './lib/compose-fixtures.mjs';
 import { verifyServerRecovery } from './lib/server-recovery-fixture.mjs';
 import { verifyServerProxy } from './lib/server-proxy-fixture.mjs';
@@ -129,7 +129,7 @@ async function waitFor(check, label) {
 // Executed inside the selected image; keep its imports local to the function.
 async function readContainerRuntime() {
   const { readFileSync, existsSync } = await import('node:fs');
-  const { toolVersion } = await import('@api-docs/contracts');
+  const { toolVersion } = await import('@davidniessen/contracts');
   const lines = readFileSync('/proc/self/status', 'utf8').split(
     String.fromCharCode(10),
   );

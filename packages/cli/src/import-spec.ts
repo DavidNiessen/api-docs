@@ -9,9 +9,13 @@ import {
   sep,
 } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { confinedPath, downloadSpec, readBoundedFile } from '@api-docs/spec';
-import type { RemoteSpecOptions } from '@api-docs/spec';
-import { digest } from '@api-docs/compiler';
+import {
+  confinedPath,
+  downloadSpec,
+  readBoundedFile,
+} from '@davidniessen/spec';
+import type { RemoteSpecOptions } from '@davidniessen/spec';
+import { digest } from '@davidniessen/compiler';
 
 export interface ImportSpecOptions extends RemoteSpecOptions {
   output?: string;

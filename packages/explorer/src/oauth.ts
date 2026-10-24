@@ -1,4 +1,4 @@
-import { isJsonMediaType } from '@api-docs/contracts';
+import { isJsonMediaType } from '@davidniessen/contracts';
 
 export interface OAuthClient {
   clientId: string;

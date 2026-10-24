@@ -1,6 +1,6 @@
 {
-  "name": "@api-docs/cli",
-  "version": "0.2.0-candidate.1",
+  "name": "@davidniessen/cli",
+  "version": "0.2.0-candidate.2",
   "type": "module",
   "license": "Apache-2.0",
   "bin": {
@@ -16,15 +16,18 @@
     }
   },
   "dependencies": {
-    "@api-docs/compiler": "0.2.0-candidate.1",
-    "@api-docs/contracts": "0.2.0-candidate.1",
-    "@api-docs/plugin-sdk": "0.2.0-candidate.1",
-    "@api-docs/reader": "0.2.0-candidate.1",
-    "@api-docs/search": "0.2.0-candidate.1",
-    "@api-docs/spec": "0.2.0-candidate.1",
+    "@davidniessen/compiler": "0.2.0-candidate.2",
+    "@davidniessen/contracts": "0.2.0-candidate.2",
+    "@davidniessen/plugin-sdk": "0.2.0-candidate.2",
+    "@davidniessen/reader": "0.2.0-candidate.2",
+    "@davidniessen/search": "0.2.0-candidate.2",
+    "@davidniessen/spec": "0.2.0-candidate.2",
     "@fastify/static": "10.1.7",
     "commander": "14.0.2",
     "fastify": "5.12.7",
     "tar": "7.5.22"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

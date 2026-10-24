@@ -13,11 +13,11 @@ import { tmpdir, uptime } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { promisify } from 'node:util';
-import { buildSite, inspectIsolatedSource } from '@api-docs/cli';
-import { readBuildPolicy } from '@api-docs/contracts';
-import { verifyArtifact } from '@api-docs/compiler';
-import { PostgresRepository } from '@api-docs/storage';
-import { createServer } from '@api-docs/server';
+import { buildSite, inspectIsolatedSource } from '@davidniessen/cli';
+import { readBuildPolicy } from '@davidniessen/contracts';
+import { verifyArtifact } from '@davidniessen/compiler';
+import { PostgresRepository } from '@davidniessen/storage';
+import { createServer } from '@davidniessen/server';
 import { readWorkerConfig } from '../apps/worker/dist/config.js';
 import { createWorkerClient } from '../apps/worker/dist/protocol.js';
 import {
@@ -283,7 +283,7 @@ try {
   );
   evidence.checks.push('changed-source-rejected-and-prior-output-retained');
 
-  const plugin = `import {definePlugin} from '@api-docs/plugin-sdk';\nawait new Promise(resolve=>setTimeout(resolve,2000));\nexport default definePlugin({name:'worker-acceptance',version:'0.1.0',pluginApi:'1',capabilities:['transform'],transform(site){return site}});\n`;
+  const plugin = `import {definePlugin} from '@davidniessen/plugin-sdk';\nawait new Promise(resolve=>setTimeout(resolve,2000));\nexport default definePlugin({name:'worker-acceptance',version:'0.1.0',pluginApi:'1',capabilities:['transform'],transform(site){return site}});\n`;
   const cancellable = await prepare('cancellation', plugin);
   const cancelling = await enqueue(cancellable);
   const cancellationTask = run(cancellable);

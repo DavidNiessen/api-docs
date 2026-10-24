@@ -3,7 +3,7 @@ import {
   slugify,
   parseOperationLifecycle,
   resolveHeaderObject,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { validateSchemaBoundaries } from './schema-boundaries.js';
 const schemaValidator = new Ajv2020({ strict: false, validateFormats: false });
@@ -15,7 +15,7 @@ import type {
   Parameter,
   Schema,
   SecurityScheme,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import {
   record,
   text,

@@ -6,6 +6,8 @@ An open source, self-hosted API documentation platform: polished documentation, 
 
 Try the [GitHub Pages demo](https://davidniessen.github.io/api-docs/): bundled mock responses run entirely in your browser, with no API server or credentials. See [demo deployment and local preview](docs/pages-demo.md).
 
+Distributions target [GitHub Packages and GHCR](docs/github-packages.md). npm/Maven installation requires GitHub authentication; running generated static documentation requires no account. Actual protected publication and fresh registry acceptance remain release gates.
+
 ## Product direction
 
 - Import OpenAPI in YAML or JSON and combine generated reference pages with authored guides.

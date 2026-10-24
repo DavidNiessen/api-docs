@@ -12,7 +12,6 @@ import {
 import { verifyProducerProvenance } from './lib/provenance-verification.mjs';
 import { readRegularFile } from './lib/read-regular-file.mjs';
 import { releaseSource } from './lib/release-assets.mjs';
-import { inspectMavenPublicKey } from './lib/maven-publication.mjs';
 import {
   readRepositoryFile,
   readWorkspacePackages,
@@ -73,13 +72,9 @@ const policy = JSON.parse(
   await readRegularFile(join(root, 'release-policy.json')),
 );
 const plan = publicationPlan(policy, context, { packages, mavenGroup });
-let environment, repositoryProtection, signingIdentity;
+let environment, repositoryProtection;
 if (requireApproval) {
   assert.equal(plan.policyApproved, true, plan.blockers.join(' '));
-  signingIdentity = await inspectMavenPublicKey(
-    await readRegularFile(join(root, 'release-signing-key.asc'), 1024 * 1024),
-    plan.maven.signingKeyFingerprint,
-  );
   const [protection, tags] = await Promise.all([
     api('environments/release'),
     api('environments/release/deployment-branch-policies'),
@@ -130,7 +125,6 @@ await writeFile(
       proof,
       ...(environment ? { environmentProtection: environment } : {}),
       ...(repositoryProtection ? { repositoryProtection } : {}),
-      ...(signingIdentity ? { signingIdentity } : {}),
     },
     null,
     2,

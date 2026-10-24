@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
-import { toolVersion } from '@api-docs/contracts';
-import { createDevelopmentBuilder } from '@api-docs/cli';
-import { createSearchIndex, search } from '@api-docs/search';
+import { toolVersion } from '@davidniessen/contracts';
+import { createDevelopmentBuilder } from '@davidniessen/cli';
+import { createSearchIndex, search } from '@davidniessen/search';
 const count = Number(process.argv[2] ?? 10000);
 if (!Number.isInteger(count) || count < 100 || count > 10000)
   throw new Error('Choose 100–10000 operations');

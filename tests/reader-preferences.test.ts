@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { themePresets } from '@api-docs/contracts';
-import type { Theme } from '@api-docs/contracts';
+import { themePresets } from '@davidniessen/contracts';
+import type { Theme } from '@davidniessen/contracts';
 import {
   defaultReaderPreferences,
   parseReaderPreferences,

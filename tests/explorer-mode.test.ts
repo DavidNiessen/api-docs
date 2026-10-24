@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { parseConfig } from '@api-docs/spec';
+import { parseConfig } from '@davidniessen/spec';
 const config = { name: 'Demo', specs: [{ id: 'api', path: 'openapi.yaml' }] };
 it('keeps existing playgrounds live by default and accepts explicit live/mock modes', () => {
   expect(parseConfig(config).explorer).toBeUndefined();

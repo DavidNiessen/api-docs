@@ -2,9 +2,9 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildSite } from '@api-docs/cli';
-import { verifyArtifact } from '@api-docs/compiler';
-import { parseConfig, parseSource } from '@api-docs/spec';
+import { buildSite } from '@davidniessen/cli';
+import { verifyArtifact } from '@davidniessen/compiler';
+import { parseConfig, parseSource } from '@davidniessen/spec';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [owner, name] = (

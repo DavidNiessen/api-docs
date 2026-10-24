@@ -14,8 +14,8 @@ import {
   createDevelopmentBuilder,
   buildSite,
   stageArtifact,
-} from '@api-docs/cli';
-import { verifyArtifact } from '@api-docs/compiler';
+} from '@davidniessen/cli';
+import { verifyArtifact } from '@davidniessen/compiler';
 async function project() {
   const root = await mkdtemp(join(tmpdir(), 'api-docs-incremental-'));
   await cp(resolve('examples/demo'), root, {

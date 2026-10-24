@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import type { Server } from 'node:http';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { compileProject } from '@api-docs/compiler';
+import { compileProject } from '@davidniessen/compiler';
 import { createHash } from 'node:crypto';
 import {
   mkdtemp,
@@ -23,9 +23,12 @@ import {
   parseReferencePolicy,
   parseReferenceManifest,
   parseSource,
-} from '@api-docs/spec';
-import type { ReferencePolicy, ReferenceSnapshotOptions } from '@api-docs/spec';
-import { vendorRemoteSpec, buildSite } from '@api-docs/cli';
+} from '@davidniessen/spec';
+import type {
+  ReferencePolicy,
+  ReferenceSnapshotOptions,
+} from '@davidniessen/spec';
+import { vendorRemoteSpec, buildSite } from '@davidniessen/cli';
 let server: Server,
   origin = '',
   root = '',

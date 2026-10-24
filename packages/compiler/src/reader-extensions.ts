@@ -1,5 +1,8 @@
-import { confinedPath, readBoundedFile } from '@api-docs/spec';
-import type { ProjectConfig, ReaderExtensionAsset } from '@api-docs/contracts';
+import { confinedPath, readBoundedFile } from '@davidniessen/spec';
+import type {
+  ProjectConfig,
+  ReaderExtensionAsset,
+} from '@davidniessen/contracts';
 import { digest } from './manifest.js';
 
 /** Copy reviewed ESM bytes; source modules are never imported or evaluated by the builder. */

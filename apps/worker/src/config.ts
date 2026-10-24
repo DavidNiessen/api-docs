@@ -1,8 +1,11 @@
 import { isAbsolute, relative, sep } from 'node:path';
 import { mkdir, realpath, stat } from 'node:fs/promises';
-import { readTextFile } from '@api-docs/spec';
-import { readBuildPolicy, readSourceSnapshotInfo } from '@api-docs/contracts';
-import type { BuildPolicy, SourceSnapshotInfo } from '@api-docs/contracts';
+import { readTextFile } from '@davidniessen/spec';
+import {
+  readBuildPolicy,
+  readSourceSnapshotInfo,
+} from '@davidniessen/contracts';
+import type { BuildPolicy, SourceSnapshotInfo } from '@davidniessen/contracts';
 export interface PreparedSource {
   id: string;
   projectId: string;

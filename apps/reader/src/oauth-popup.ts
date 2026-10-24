@@ -1,9 +1,12 @@
-import { createPkceTransaction, exchangePkceCode } from '@api-docs/explorer';
+import {
+  createPkceTransaction,
+  exchangePkceCode,
+} from '@davidniessen/explorer';
 import type {
   OAuthClient,
   OAuthAccessToken,
   PkceTransaction,
-} from '@api-docs/explorer';
+} from '@davidniessen/explorer';
 const popupMessages = {
   cancelled: 'Authorization cancelled.',
   closed: 'Authorization window closed.',

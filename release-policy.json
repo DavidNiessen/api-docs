@@ -1,19 +1,20 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "publicationEnabled": false,
   "environment": "release",
   "npm": {
-    "scope": "@api-docs",
-    "ownershipVerified": false
+    "scope": "@davidniessen",
+    "registry": "https://npm.pkg.github.com",
+    "ownershipVerified": true
   },
   "maven": {
     "groupId": "dev.niessen",
-    "ownershipVerified": false,
-    "signingKeyFingerprint": null
+    "ownershipVerified": true,
+    "registry": "https://maven.pkg.github.com/davidniessen/api-docs"
   },
   "container": {
     "repository": "ghcr.io/davidniessen/api-docs",
-    "ownershipVerified": false
+    "ownershipVerified": true
   },
   "reviews": {
     "security": false,

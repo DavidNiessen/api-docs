@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { FastifyInstance } from 'fastify';
-import type { Repository } from '@api-docs/domain';
+import type { Repository } from '@davidniessen/domain';
 export interface OidcOptions {
   issuer: string;
   clientId: string;

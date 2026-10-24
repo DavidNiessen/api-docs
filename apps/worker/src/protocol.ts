@@ -1,5 +1,8 @@
-import type { BuildLease, BuildResult } from '@api-docs/domain';
-import { readBuildPolicy, readSourceSnapshotInfo } from '@api-docs/contracts';
+import type { BuildLease, BuildResult } from '@davidniessen/domain';
+import {
+  readBuildPolicy,
+  readSourceSnapshotInfo,
+} from '@davidniessen/contracts';
 import { identifier, record, readWorkerOrigin } from './config.js';
 export interface WorkerControlPlane {
   claim(

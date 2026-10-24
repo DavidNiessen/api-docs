@@ -10,6 +10,7 @@ import { readRegularFile } from './read-regular-file.mjs';
 import { releaseRequest } from './release-http.mjs';
 import { verifyReleaseAssets } from './release-assets.mjs';
 import { readWorkspacePackages } from './workspaces.mjs';
+import { githubNpmRegistry, githubPackageHeaders } from './github-packages.mjs';
 
 const exec = promisify(execFile);
 const registry = 'https://registry.npmjs.org';
@@ -19,8 +20,21 @@ const digest = (bytes, algorithm, encoding = 'hex') =>
 /** Compare public registry bytes, not only a version string or registry metadata. */
 export async function inspectNpmVersion(
   pkg,
-  { request = releaseRequest } = {},
+  {
+    request = releaseRequest,
+    registry: destination = registry,
+    env = process.env,
+    acceptArchive = async () => {},
+  } = {},
 ) {
+  assert(
+    destination === registry || destination === githubNpmRegistry,
+    'Unexpected npm registry.',
+  );
+  const headers =
+    destination === githubNpmRegistry
+      ? githubPackageHeaders('npm', env)
+      : undefined;
   assert.match(pkg.name, /^@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/);
   assert.match(pkg.version, /^[0-9][a-zA-Z0-9.-]{0,99}$/);
   assert.match(pkg.sha256, /^[a-f0-9]{64}$/);
@@ -31,7 +45,9 @@ export async function inspectNpmVersion(
       pkg.bytes <= 64 * 1024 * 1024,
   );
   const result = await request(
-    `${registry}/${encodeURIComponent(pkg.name)}/${encodeURIComponent(pkg.version)}`,
+    `${destination}/${encodeURIComponent(pkg.name)}` +
+      (destination === registry ? `/${encodeURIComponent(pkg.version)}` : ''),
+    { headers },
   );
   if (result.status === 404) return { exists: false };
   assert.equal(
@@ -39,7 +55,22 @@ export async function inspectNpmVersion(
     200,
     `Cannot inspect npm publication ${pkg.name}.`,
   );
-  const metadata = JSON.parse(result.bytes.toString('utf8'));
+  const document = JSON.parse(result.bytes.toString('utf8'));
+  if (destination === githubNpmRegistry) {
+    assert.equal(document.name, pkg.name);
+    assert(
+      document.versions &&
+        typeof document.versions === 'object' &&
+        !Array.isArray(document.versions),
+      'Malformed GitHub npm package metadata.',
+    );
+  }
+  const metadata =
+    destination === githubNpmRegistry
+      ? document.versions?.[pkg.version]
+      : document;
+  if (destination === githubNpmRegistry && metadata === undefined)
+    return { exists: false };
   assert.equal(metadata.name, pkg.name);
   assert.equal(metadata.version, pkg.version);
   assert.equal(
@@ -47,27 +78,30 @@ export async function inspectNpmVersion(
     pkg.integrity,
     `Existing npm version has different bytes: ${pkg.name}.`,
   );
-  assert.equal(
-    metadata.dist.attestations?.provenance?.predicateType,
-    'https://slsa.dev/provenance/v1',
-    'Published npm provenance is missing.',
-  );
-  const provenance = new URL(metadata.dist.attestations.url);
-  assert.equal(provenance.origin, registry);
-  assert(
-    !provenance.username &&
-      !provenance.password &&
-      !provenance.hash &&
-      !provenance.search,
-  );
+  let provenance;
+  if (destination === registry) {
+    assert.equal(
+      metadata.dist.attestations?.provenance?.predicateType,
+      'https://slsa.dev/provenance/v1',
+      'Published npm provenance is missing.',
+    );
+    provenance = new URL(metadata.dist.attestations.url);
+    assert.equal(provenance.origin, registry);
+    assert(
+      !provenance.username &&
+        !provenance.password &&
+        !provenance.hash &&
+        !provenance.search,
+    );
+  }
   const url = new URL(metadata.dist.tarball);
   assert.equal(
     url.origin,
-    registry,
-    'npm tarball must come from the public npm registry.',
+    destination,
+    'npm tarball must come from the selected registry.',
   );
   assert(!url.username && !url.password && !url.hash && !url.search);
-  const archive = await request(url.href, { maximum: pkg.bytes });
+  const archive = await request(url.href, { maximum: pkg.bytes, headers });
   assert.equal(archive.status, 200);
   assert.equal(archive.bytes.length, pkg.bytes);
   assert.equal(
@@ -79,10 +113,12 @@ export async function inspectNpmVersion(
     `sha512-${digest(archive.bytes, 'sha512', 'base64')}`,
     pkg.integrity,
   );
+  await acceptArchive(archive.bytes);
   return {
     exists: true,
     tarball: url.href,
-    provenance: provenance.href,
+    provenance: provenance?.href ?? null,
+    registry: destination,
     sha256: pkg.sha256,
     integrity: pkg.integrity,
   };
@@ -115,6 +151,13 @@ export async function loadNpmPublication(root, context, plan) {
     .filter((pkg) => pkg.path && pkg.metadata.private !== true)
     .map((pkg) => pkg.metadata);
   const names = metadata.map((pkg) => pkg.name).sort();
+  if (plan.npm.registry)
+    assert(
+      metadata.every(
+        (pkg) => pkg.publishConfig?.registry === plan.npm.registry,
+      ),
+      'Package publishConfig must match the reviewed npm registry.',
+    );
   assert.deepEqual([...plan.npm.packages].sort(), names);
   assert.deepEqual(report.packages.map((pkg) => pkg.name).sort(), names);
   for (const pkg of report.packages) {
@@ -137,6 +180,7 @@ export async function loadNpmPublication(root, context, plan) {
       report.packages.find((pkg) => pkg.name === name),
     ),
     tag: plan.npm.tag,
+    registry: plan.npm.registry ?? registry,
   };
 }
 
@@ -151,9 +195,13 @@ export async function publishNpmArchives(
   } = {},
 ) {
   assert(['next', 'latest'].includes(candidate.tag));
+  const destination = candidate.registry ?? registry;
+  assert(destination === registry || destination === githubNpmRegistry);
   const states = [];
   for (const pkg of candidate.packages)
-    states.push(await inspectNpmVersion(pkg, { request }));
+    states.push(
+      await inspectNpmVersion(pkg, { request, registry: destination, env }),
+    );
   const privateRoot = await mkdtemp(
     join(tmpdir(), 'api-docs-npm-publication-'),
   );
@@ -169,15 +217,21 @@ export async function publishNpmArchives(
     // npm expands this reference itself. A token value never enters a file or command argument.
     await writeFile(
       userconfig,
-      env.NPM_TOKEN ? '//registry.npmjs.org/:_authToken=${NPM_TOKEN}\n' : '',
+      destination === githubNpmRegistry
+        ? '//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}\n'
+        : env.NPM_TOKEN
+          ? '//registry.npmjs.org/:_authToken=${NPM_TOKEN}\n'
+          : '',
       { flag: 'wx', mode: 0o600 },
     );
     for (const [index, pkg] of candidate.packages.entries()) {
       if (!states[index].exists) {
         assert(
-          env.NPM_TOKEN ||
-            (env.ACTIONS_ID_TOKEN_REQUEST_URL &&
-              env.ACTIONS_ID_TOKEN_REQUEST_TOKEN),
+          destination === githubNpmRegistry
+            ? env.GITHUB_PACKAGES_TOKEN
+            : env.NPM_TOKEN ||
+                (env.ACTIONS_ID_TOKEN_REQUEST_URL &&
+                  env.ACTIONS_ID_TOKEN_REQUEST_TOKEN),
           'npm requires trusted publishing or a bootstrap token.',
         );
         try {
@@ -189,11 +243,11 @@ export async function publishNpmArchives(
               '--ignore-scripts',
               '--access',
               'public',
-              '--provenance',
+              ...(destination === registry ? ['--provenance'] : []),
               '--tag',
               candidate.tag,
               '--registry',
-              registry,
+              destination,
               '--userconfig',
               userconfig,
               '--cache',
@@ -212,7 +266,11 @@ export async function publishNpmArchives(
           );
         }
       }
-      const result = await inspectNpmVersion(pkg, { request });
+      const result = await inspectNpmVersion(pkg, {
+        request,
+        registry: destination,
+        env,
+      });
       assert(
         result.exists,
         `Published npm version is not yet publicly available: ${pkg.name}. Retry verification; do not rebuild.`,

@@ -10,16 +10,16 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { compileProject } from '@api-docs/compiler';
-import { buildSite } from '@api-docs/cli';
+import { compileProject } from '@davidniessen/compiler';
+import { buildSite } from '@davidniessen/cli';
 import {
   runPluginFiles,
   checkPluginConformance,
   definePlugin,
   applyPlugins,
-} from '@api-docs/plugin-sdk';
-import { themePresets } from '@api-docs/contracts';
-import type { SiteData } from '@api-docs/contracts';
+} from '@davidniessen/plugin-sdk';
+import { themePresets } from '@davidniessen/contracts';
+import type { SiteData } from '@davidniessen/contracts';
 let site: SiteData;
 beforeAll(async () => {
   site = await compileProject(resolve('examples/demo'));

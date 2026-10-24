@@ -358,7 +358,7 @@ export async function probePublishedContainer(
     reference,
     '--input-type=module',
     '-e',
-    "import {toolVersion} from '@api-docs/contracts'; process.stdout.write(JSON.stringify({uid:process.getuid(),toolVersion,node:process.version}));",
+    "import {toolVersion} from '@davidniessen/contracts'; process.stdout.write(JSON.stringify({uid:process.getuid(),toolVersion,node:process.version}));",
   ]);
   try {
     const probe = await run(config, ['container', 'start', '--attach', name]);

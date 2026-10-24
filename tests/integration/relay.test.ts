@@ -18,10 +18,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
 import pg from 'pg';
-import { createServer } from '@api-docs/server';
-import type { ServerOptions } from '@api-docs/server';
-import { PostgresRepository } from '@api-docs/storage';
-import type { Project } from '@api-docs/domain';
+import { createServer } from '@davidniessen/server';
+import type { ServerOptions } from '@davidniessen/server';
+import { PostgresRepository } from '@davidniessen/storage';
+import type { Project } from '@davidniessen/domain';
 import type { RelayConfiguration } from '../../apps/server/src/relay-policy.js';
 
 if (!process.env.TEST_DATABASE_URL)

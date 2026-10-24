@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { definePlugin } from '@api-docs/plugin-sdk';
+import { definePlugin } from '@davidniessen/plugin-sdk';
 
 export default definePlugin({
-  name: '@api-docs/example-brand-theme',
+  name: '@davidniessen/example-brand-theme',
   version: '0.1.0',
   pluginApi: '1',
   capabilities: ['theme'],

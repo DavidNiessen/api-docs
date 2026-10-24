@@ -1,7 +1,7 @@
 import { hydrateRoot } from 'react-dom/client';
 import { App } from './components/App.js';
-import { normalizePagePath } from '@api-docs/contracts';
-import type { SiteData } from '@api-docs/contracts';
+import { normalizePagePath } from '@davidniessen/contracts';
+import type { SiteData } from '@davidniessen/contracts';
 import './styles.css';
 import './island-layout.css';
 import './reader-settings.css';

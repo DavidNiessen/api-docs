@@ -1,4 +1,4 @@
-import { renderDocument } from '@api-docs/reader/render';
+import { renderDocument } from '@davidniessen/reader/render';
 import { expect, it } from 'vitest';
 import {
   createPageData,
@@ -6,9 +6,9 @@ import {
   normalizePagePath,
   operationHref,
   localizePath,
-} from '@api-docs/contracts';
-import type { SiteData } from '@api-docs/contracts';
-import { compileProject } from '@api-docs/compiler';
+} from '@davidniessen/contracts';
+import type { SiteData } from '@davidniessen/contracts';
+import { compileProject } from '@davidniessen/compiler';
 import { resolve } from 'node:path';
 it('bounds navigation and sends only the active operation and reachable schemas', async () => {
   const site = await compileProject(resolve('examples/demo'));

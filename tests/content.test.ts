@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, writeFile, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { loadGuides, renderMarkdown } from '@api-docs/content';
-import { contrastRatio, readableAccent } from '@api-docs/contracts';
+import { loadGuides, renderMarkdown } from '@davidniessen/content';
+import { contrastRatio, readableAccent } from '@davidniessen/contracts';
 async function project(source: string, filename = 'intro.md') {
   const root = await mkdtemp(join(tmpdir(), 'api-docs-content-'));
   await mkdir(join(root, 'guides'));

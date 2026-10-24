@@ -1,5 +1,5 @@
-import { feedbackHref } from '@api-docs/contracts';
-import type { ProjectConfig } from '@api-docs/contracts';
+import { feedbackHref } from '@davidniessen/contracts';
+import type { ProjectConfig } from '@davidniessen/contracts';
 import { useUi } from '../ui-translation.js';
 import { Icon } from './Icon.js';
 

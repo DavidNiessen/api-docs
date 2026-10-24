@@ -1,6 +1,6 @@
 {
-  "name": "@api-docs/explorer",
-  "version": "0.2.0-candidate.1",
+  "name": "@davidniessen/explorer",
+  "version": "0.2.0-candidate.2",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -13,6 +13,9 @@
     }
   },
   "dependencies": {
-    "@api-docs/contracts": "0.2.0-candidate.1"
+    "@davidniessen/contracts": "0.2.0-candidate.2"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

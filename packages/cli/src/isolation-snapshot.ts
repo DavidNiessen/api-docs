@@ -1,7 +1,7 @@
 import { chmod, lstat, mkdir, opendir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { readBoundedFile } from '@api-docs/spec';
+import { readBoundedFile } from '@davidniessen/spec';
 
 /** Stage data only. No source/package scripts run on the operator host. */
 export async function snapshotProject(

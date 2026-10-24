@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { Media } from '@api-docs/contracts';
-import { compileProject } from '@api-docs/compiler';
+import type { Media } from '@davidniessen/contracts';
+import { compileProject } from '@davidniessen/compiler';
 import {
   createMultipartParts,
   multipartHeaderFields,
   redactRequest,
   toFetchRequest,
   prepareRequest,
-} from '@api-docs/explorer';
+} from '@davidniessen/explorer';
 import { resolve } from 'node:path';
 import { multipartPartHeader } from '../packages/explorer/src/multipart.js';
 import { normalizeSpec } from '../packages/spec/src/normalize.js';

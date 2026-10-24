@@ -8,9 +8,9 @@ import {
   lifecycleReport,
   isCalendarDate,
   parseOperationLifecycle,
-} from '@api-docs/contracts';
-import { compileProject, auditDocumentation } from '@api-docs/compiler';
-import { loadSpec, diffApi } from '@api-docs/spec';
+} from '@davidniessen/contracts';
+import { compileProject, auditDocumentation } from '@davidniessen/compiler';
+import { loadSpec, diffApi } from '@davidniessen/spec';
 import { validatePluginSite } from '../packages/plugin-sdk/src/validation.js';
 
 const project = resolve('examples/lifecycle');

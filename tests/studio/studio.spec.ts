@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { buildSite, stageArtifact } from '@api-docs/cli';
+import { buildSite, stageArtifact } from '@davidniessen/cli';
 const temporary: string[] = [];
 test.afterAll(async () => {
   for (const directory of temporary)

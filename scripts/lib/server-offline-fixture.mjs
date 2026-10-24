@@ -19,7 +19,7 @@ async function probeOfflineInstallation() {
   const { default: assert } = await import('node:assert/strict');
   const { readFile } = await import('node:fs/promises');
   const { randomUUID } = await import('node:crypto');
-  const { toolVersion } = await import('@api-docs/contracts');
+  const { toolVersion } = await import('@davidniessen/contracts');
   let input = '';
   for await (const chunk of process.stdin) input += chunk;
   const fixture = JSON.parse(input);

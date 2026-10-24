@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Worker } from 'node:worker_threads';
-import { toolVersion } from '@api-docs/contracts';
+import { toolVersion } from '@davidniessen/contracts';
 import { importDestination } from './remote-policy.js';
 import {
   requestAllowedOrigin,

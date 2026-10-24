@@ -1,7 +1,7 @@
 import { readdir } from 'node:fs/promises';
 import { join, relative, extname } from 'node:path';
-import { confinedPath, readBoundedFile } from '@api-docs/spec';
-import type { ProjectConfig } from '@api-docs/contracts';
+import { confinedPath, readBoundedFile } from '@davidniessen/spec';
+import type { ProjectConfig } from '@davidniessen/contracts';
 const extensions = new Set([
   '.png',
   '.webp',

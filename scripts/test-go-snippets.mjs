@@ -5,8 +5,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { compileProject } from '@api-docs/compiler';
-import { runPluginFiles } from '@api-docs/plugin-sdk';
+import { compileProject } from '@davidniessen/compiler';
+import { runPluginFiles } from '@davidniessen/plugin-sdk';
 import { goSnippet } from '../examples/snippet-plugin/go-code.mjs';
 
 const exec = promisify(execFile);

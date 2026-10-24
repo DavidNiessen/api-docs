@@ -1,6 +1,6 @@
 {
-  "name": "@api-docs/spec",
-  "version": "0.2.0-candidate.1",
+  "name": "@davidniessen/spec",
+  "version": "0.2.0-candidate.2",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -13,12 +13,15 @@
     }
   },
   "dependencies": {
-    "@api-docs/contracts": "0.2.0-candidate.1",
+    "@davidniessen/contracts": "0.2.0-candidate.2",
     "@apidevtools/swagger-parser": "13.1.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "proxy-from-env": "2.1.0",
     "yaml": "2.9.1",
     "zod": "4.6.6"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

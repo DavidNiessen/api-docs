@@ -1,11 +1,15 @@
-import type { Operation, Schema, SecurityScheme } from '@api-docs/contracts';
+import type {
+  Operation,
+  Schema,
+  SecurityScheme,
+} from '@davidniessen/contracts';
 import {
   encodeValue,
   serializeParameters,
   setRequestHeader,
   fetchHeaderEntries,
 } from './parameters.js';
-import { isJsonMediaType } from '@api-docs/contracts';
+import { isJsonMediaType } from '@davidniessen/contracts';
 import { redactJsonBody } from './redact-body.js';
 import type { BodyRedaction } from './redact-body.js';
 import { encodeFormBody, isFormMediaType } from './form.js';

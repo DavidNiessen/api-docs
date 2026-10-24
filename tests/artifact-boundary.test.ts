@@ -8,9 +8,9 @@ import {
   parseArtifactManifest,
   artifactIdentity,
   verifyArtifact,
-} from '@api-docs/compiler';
-import { readBoundedFile } from '@api-docs/spec';
-import type { ArtifactManifest } from '@api-docs/contracts';
+} from '@davidniessen/compiler';
+import { readBoundedFile } from '@davidniessen/spec';
+import type { ArtifactManifest } from '@davidniessen/contracts';
 function manifest(files: Record<string, string> = {}): ArtifactManifest {
   const metadata = {
     schemaVersion: 1 as const,

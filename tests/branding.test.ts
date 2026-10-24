@@ -9,9 +9,9 @@ import {
 } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { parseConfig } from '@api-docs/spec';
-import { buildSite, createStaticServer } from '@api-docs/cli';
-import { loadPublicAssets, verifyArtifact } from '@api-docs/compiler';
+import { parseConfig } from '@davidniessen/spec';
+import { buildSite, createStaticServer } from '@davidniessen/cli';
+import { loadPublicAssets, verifyArtifact } from '@davidniessen/compiler';
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jX8cAAAAASUVORK5CYII=',
   'base64',

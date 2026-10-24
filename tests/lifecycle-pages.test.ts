@@ -7,14 +7,14 @@ import {
   lifecycleRoutes,
   operationHref,
   pageMetadata,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import {
   compileProject,
   verifyArtifact,
   auditDocumentation,
-} from '@api-docs/compiler';
-import { buildSite, createStaticServer } from '@api-docs/cli';
-import { renderDocument } from '@api-docs/reader/render';
+} from '@davidniessen/compiler';
+import { buildSite, createStaticServer } from '@davidniessen/cli';
+import { renderDocument } from '@davidniessen/reader/render';
 
 describe('static lifecycle reader data', () => {
   it('resolves replacements before navigation is bounded and preserves route data when rendering twice', async () => {

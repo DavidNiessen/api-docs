@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { withBase, safeNavigationHref } from '@api-docs/contracts';
-import type { LifecyclePage, LifecycleRecord } from '@api-docs/contracts';
+import { withBase, safeNavigationHref } from '@davidniessen/contracts';
+import type { LifecyclePage, LifecycleRecord } from '@davidniessen/contracts';
 import { Icon } from './Icon.js';
 import { useUi } from '../ui-translation.js';
 

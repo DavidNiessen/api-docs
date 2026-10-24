@@ -4,7 +4,7 @@ import {
   readSourceSnapshotInfo,
   isImmutableBuilderImage,
   toolVersion,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import type {
   BuildJob,
   BuildJobRepository,
@@ -14,14 +14,14 @@ import type {
   BuildSource,
   BuildPage,
   BuildSourceListOptions,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 import {
   BuildCapacityError,
   BuildInputError,
   BuildLeaseLostError,
   BuildNotFoundError,
   ConflictError,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 import type { SqlClient, SqlDatabase } from './sql.js';
 
 const defaults: BuildQueueLimits = {

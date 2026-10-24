@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import type { SiteData } from '@api-docs/contracts';
+import type { SiteData } from '@davidniessen/contracts';
 import {
   validateGuideTranslations,
   lifecycleIssues,
-} from '@api-docs/contracts';
-import type { OperationLifecycle } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { OperationLifecycle } from '@davidniessen/contracts';
 const text = z.string().max(2 * 1024 * 1024);
 const name = z.string().min(1).max(1024);
 const object = z.record(z.string(), z.unknown());

@@ -12,7 +12,7 @@ import { createStudioApi } from './api.js';
 import { createStudioRequestScope } from './request-scope.js';
 import { useProjectCapabilities } from './use-project-capabilities.js';
 import { createRoot } from 'react-dom/client';
-import type { Project, Publication } from '@api-docs/domain';
+import type { Project, Publication } from '@davidniessen/domain';
 import './styles.css';
 import './island-layout.css';
 import '../../shared/scrollbars.css';

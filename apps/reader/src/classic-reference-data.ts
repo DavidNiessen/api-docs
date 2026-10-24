@@ -1,5 +1,5 @@
-import { methods } from '@api-docs/contracts';
-import type { ApiDocument, Operation } from '@api-docs/contracts';
+import { methods } from '@davidniessen/contracts';
+import type { ApiDocument, Operation } from '@davidniessen/contracts';
 
 export interface OperationCatalog {
   schemaVersion: 1;

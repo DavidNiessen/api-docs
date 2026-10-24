@@ -31,7 +31,7 @@ function fixture() {
   const inventoryContext = {
     image,
     toolVersion: context.version,
-    packages: ['@api-docs/server'],
+    packages: ['@davidniessen/server'],
     nodeRange: '>=24.22.1 <25',
   };
   const bom = {
@@ -43,7 +43,7 @@ function fixture() {
     },
     components: [
       {
-        name: '@api-docs/server',
+        name: '@davidniessen/server',
         version: '0.2.0',
         purl: 'pkg:npm/%40api-docs%2Fserver@0.2.0',
       },

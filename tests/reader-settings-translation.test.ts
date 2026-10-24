@@ -1,8 +1,8 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it } from 'vitest';
-import { createUiTranslation } from '@api-docs/contracts';
-import { parseConfig } from '@api-docs/spec';
+import { createUiTranslation } from '@davidniessen/contracts';
+import { parseConfig } from '@davidniessen/spec';
 import { UiContext } from '../apps/reader/src/ui-translation.js';
 import { ReaderSettingsControls } from '../apps/reader/src/components/ReaderSettingsControls.js';
 import ReaderSettings from '../apps/reader/src/components/ReaderSettings.js';

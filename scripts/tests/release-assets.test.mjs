@@ -49,7 +49,7 @@ async function npmFixture(t) {
     source = join(root, 'source');
   await mkdir(source);
   const packages = [];
-  for (const name of ['@api-docs/first', '@api-docs/second']) {
+  for (const name of ['@davidniessen/first', '@davidniessen/second']) {
     const filename = `${name.slice(1).replace('/', '-')}-0.2.0.tgz`,
       bytes = Buffer.from(name);
     await writeFile(join(source, filename), bytes);

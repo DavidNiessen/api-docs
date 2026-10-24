@@ -1,4 +1,4 @@
-import type { PostgresRepositoryOptions } from '@api-docs/storage';
+import type { PostgresRepositoryOptions } from '@davidniessen/storage';
 
 /** Operator values only; credential strings never enter error messages. */
 export function databaseOptions(

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadSpec, parseSource } from '@api-docs/spec';
+import { loadSpec, parseSource } from '@davidniessen/spec';
 
 describe('JSON-compatible source values', () => {
   it.each([

@@ -1,6 +1,6 @@
 # Development candidates and release gates
 
-The project is in development. There is no approved stable release, registry ownership is not verified, and these commands do not publish anything. The current `@api-docs` scope and `api-docs` artifact names remain provisional pending the product rename. The selected Maven group is `dev.niessen`; Maven Central namespace authorization remains unverified. Never install or execute artifacts from an untrusted pull request.
+The project is in development with no approved stable release. These candidate commands do not publish packages. Distributions target [GitHub Packages and GHCR](github-packages.md), using npm scope `@davidniessen` and Maven group `dev.niessen`; no npm or Maven Central account is required. The `api-docs` artifact names remain provisional pending the product rename. Actual protected publication and fresh registry acceptance remain open. Never install or execute artifacts from an untrusted pull request.
 
 ## Review a release plan
 
@@ -85,7 +85,7 @@ Browser builds collect license texts for packages identified in bundle source ma
 
 `npm run test:java-consumers -- --matrix` builds and installs a baseline development candidate, inspects runtime/source/Javadoc archives and generated Spring configuration metadata, and consumes the same runtime JARs outside the source checkout across the supported matrix. It retains the parent/module POMs, all six JARs, sanitized logs, SHA-256 inventories and a baseline CycloneDX dependency SBOM with test dependencies excluded. Project-component SBOM hashes are bound to the inspected parent POM/runtime JARs; applications should produce their own resolved runtime inventory. See [Java validation](java-validation.md) for prerequisites and exact scope.
 
-The regular and prepared-version Java jobs retain these unpublished candidates and SBOMs. Maven namespace ownership, signatures, provenance and registry installation remain separate gates. The local candidates do not create tags, public packages or release entries.
+The regular and prepared-version Java jobs retain these unpublished candidates and SBOMs. GitHub producer signatures, actual protected GitHub Packages publication and fresh authenticated registry installation remain separate gates. The local candidate commands do not create tags, public packages or release entries.
 
 ## Container candidate inventories
 
@@ -115,7 +115,7 @@ The [verified release-candidate workflow](release-provenance.md) reuses the requ
 
 ## Review publication destinations and blockers
 
-The [publication workflow](publication-plans.md) verifies the exact successful candidate run/attempt, remote tag, producer signatures, bytes and namespace policy. Its default read-only run retains reviewable digests and pending owner decisions. Explicit publication requires approved policy, actual branch/tag protections and the protected release environment; separate npm, Maven and OCI publishers promote exact accepted bytes, followed by fresh public consumer verification. Namespace/signing setup, actual end-to-end acceptance and owner approval remain launch gates.
+The [publication workflow](publication-plans.md) verifies the exact successful candidate run/attempt, remote tag, producer signatures, bytes and repository-bound destinations. Its default read-only run retains reviewable digests and pending launch reviews. Explicit publication requires approved policy, actual branch/tag protections and the protected release environment. Separate GitHub npm/Maven and OCI publishers promote exact accepted bytes; fresh read-only consumers verify hashes, producer/promotion attestations and installed behavior. npm/Maven readers use GitHub authentication; the container probe is anonymous. No production GPG key or external publishing account is needed. Actual registry acceptance, public package visibility and owner launch approval remain gates.
 
 ## Still required before publication
 

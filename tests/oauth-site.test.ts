@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseConfig } from '@api-docs/spec';
-import { buildSite } from '@api-docs/cli';
-import { verifyArtifact } from '@api-docs/compiler';
+import { parseConfig } from '@davidniessen/spec';
+import { buildSite } from '@davidniessen/cli';
+import { verifyArtifact } from '@davidniessen/compiler';
 
 const base = {
   name: 'OAuth docs',

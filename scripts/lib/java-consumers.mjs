@@ -14,8 +14,8 @@ import { tmpdir } from 'node:os';
 import { delimiter, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { buildSite } from '@api-docs/cli';
-import { parseSource } from '@api-docs/spec';
+import { buildSite } from '@davidniessen/cli';
+import { parseSource } from '@davidniessen/spec';
 import { auditReleaseVersions } from './release-versions.mjs';
 import { bindJavaSbom, validateSpringMetadata } from './java-distributions.mjs';
 

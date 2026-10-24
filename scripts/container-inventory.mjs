@@ -3,7 +3,7 @@ import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdir, mkdtemp, rm, unlink, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
-import { toolVersion } from '@api-docs/contracts';
+import { toolVersion } from '@davidniessen/contracts';
 import {
   scanner,
   sha256,

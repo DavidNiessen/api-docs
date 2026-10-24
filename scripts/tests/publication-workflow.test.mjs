@@ -45,12 +45,9 @@ test('publication is manual and read-only by default; each writer needs policy v
     assert.equal(job.permissions.contents, 'read');
     assert.equal(
       job.permissions['id-token'],
-      kind === 'maven' ? undefined : 'write',
-    );
-    assert.equal(
-      job.permissions.packages,
       kind === 'container' ? 'write' : undefined,
     );
+    assert.equal(job.permissions.packages, 'write');
     assert.equal(
       job.env,
       undefined,
@@ -64,6 +61,11 @@ test('publication is manual and read-only by default; each writer needs policy v
     const publishing = job.steps.findIndex(
       (step) => step.run === `node scripts/publish-${kind}.mjs`,
     );
+    if (kind !== 'container')
+      assert.equal(
+        job.steps[publishing].env.GITHUB_PACKAGES_TOKEN,
+        '${{ github.token }}',
+      );
     assert(publishing > verification);
     assert(
       job.steps
@@ -107,6 +109,10 @@ test('fresh registry consumers receive only read permissions and the aggregate r
     assert.equal(job.needs, 'publish-' + kind);
     assert.equal(job.environment, undefined);
     assert(Object.values(job.permissions).every((value) => value === 'read'));
+    assert.equal(
+      job.permissions.packages,
+      kind === 'container' ? undefined : 'read',
+    );
     assert(!JSON.stringify(job).includes('secrets.'));
     assert.equal(job.env, undefined);
     assert(

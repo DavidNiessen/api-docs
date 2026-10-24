@@ -107,7 +107,7 @@ Files alone cannot activate all GitHub protections. Maintainers must configure a
 1. Require PRs and review on `master`, with required quality checks, stale approval dismissal, resolved conversations, and no routine direct pushes/force pushes. Consider merge queue after `merge_group` checks are verified.
 2. Restrict release tags and publishing environments; require approval for stable production publication. Grant bots only the package/repository capabilities they need.
 3. Enable dependency alerts, secret scanning/push protection where available, private vulnerability reporting, and appropriate code scanning for the repository's GitHub plan and visibility.
-4. Configure npm trusted publishing, Maven Central namespace/signing, container registry ownership, and docs deployment credentials. Keep all secrets in approved secret stores/environments.
+4. Configure repository-bound GitHub Packages npm/Maven publication with short-lived Actions tokens, public package visibility, read-only authenticated consumers, GHCR and documentation deployment. The selected GitHub workflow does not require npm/Maven Central accounts or a production OpenPGP key. Keep any external consumer tokens in approved secret stores.
 5. Set squash-merge conventions, default branch, issue templates, Discussions policy, repository description/topics, website/demo, and security contact routes.
 6. Verify permissions using a contributor/fork PR and a dry-run release. Record the checks and date in the release checklist.
 
@@ -134,21 +134,21 @@ Retain test artifacts, traces on failure, accessibility reports, and benchmark m
 
 ## 6. Open source launch checklist
 
-Unchecked items are required future work, not completed claims.
+Checked items identify delivered implementation or documentation. Unchecked items remain required launch work. These checks do not replace exact-candidate acceptance or approve publication.
 
 ### Project and community
 
 - [ ] Adopt the final name and verify namespace/trademark availability.
 - [ ] Adopt a license (proposed Apache-2.0), add required notices, and audit dependency, font, icon, fixture, and documentation licenses.
-- [ ] Add CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, governance/maintainer ownership, issue/PR templates, and support policies.
+- [x] Add CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, governance/maintainer ownership, issue/PR templates, and support policies.
 - [ ] Define contribution certification (DCO or another reviewed process), public decision-making, triage labels, and maintainer succession.
 - [ ] Publish honest feature/support matrices, release status, roadmap, and example projects; remove placeholder features from marketing.
-- [ ] Enable and verify repository protection and private vulnerability reporting settings.
+- [x] Enable and verify repository protection and private vulnerability reporting settings.
 
 ### Product and documentation
 
 - [ ] Complete all required 1.0 product scope or explicitly revise the contract before release.
-- [ ] Ship quickstarts for static hosting, Docker/Compose, private docs, Spring Boot, Express, and Fastify.
+- [x] Ship quickstarts for static hosting, Docker/Compose, private docs, Spring Boot, Express, and Fastify.
 - [ ] Ship configuration, theme, plugin, API format compatibility, authentication, operator, troubleshooting, and migration reference docs.
 - [ ] Verify the public demo against the exact released packages and include realistic large and small examples.
 - [ ] Complete independent pilot journeys and close blocking usability, browser, and accessibility issues.

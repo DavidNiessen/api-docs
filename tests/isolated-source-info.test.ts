@@ -16,8 +16,8 @@ import { join, delimiter } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { inspectIsolatedSource, buildIsolatedSite } from '@api-docs/cli';
-import { readTextFile } from '@api-docs/spec';
+import { inspectIsolatedSource, buildIsolatedSite } from '@davidniessen/cli';
+import { readTextFile } from '@davidniessen/spec';
 const exec = promisify(execFile);
 const roots: string[] = [];
 async function temporary() {

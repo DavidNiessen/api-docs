@@ -5,6 +5,8 @@ const origins = new Set([
   'https://central.sonatype.com',
   'https://repo.maven.apache.org',
   'https://ghcr.io',
+  'https://npm.pkg.github.com',
+  'https://maven.pkg.github.com',
 ]);
 
 /** Release credentials and bytes must never follow registry-controlled redirects. */

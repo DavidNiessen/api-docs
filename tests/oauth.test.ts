@@ -5,8 +5,8 @@ import {
   exchangePkceCode,
   oauthUrl,
   resolveOAuthEndpoint,
-} from '@api-docs/explorer';
-import type { OAuthClient, PkceTransaction } from '@api-docs/explorer';
+} from '@davidniessen/explorer';
+import type { OAuthClient, PkceTransaction } from '@davidniessen/explorer';
 
 const client: OAuthClient = {
   clientId: 'public-reader',

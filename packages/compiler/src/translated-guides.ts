@@ -1,8 +1,8 @@
-import { confinedPath } from '@api-docs/spec';
-import { loadGuides } from '@api-docs/content';
-import type { GuideReadBudget } from '@api-docs/content';
-import { validateGuideTranslations } from '@api-docs/contracts';
-import type { SiteData } from '@api-docs/contracts';
+import { confinedPath } from '@davidniessen/spec';
+import { loadGuides } from '@davidniessen/content';
+import type { GuideReadBudget } from '@davidniessen/content';
+import { validateGuideTranslations } from '@davidniessen/contracts';
+import type { SiteData } from '@davidniessen/contracts';
 export async function loadTranslatedGuides(
   root: string,
   site: SiteData,
