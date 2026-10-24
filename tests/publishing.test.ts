@@ -9,9 +9,13 @@ import {
 } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { renderMarkdown } from '@api-docs/content';
-import { verifyArtifact, writeManifest, safeOutput } from '@api-docs/compiler';
-import { buildSite, createStaticServer } from '@api-docs/cli';
+import { renderMarkdown } from '@davidniessen/content';
+import {
+  verifyArtifact,
+  writeManifest,
+  safeOutput,
+} from '@davidniessen/compiler';
+import { buildSite, createStaticServer } from '@davidniessen/cli';
 describe('static publishing', () => {
   it('sanitizes active content and creates stable heading links', async () => {
     const output = await renderMarkdown(

@@ -5,8 +5,12 @@ import { randomUUID } from 'node:crypto';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { buildSite, inspectIsolatedSource, stageArtifact } from '@api-docs/cli';
-import { readBuildPolicy, toolVersion } from '@api-docs/contracts';
+import {
+  buildSite,
+  inspectIsolatedSource,
+  stageArtifact,
+} from '@davidniessen/cli';
+import { readBuildPolicy, toolVersion } from '@davidniessen/contracts';
 import type {
   BuildJob,
   BuildLease,
@@ -14,7 +18,7 @@ import type {
   Project,
   BuildPage,
   Role,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 
 const headers = () => ({
   authorization: 'Bearer ' + process.env.TEST_ROOT_TOKEN!,

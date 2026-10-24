@@ -1,5 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises';
-import type { BuildLease } from '@api-docs/domain';
+import type { BuildLease } from '@davidniessen/domain';
 import type { PreparedSource, WorkerConfig } from './config.js';
 import type { BuildExecutor } from './executor.js';
 import {

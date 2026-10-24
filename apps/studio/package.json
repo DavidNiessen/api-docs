@@ -1,5 +1,5 @@
 {
-  "name": "@api-docs/studio",
+  "name": "@davidniessen/studio",
   "version": "0.2.0-candidate.1",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
   "dependencies": {
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "@api-docs/domain": "0.2.0-candidate.1",
-    "@api-docs/contracts": "0.2.0-candidate.1"
+    "@davidniessen/domain": "0.2.0-candidate.1",
+    "@davidniessen/contracts": "0.2.0-candidate.1"
   }
 }

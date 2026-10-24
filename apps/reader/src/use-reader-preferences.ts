@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState } from 'react';
-import { resolvePalette, themePresets } from '@api-docs/contracts';
-import type { Palette } from '@api-docs/contracts';
+import { resolvePalette, themePresets } from '@davidniessen/contracts';
+import type { Palette } from '@davidniessen/contracts';
 import {
   defaultReaderPreferences,
   parseReaderPreferences,

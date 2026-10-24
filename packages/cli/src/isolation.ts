@@ -14,20 +14,20 @@ import { dirname, join, isAbsolute, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { safeOutput, verifyArtifact } from '@api-docs/compiler';
+import { safeOutput, verifyArtifact } from '@davidniessen/compiler';
 import type {
   ArtifactManifest,
   IsolatedBuildLimits,
   SourceSnapshotInfo,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import {
   toolVersion,
   isImmutableBuilderImage,
   isVisibleBuildConfig,
   readIsolatedBuildLimits,
-} from '@api-docs/contracts';
-import { confinedPath, readTextFile, parseConfig } from '@api-docs/spec';
-import { validateSiteData } from '@api-docs/plugin-sdk';
+} from '@davidniessen/contracts';
+import { confinedPath, readTextFile, parseConfig } from '@davidniessen/spec';
+import { validateSiteData } from '@davidniessen/plugin-sdk';
 import { snapshotProject } from './isolation-snapshot.js';
 import { extractIsolatedArchive } from './isolation-archive.js';
 import { activateDirectory } from './activate.js';

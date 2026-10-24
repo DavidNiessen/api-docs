@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { exampleChoices, isJsonMediaType } from '@api-docs/contracts';
-import type { ApiDocument, Operation } from '@api-docs/contracts';
-import { generateMockResponse } from '@api-docs/explorer';
-import type { MockResponse } from '@api-docs/explorer';
+import { exampleChoices, isJsonMediaType } from '@davidniessen/contracts';
+import type { ApiDocument, Operation } from '@davidniessen/contracts';
+import { generateMockResponse } from '@davidniessen/explorer';
+import type { MockResponse } from '@davidniessen/explorer';
 
 export function MockResponseControls({
   api,

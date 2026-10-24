@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { resolveSchema } from '@api-docs/contracts';
-import type { Media, Schema } from '@api-docs/contracts';
-import { multipartHeaderFields } from '@api-docs/explorer';
-import type { MultipartFiles, MultipartHeaders } from '@api-docs/explorer';
+import { resolveSchema } from '@davidniessen/contracts';
+import type { Media, Schema } from '@davidniessen/contracts';
+import { multipartHeaderFields } from '@davidniessen/explorer';
+import type { MultipartFiles, MultipartHeaders } from '@davidniessen/explorer';
 import { multipartEditorModel } from '../multipart-input.js';
 import { BodyEditor } from './BodyEditor.js';
 

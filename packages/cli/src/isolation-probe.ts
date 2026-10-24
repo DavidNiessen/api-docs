@@ -1,6 +1,6 @@
 import { readFile, statfs } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
-import { toolVersion } from '@api-docs/contracts';
+import { toolVersion } from '@davidniessen/contracts';
 
 const [memory, cpu, pids, output] = process.argv.slice(2).map(Number);
 const status = await readFile('/proc/self/status', 'utf8');

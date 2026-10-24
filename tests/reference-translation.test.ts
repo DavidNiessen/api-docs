@@ -2,12 +2,12 @@ import { createElement } from 'react';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it } from 'vitest';
-import { createUiTranslation } from '@api-docs/contracts';
+import { createUiTranslation } from '@davidniessen/contracts';
 import type {
   LifecycleRecord,
   LifecyclePage,
   Schema,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import { UiContext } from '../apps/reader/src/ui-translation.js';
 import { SchemaView } from '../apps/reader/src/components/SchemaView.js';
 import {

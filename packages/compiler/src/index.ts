@@ -19,19 +19,22 @@ import {
   confinedPath,
   readTextFile,
   readBoundedFile,
-} from '@api-docs/spec';
-import { loadGuides, renderMarkdown } from '@api-docs/content';
-import { runPluginFiles, runSourcePluginFiles } from '@api-docs/plugin-sdk';
-import type { SpecSource, SourcePluginExecution } from '@api-docs/plugin-sdk';
+} from '@davidniessen/spec';
+import { loadGuides, renderMarkdown } from '@davidniessen/content';
+import { runPluginFiles, runSourcePluginFiles } from '@davidniessen/plugin-sdk';
+import type {
+  SpecSource,
+  SourcePluginExecution,
+} from '@davidniessen/plugin-sdk';
 import { loadReaderExtensions } from './reader-extensions.js';
 export { loadReaderExtensions } from './reader-extensions.js';
 import { loadPublicAssets } from './assets.js';
 export { loadPublicAssets } from './assets.js';
 export { auditDocumentation } from './doctor.js';
-import type { SiteData, ArtifactManifest } from '@api-docs/contracts';
+import type { SiteData, ArtifactManifest } from '@davidniessen/contracts';
 import { loadTranslatedGuides } from './translated-guides.js';
-import { validateGuideTranslations } from '@api-docs/contracts';
-import { toolVersion } from '@api-docs/contracts';
+import { validateGuideTranslations } from '@davidniessen/contracts';
+import { toolVersion } from '@davidniessen/contracts';
 
 export async function compileProject(
   root: string,

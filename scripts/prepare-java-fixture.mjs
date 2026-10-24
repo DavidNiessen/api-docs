@@ -1,5 +1,5 @@
 import { cp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
-import { buildSite } from '@api-docs/cli';
+import { buildSite } from '@davidniessen/cli';
 const root = new URL('../.api-docs/java-fixture/', import.meta.url);
 await rm(root, { recursive: true, force: true });
 await mkdir(root, { recursive: true });

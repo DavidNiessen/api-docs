@@ -3,7 +3,7 @@
   "publicationEnabled": false,
   "environment": "release",
   "npm": {
-    "scope": "@api-docs",
+    "scope": "@davidniessen",
     "ownershipVerified": false
   },
   "maven": {

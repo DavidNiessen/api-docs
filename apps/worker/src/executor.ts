@@ -1,9 +1,9 @@
 import { mkdtemp, rm, statfs } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { buildIsolatedSite, stageArtifact } from '@api-docs/cli';
-import { safeOutput } from '@api-docs/compiler';
-import type { BuildLease, BuildResult } from '@api-docs/domain';
+import { buildIsolatedSite, stageArtifact } from '@davidniessen/cli';
+import { safeOutput } from '@davidniessen/compiler';
+import type { BuildLease, BuildResult } from '@davidniessen/domain';
 import type { PreparedSource } from './config.js';
 import { markWorkerWorkspace, reclaimWorkerWorkspaces } from './workspaces.js';
 export class SourceApprovalChanged extends Error {}

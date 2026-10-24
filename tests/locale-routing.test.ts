@@ -11,18 +11,18 @@ import {
   createPageData,
   operationHref,
   pageMetadata,
-} from '@api-docs/contracts';
-import type { SiteData } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { SiteData } from '@davidniessen/contracts';
 import {
   buildSite,
   createDevelopmentBuilder,
   createStaticServer,
-} from '@api-docs/cli';
+} from '@davidniessen/cli';
 import {
   verifyArtifact,
   auditDocumentation,
   compileProject,
-} from '@api-docs/compiler';
+} from '@davidniessen/compiler';
 const config = { locales: ['en', 'de', 'pt-BR'], defaultLocale: 'en' };
 let root = '',
   built: Awaited<ReturnType<typeof buildSite>>;

@@ -1,15 +1,15 @@
 import { readFile } from 'node:fs/promises';
-import { definePlugin } from '@api-docs/plugin-sdk';
+import { definePlugin } from '@davidniessen/plugin-sdk';
 import {
   parseJsonValue,
   serializeJsonValue,
   setJsonProperty,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 
 // Review this file and deployment.json before enabling --trust-plugins.
 // This example uses the bounded lossless JSON editor: 1 MiB, 32 levels, 10k values.
 export default definePlugin({
-  name: '@api-docs/example-deployment-source',
+  name: '@davidniessen/example-deployment-source',
   version: '0.1.0',
   pluginApi: '1',
   capabilities: ['source'],

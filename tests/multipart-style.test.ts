@@ -1,11 +1,11 @@
 import { expect, it } from 'vitest';
-import type { Media, Schema } from '@api-docs/contracts';
+import type { Media, Schema } from '@davidniessen/contracts';
 import {
   createMultipartParts,
   toFetchRequest,
   redactRequest,
   generateSnippet,
-} from '@api-docs/explorer';
+} from '@davidniessen/explorer';
 
 const field = (encoding: Schema): Media => ({
   schema: { type: 'object', required: ['value'], properties: { value: {} } },

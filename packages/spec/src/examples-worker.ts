@@ -1,13 +1,13 @@
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import type { FormatsPlugin } from 'ajv-formats';
-import { isJsonMediaType, resolveSchema } from '@api-docs/contracts';
+import { isJsonMediaType, resolveSchema } from '@davidniessen/contracts';
 import type {
   ApiDocument,
   Diagnostic,
   Schema,
   Media,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import type { ValidateFunction } from 'ajv';
 import { record } from './source.js';
 import { unsupportedSchemaScopeKeywords } from './schema-boundaries.js';

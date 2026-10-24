@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import type { ArtifactManifest } from '@api-docs/contracts';
-import { artifactIdentity, parseArtifactManifest } from '@api-docs/compiler';
+import type { ArtifactManifest } from '@davidniessen/contracts';
+import {
+  artifactIdentity,
+  parseArtifactManifest,
+} from '@davidniessen/compiler';
 
 const vector = JSON.parse(
   await readFile(

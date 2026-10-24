@@ -9,11 +9,11 @@ import { promisify } from 'node:util';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
-import { PostgresRepository } from '@api-docs/storage';
-import { createServer } from '@api-docs/server';
-import { buildSite } from '@api-docs/cli';
-import { verifyArtifact } from '@api-docs/compiler';
-import type { Project, Publication } from '@api-docs/domain';
+import { PostgresRepository } from '@davidniessen/storage';
+import { createServer } from '@davidniessen/server';
+import { buildSite } from '@davidniessen/cli';
+import { verifyArtifact } from '@davidniessen/compiler';
+import type { Project, Publication } from '@davidniessen/domain';
 const database = process.env.TEST_DATABASE_URL;
 if (!database)
   throw new Error(

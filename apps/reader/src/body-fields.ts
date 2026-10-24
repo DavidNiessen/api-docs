@@ -3,12 +3,12 @@ import {
   resolveSchema,
   objectFieldSchema,
   schemaVariants,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import type {
   JsonValueNode,
   Schema,
   SchemaVariants,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 
 export type ObjectBodyValue = Extract<JsonValueNode, { kind: 'object' }>;
 export type ArrayBodyValue = Extract<JsonValueNode, { kind: 'array' }>;

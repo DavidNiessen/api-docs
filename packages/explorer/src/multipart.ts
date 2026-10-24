@@ -4,8 +4,8 @@ import {
   resolveSchema,
   serializeJsonValue,
   objectFieldSchema,
-} from '@api-docs/contracts';
-import type { JsonValueNode, Media, Schema } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { JsonValueNode, Media, Schema } from '@davidniessen/contracts';
 import {
   multipartHeaderLines,
   prepareMultipartHeaders,

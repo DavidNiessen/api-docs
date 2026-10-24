@@ -1,5 +1,5 @@
 {
-  "name": "@api-docs/storage",
+  "name": "@davidniessen/storage",
   "version": "0.2.0-candidate.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -14,7 +14,7 @@
     }
   },
   "dependencies": {
-    "@api-docs/domain": "0.2.0-candidate.1",
+    "@davidniessen/domain": "0.2.0-candidate.1",
     "pg": "8.23.1"
   }
 }

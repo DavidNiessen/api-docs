@@ -1,4 +1,4 @@
-import type { Diagnostic, SiteData } from '@api-docs/contracts';
+import type { Diagnostic, SiteData } from '@davidniessen/contracts';
 import type { BuildPlugin, BuildPluginContext } from './index.js';
 import { validatePluginSite, validateCodeSamples } from './validation.js';
 

@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { toolVersion } from '@api-docs/contracts';
+import { toolVersion } from '@davidniessen/contracts';
 import { readRegularFile } from './lib/read-regular-file.mjs';
 import {
   validateContainerSecurity,

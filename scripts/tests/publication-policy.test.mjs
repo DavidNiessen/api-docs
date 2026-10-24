@@ -23,7 +23,7 @@ const context = {
   runAttempt: '1',
 };
 const source = {
-  packages: ['@api-docs/contracts', '@api-docs/cli'],
+  packages: ['@davidniessen/contracts', '@davidniessen/cli'],
   mavenGroup: 'dev.niessen',
 };
 
@@ -159,7 +159,10 @@ test('the default policy lists pending ownership and reviews without approving p
   assert.equal(plan.policyApproved, false);
   assert.equal(plan.blockers.length, 10);
   assert.equal(plan.npm.tag, 'latest');
-  assert.deepEqual(plan.npm.packages, ['@api-docs/cli', '@api-docs/contracts']);
+  assert.deepEqual(plan.npm.packages, [
+    '@davidniessen/cli',
+    '@davidniessen/contracts',
+  ]);
   assert.equal(
     publicationPlan(
       policy,

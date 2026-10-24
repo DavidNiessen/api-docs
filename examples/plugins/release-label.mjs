@@ -1,7 +1,7 @@
-import { definePlugin } from '@api-docs/plugin-sdk';
+import { definePlugin } from '@davidniessen/plugin-sdk';
 import { releaseLabel } from './label.mjs';
 export default definePlugin({
-  name: '@api-docs/example-release-label',
+  name: '@davidniessen/example-release-label',
   version: '0.1.0',
   pluginApi: '1',
   capabilities: ['transform'],

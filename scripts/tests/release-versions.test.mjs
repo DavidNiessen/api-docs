@@ -81,7 +81,7 @@ const mutations = [
       'pnpm-lock.yaml',
       (data) => {
         data.importers['apps/reader'].dependencies[
-          '@api-docs/contracts'
+          '@davidniessen/contracts'
         ].specifier = OTHER_VERSION;
       },
       /pnpm dependency specifier/,
@@ -91,7 +91,7 @@ const mutations = [
       'pnpm-lock.yaml',
       (data) => {
         data.importers['apps/reader'].dependencies[
-          '@api-docs/contracts'
+          '@davidniessen/contracts'
         ].version = 'link:../../packages/spec';
       },
       /pnpm workspace link/,
@@ -170,7 +170,7 @@ const mutations = [
     'workspace link',
     (root) =>
       editJson(root, 'package-lock.json', (data) => {
-        data.packages['node_modules/@api-docs/contracts'].resolved =
+        data.packages['node_modules/@davidniessen/contracts'].resolved =
           'different';
       }),
     /Workspace link/,
@@ -180,7 +180,7 @@ const mutations = [
     (root) =>
       editJson(root, 'package-lock.json', (data) => {
         delete data.packages['packages/cli'].dependencies[
-          '@api-docs/contracts'
+          '@davidniessen/contracts'
         ];
       }),
     /Internal lockfile dependency/,
@@ -189,10 +189,10 @@ const mutations = [
     'internal caret range',
     async (root) => {
       await editJson(root, 'packages/cli/package.json', (data) => {
-        data.dependencies['@api-docs/contracts'] = '^' + BASE_VERSION;
+        data.dependencies['@davidniessen/contracts'] = '^' + BASE_VERSION;
       });
       await editJson(root, 'package-lock.json', (data) => {
-        data.packages['packages/cli'].dependencies['@api-docs/contracts'] =
+        data.packages['packages/cli'].dependencies['@davidniessen/contracts'] =
           '^' + BASE_VERSION;
       });
     },
@@ -239,10 +239,10 @@ const mutations = [
     'private runtime dependency',
     async (root) => {
       await editJson(root, 'packages/cli/package.json', (data) => {
-        data.dependencies['@api-docs/server'] = BASE_VERSION;
+        data.dependencies['@davidniessen/server'] = BASE_VERSION;
       });
       await editJson(root, 'package-lock.json', (data) => {
-        data.packages['packages/cli'].dependencies['@api-docs/server'] =
+        data.packages['packages/cli'].dependencies['@davidniessen/server'] =
           BASE_VERSION;
       });
     },

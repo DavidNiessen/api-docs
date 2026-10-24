@@ -1,5 +1,5 @@
-import { search } from '@api-docs/search';
-import type { SearchDocument, SearchResult } from '@api-docs/contracts';
+import { search } from '@davidniessen/search';
+import type { SearchDocument, SearchResult } from '@davidniessen/contracts';
 type Input =
   | { kind: 'load'; index: SearchDocument[] }
   | {

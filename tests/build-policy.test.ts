@@ -4,8 +4,8 @@ import {
   readIsolatedBuildLimits,
   readSourceSnapshotInfo,
   defaultIsolatedBuildLimits,
-} from '@api-docs/contracts';
-import { PostgresRepository } from '@api-docs/storage';
+} from '@davidniessen/contracts';
+import { PostgresRepository } from '@davidniessen/storage';
 const image = 'sha256:' + 'a'.repeat(64);
 it('materializes independent conservative policies without evaluating configuration', () => {
   const input = { image, limits: { sourceMiB: 1 } };

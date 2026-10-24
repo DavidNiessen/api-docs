@@ -2,8 +2,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createServer } from 'node:http';
 import type { Server, IncomingMessage, ServerResponse } from 'node:http';
 import { once } from 'node:events';
-import { requestAllowedOrigin } from '@api-docs/spec';
-import type { OutboundRequestOptions } from '@api-docs/spec';
+import { requestAllowedOrigin } from '@davidniessen/spec';
+import type { OutboundRequestOptions } from '@davidniessen/spec';
 import { abortableOutbound } from '../packages/spec/src/outbound.js';
 
 const servers: Server[] = [];

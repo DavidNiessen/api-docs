@@ -1,5 +1,5 @@
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { buildSite, createStaticServer } from '@api-docs/cli';
+import { buildSite, createStaticServer } from '@davidniessen/cli';
 import { parse } from 'yaml';
 
 const root = new URL(

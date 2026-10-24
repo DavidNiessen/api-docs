@@ -19,7 +19,7 @@ HEAD, informational, 204, 304 and content-free responses have empty bodies. A de
 ## Explorer SDK
 
 ```ts
-import { generateMockResponse } from '@api-docs/explorer';
+import { generateMockResponse } from '@davidniessen/explorer';
 
 const preview = generateMockResponse(operation, {
   response: '200',

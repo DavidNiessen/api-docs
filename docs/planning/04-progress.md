@@ -2,7 +2,13 @@
 
 Updated: 2026-10-24. **Approximately 97% complete; pre-release.** This is an engineering estimate of implemented scope and remaining launch work, not measured test coverage. A working feature does not complete its production acceptance gate. The binding scope and release checklist remain in the [delivery plan](03-delivery-and-launch.md).
 
-## Current repository-protection increment
+## Current namespace increment
+
+**The selected npm scope is `@davidniessen`, while Maven retains `dev.niessen`.** Every workspace manifest, internal import, both lockfiles, installed-consumer fixture, CI command and current integration guide now uses that npm scope. The product name remains provisional. Namespace ownership and publication are still explicitly unverified; choosing coordinates does not create registry credentials. The original `v0.2.0-candidate.1` evidence is retained for its original source/scope and cannot authorize relabeled archives.
+
+The new scope passes the full local check (**168 tooling** and **1,049 source tests**), frozen pnpm policy/lockfile validation, all **12 installed npm components**, and both baseline Java 21/Spring Boot 3.5.16 hosts (**8 tests, no skips**, plus both offline compilations). The npm lock tree is unchanged apart from workspace names. Hosted checks and a new matching clean-tag candidate remain required; the estimate stays approximately **97%, pre-release**.
+
+## Previous repository-protection increment
 
 **Three owner-controlled GitHub settings are now verified.** API inspection confirms resolved PR conversations, the required `release` reviewer with version-tag-only deployment, and private vulnerability reporting. The release transport/contributor fixes in [PR #10](https://github.com/DavidNiessen/api-docs/pull/10) are merged after all **31 current-head checks** passed, including both hosted Quality runs. Registry publication remains disabled.
 

@@ -13,7 +13,7 @@ The planner downloads only the candidate's named npm/Java/container bundles. Sha
 | Field                         | Purpose                                                                                      |
 | ----------------------------- | -------------------------------------------------------------------------------------------- |
 | `publicationEnabled`          | Maintainer-controlled publication switch; defaults to false.                                 |
-| `npm.scope`                   | Must match every public package in the source. The current `@api-docs` scope is provisional. |
+| `npm.scope`                   | Must match every public package in the source. The selected scope is `@davidniessen`.        |
 | `maven.groupId`               | Must match the Java source; `dev.niessen` is the selected group.                             |
 | `container.repository`        | Fully qualified GHCR repository; the current proposal is `ghcr.io/davidniessen/api-docs`.    |
 | `ownershipVerified`           | Separate explicit decision for each namespace. The current defaults are false.               |
@@ -22,6 +22,8 @@ The planner downloads only the candidate's named npm/Java/container bundles. Sha
 | `environment`                 | The protected publishing environment is named `release`.                                     |
 
 The output lists every pending decision. `policyApproved` describes only the source policy; `publicationApproved` remains false. A policy file does not establish actual reviewer approval, registry authorization or publication. Version prereleases select npm's `next` tag; stable versions select `latest`. Selected workspace dependencies have a deterministic publication order, with duplicate/cyclic sets rejected.
+
+The npm scope is `@davidniessen`; Maven coordinates retain `dev.niessen`. Package manifests, workspace references, imports, example consumers, both lockfiles and CI commands use the selected npm scope. Choosing the spelling does not register an npm account/organization or verify ownership. Keep `npm.ownershipVerified` false until that identity is confirmed. The earlier `v0.2.0-candidate.1` evidence belongs to the previous scope; changed coordinates require a new matching source tag and candidate, rather than relabeling accepted archives.
 
 The additional approval-check mode verifies actual GitHub environment metadata before a publishing job can be queued: a nonempty required-reviewer rule and exactly the `v*` tag policy. It also checks active rulesets named `Protect master` and `Protect release tags`: at least one required approving PR review, dismissal of stale approvals after source changes, resolved conversations, up-to-date `Quality` checks from GitHub Actions, no force pushes/deletions on the default `master` branch, and no version-tag updates/deletions. Only the repository administrator role may appear in a bypass list; those counts and the actual approving-review count are recorded for review. It does not treat a policy boolean as evidence that these settings exist.
 

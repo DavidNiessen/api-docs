@@ -1,5 +1,5 @@
-import { localizePath, localeName, withBase } from '@api-docs/contracts';
-import type { ProjectConfig, UiTranslation } from '@api-docs/contracts';
+import { localizePath, localeName, withBase } from '@davidniessen/contracts';
+import type { ProjectConfig, UiTranslation } from '@davidniessen/contracts';
 import { useUi } from '../ui-translation.js';
 import { Icon } from './Icon.js';
 

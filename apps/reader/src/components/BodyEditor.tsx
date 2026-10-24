@@ -4,8 +4,8 @@ import {
   serializeJsonValue,
   setJsonProperty,
   schemaVariants,
-} from '@api-docs/contracts';
-import type { JsonValueNode, Schema } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { JsonValueNode, Schema } from '@davidniessen/contracts';
 import type { ReactNode } from 'react';
 import {
   BodyBranchContext as BranchContext,

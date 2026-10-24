@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import type { SiteData } from '@api-docs/contracts';
+import type { SiteData } from '@davidniessen/contracts';
 
 test('reader navigation sanitizes guide HTML and executable links from page data', async ({
   page,

@@ -34,7 +34,7 @@ The approval binds visible file paths and bytes plus directory layout, including
 
 `--source-digest` / `expectedSourceDigest` accepts a lowercase 64-character SHA-256 value. After staging the actual build snapshot, the host compares its digest **before any Docker command or source execution**. A mismatch retains the prior publication and cleans the private stage/lock. A matching pin continues the existing immutable-image, isolation and publication checks. The executed read-only snapshot is the one that was compared, so later changes to the original source affect a later job. Bind approved image, config path, trust flags and resource policy separately when scheduling a build; a source digest alone does not approve those choices.
 
-The public `@api-docs/cli` API exports `inspectIsolatedSource`, `IsolatedSourceOptions` and `IsolatedSourceInfo` alongside `buildIsolatedSite`, `IsolatedBuildOptions` and `IsolatedBuildReceipt`. Both inspection and building accept an `AbortSignal`. A build receipt's source metadata uses the same digest version and counts as inspection of the identical source. Inspection is data-only; validate the project separately with `validate` or `doctor` before approving it.
+The public `@davidniessen/cli` API exports `inspectIsolatedSource`, `IsolatedSourceOptions` and `IsolatedSourceInfo` alongside `buildIsolatedSite`, `IsolatedBuildOptions` and `IsolatedBuildReceipt`. Both inspection and building accept an `AbortSignal`. A build receipt's source metadata uses the same digest version and counts as inspection of the identical source. Inspection is data-only; validate the project separately with `validate` or `doctor` before approving it.
 
 ## Source and dependency boundary
 

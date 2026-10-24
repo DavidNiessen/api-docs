@@ -3,9 +3,9 @@ import {
   createUiTranslation,
   defaultUiMessages,
   validUiMessage,
-} from '@api-docs/contracts';
-import { parseConfig } from '@api-docs/spec';
-import { renderDocument } from '@api-docs/reader/render';
+} from '@davidniessen/contracts';
+import { parseConfig } from '@davidniessen/spec';
+import { renderDocument } from '@davidniessen/reader/render';
 const input = {
   name: 'Translated fixture',
   specs: [{ id: 'api', path: 'openapi.yaml' }],

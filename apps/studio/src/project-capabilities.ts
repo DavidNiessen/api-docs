@@ -1,4 +1,4 @@
-import type { ProjectCapabilities } from '@api-docs/domain';
+import type { ProjectCapabilities } from '@davidniessen/domain';
 
 export function readProjectCapabilities(
   value: unknown,

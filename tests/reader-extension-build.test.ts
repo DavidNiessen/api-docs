@@ -10,14 +10,14 @@ import {
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parse, stringify } from 'yaml';
-import { buildSite, createStaticServer } from '@api-docs/cli';
+import { buildSite, createStaticServer } from '@davidniessen/cli';
 import {
   compileProject,
   loadReaderExtensions,
   verifyArtifact,
-} from '@api-docs/compiler';
-import { parseConfig } from '@api-docs/spec';
-import { createPageData } from '@api-docs/contracts';
+} from '@davidniessen/compiler';
+import { parseConfig } from '@davidniessen/spec';
+import { createPageData } from '@davidniessen/contracts';
 let root = '';
 async function config() {
   return parseConfig(

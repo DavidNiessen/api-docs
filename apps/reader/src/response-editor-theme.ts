@@ -1,5 +1,5 @@
-import { readableAccent } from '@api-docs/contracts';
-import type { Palette } from '@api-docs/contracts';
+import { readableAccent } from '@davidniessen/contracts';
+import type { Palette } from '@davidniessen/contracts';
 import type { editor } from 'monaco-editor/editor/editor.api.js';
 
 /** The response view uses the same resolved palette as the surrounding reader. */

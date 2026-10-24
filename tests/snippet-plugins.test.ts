@@ -5,13 +5,13 @@ import { join, resolve } from 'node:path';
 import {
   compileProject,
   checkProjectPluginConformance,
-} from '@api-docs/compiler';
+} from '@davidniessen/compiler';
 import {
   applyPlugins,
   runPluginFiles,
   definePlugin,
-} from '@api-docs/plugin-sdk';
-import type { SiteData } from '@api-docs/contracts';
+} from '@davidniessen/plugin-sdk';
+import type { SiteData } from '@davidniessen/contracts';
 let site: SiteData;
 beforeAll(async () => {
   site = await compileProject(resolve('examples/demo'));
@@ -160,7 +160,7 @@ describe('reviewed build-time snippet plugins', () => {
     const checked = await checkProjectPluginConformance(root, ['go.mjs']);
     const code = checked.apis[0]!.operations[0]!.codeSamples![0]!;
     expect(code).toMatchObject({
-      plugin: '@api-docs/example-go-snippets',
+      plugin: '@davidniessen/example-go-snippets',
       id: 'go-http',
       label: 'Go net/http',
       language: 'go',

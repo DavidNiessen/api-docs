@@ -1,10 +1,13 @@
-import { readBuildPolicy, readSourceSnapshotInfo } from '@api-docs/contracts';
+import {
+  readBuildPolicy,
+  readSourceSnapshotInfo,
+} from '@davidniessen/contracts';
 import type {
   BuildJob,
   BuildSource,
   BuildPage,
   ProjectBuildCapabilities,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 export type SourceRow = Pick<
   BuildSource,
   | 'id'

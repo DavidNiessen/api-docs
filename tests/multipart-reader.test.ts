@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { compileProject } from '@api-docs/compiler';
-import { renderDocument } from '@api-docs/reader/render';
-import { operationHref } from '@api-docs/contracts';
+import { compileProject } from '@davidniessen/compiler';
+import { renderDocument } from '@davidniessen/reader/render';
+import { operationHref } from '@davidniessen/contracts';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Explorer } from '../apps/reader/dist/components/Explorer.js';
 import { resolve } from 'node:path';
-import { createMultipartParts, redactRequest } from '@api-docs/explorer';
+import { createMultipartParts, redactRequest } from '@davidniessen/explorer';
 import type {
   BodyRedaction,
   MultipartPart,
   PreparedRequest,
-} from '@api-docs/explorer';
-import type { Media } from '@api-docs/contracts';
+} from '@davidniessen/explorer';
+import type { Media } from '@davidniessen/contracts';
 import {
   multipartEditorModel,
   multipartExampleBody,

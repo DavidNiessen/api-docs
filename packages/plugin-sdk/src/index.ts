@@ -5,7 +5,7 @@ import type {
   ApiDocument,
   Operation,
   CodeSample,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import { validatePluginSite } from './validation.js';
 import { applyThemePatch } from './theme.js';
 import type { ThemePatch } from './theme.js';

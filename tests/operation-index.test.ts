@@ -2,8 +2,8 @@ import { expect, it } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildSite } from '@api-docs/cli';
-import { validateSiteData } from '@api-docs/plugin-sdk';
+import { buildSite } from '@davidniessen/cli';
+import { validateSiteData } from '@davidniessen/plugin-sdk';
 import {
   readOperationCatalog,
   readOperationRows,

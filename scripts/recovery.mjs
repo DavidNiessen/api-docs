@@ -227,7 +227,7 @@ if (action === 'backup') {
     { input: join(directory, files[1]), writable: true },
   );
   await run(
-    "import {readdir,lstat} from 'node:fs/promises'; import {join} from 'node:path'; import {verifyArtifact} from '@api-docs/compiler'; async function walk(path) { for (const entry of await readdir(path)) { const p=join(path,entry); const s=await lstat(p); if(s.isSymbolicLink() || (!s.isFile() && !s.isDirectory())) throw new Error('Unsafe recovery entry'); if(s.isDirectory()) await walk(p); }} await walk('/data/artifacts'); for (const name of await readdir('/data/artifacts')) { if(!/^[a-f0-9]{64}$/.test(name)) throw new Error('Unexpected artifact directory'); const manifest=await verifyArtifact(join('/data/artifacts',name)); if(manifest.artifactDigest!==name) throw new Error('Artifact identity mismatch'); }",
+    "import {readdir,lstat} from 'node:fs/promises'; import {join} from 'node:path'; import {verifyArtifact} from '@davidniessen/compiler'; async function walk(path) { for (const entry of await readdir(path)) { const p=join(path,entry); const s=await lstat(p); if(s.isSymbolicLink() || (!s.isFile() && !s.isDirectory())) throw new Error('Unsafe recovery entry'); if(s.isDirectory()) await walk(p); }} await walk('/data/artifacts'); for (const name of await readdir('/data/artifacts')) { if(!/^[a-f0-9]{64}$/.test(name)) throw new Error('Unexpected artifact directory'); const manifest=await verifyArtifact(join('/data/artifacts',name)); if(manifest.artifactDigest!==name) throw new Error('Artifact identity mismatch'); }",
   );
   await command(
     [

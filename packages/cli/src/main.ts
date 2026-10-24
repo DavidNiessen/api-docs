@@ -8,7 +8,7 @@ import {
   compileProject,
   auditDocumentation,
   checkProjectPluginConformance,
-} from '@api-docs/compiler';
+} from '@davidniessen/compiler';
 import {
   confinedPath,
   readTextFile,
@@ -16,12 +16,12 @@ import {
   parseReferencePolicy,
   loadSpec,
   diffApi,
-} from '@api-docs/spec';
+} from '@davidniessen/spec';
 import {
   lifecycleReport,
   isCalendarDate,
   toolVersion,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import {
   buildSite,
   createStaticServer,

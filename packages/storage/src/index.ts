@@ -18,8 +18,8 @@ import type {
   RelayAuditWriter,
   BuildJobRepository,
   BuildQueueLimits,
-} from '@api-docs/domain';
-import { ConflictError } from '@api-docs/domain';
+} from '@davidniessen/domain';
+import { ConflictError } from '@davidniessen/domain';
 const projectColumns =
   'id, slug, name, visibility, active_publication_id AS "activePublicationId"';
 const publicationColumns =

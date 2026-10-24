@@ -15,21 +15,21 @@ import {
   buildSite,
   createDevelopmentBuilder,
   createStaticServer,
-} from '@api-docs/cli';
+} from '@davidniessen/cli';
 import {
   compileProject,
   auditDocumentation,
   verifyArtifact,
-} from '@api-docs/compiler';
-import { loadGuides } from '@api-docs/content';
-import { parseConfig } from '@api-docs/spec';
+} from '@davidniessen/compiler';
+import { loadGuides } from '@davidniessen/content';
+import { parseConfig } from '@davidniessen/spec';
 import {
   createPageData,
   pageMetadata,
   guidesForLocale,
   validateGuideTranslations,
-} from '@api-docs/contracts';
-import { createSearchIndex, search } from '@api-docs/search';
+} from '@davidniessen/contracts';
+import { createSearchIndex, search } from '@davidniessen/search';
 let root = '',
   built: Awaited<ReturnType<typeof buildSite>>;
 async function project() {

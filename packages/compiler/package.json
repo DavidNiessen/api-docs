@@ -1,5 +1,5 @@
 {
-  "name": "@api-docs/compiler",
+  "name": "@davidniessen/compiler",
   "version": "0.2.0-candidate.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -13,10 +13,10 @@
     }
   },
   "dependencies": {
-    "@api-docs/contracts": "0.2.0-candidate.1",
-    "@api-docs/spec": "0.2.0-candidate.1",
-    "@api-docs/content": "0.2.0-candidate.1",
-    "@api-docs/plugin-sdk": "0.2.0-candidate.1",
-    "@api-docs/search": "0.2.0-candidate.1"
+    "@davidniessen/contracts": "0.2.0-candidate.1",
+    "@davidniessen/spec": "0.2.0-candidate.1",
+    "@davidniessen/content": "0.2.0-candidate.1",
+    "@davidniessen/plugin-sdk": "0.2.0-candidate.1",
+    "@davidniessen/search": "0.2.0-candidate.1"
   }
 }

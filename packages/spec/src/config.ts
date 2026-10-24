@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { UiMessageKey, ProjectConfig } from '@api-docs/contracts';
+import type { UiMessageKey, ProjectConfig } from '@davidniessen/contracts';
 import {
   contrastRatio,
   resolvePalette,
@@ -8,7 +8,7 @@ import {
   isRelayEndpoint,
   defaultUiMessages,
   validUiMessage,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 
 const safePath = z
   .string()

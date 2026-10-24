@@ -10,10 +10,13 @@ import {
 } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createDevelopmentBuilder, createStaticServer } from '@api-docs/cli';
-import type { StaticDocsServer } from '@api-docs/cli';
-import { artifactIdentity } from '@api-docs/compiler';
-import type { ArtifactManifest } from '@api-docs/contracts';
+import {
+  createDevelopmentBuilder,
+  createStaticServer,
+} from '@davidniessen/cli';
+import type { StaticDocsServer } from '@davidniessen/cli';
+import { artifactIdentity } from '@davidniessen/compiler';
+import type { ArtifactManifest } from '@davidniessen/contracts';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';

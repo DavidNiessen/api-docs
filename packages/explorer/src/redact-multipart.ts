@@ -4,8 +4,8 @@ import {
   resolveSchema,
   serializeJsonValue,
   objectFieldSchema,
-} from '@api-docs/contracts';
-import type { JsonValueNode, Schema } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { JsonValueNode, Schema } from '@davidniessen/contracts';
 import { redactJsonBody } from './redact-body.js';
 import type { BodyRedaction } from './redact-body.js';
 import type { MultipartPart } from './multipart.js';

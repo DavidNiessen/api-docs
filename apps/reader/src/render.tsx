@@ -5,8 +5,8 @@ import {
   pageMetadata,
   toolVersion,
   localeRoute,
-} from '@api-docs/contracts';
-import type { SiteData } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { SiteData } from '@davidniessen/contracts';
 export function renderDocument(
   site: SiteData,
   path: string,

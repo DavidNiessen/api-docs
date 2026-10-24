@@ -66,7 +66,7 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import { readFile, appendFile } from 'node:fs/promises';
-          import { parseSource } from '@api-docs/spec';
+          import { parseSource } from '@davidniessen/spec';
           const workflow = parseSource(await readFile('.github/workflows/quality.yml', 'utf8'), 'quality.yml');
           const matrix = workflow.jobs.java.strategy.matrix;
           await appendFile(process.env.GITHUB_OUTPUT, `value=${JSON.stringify(matrix)}\n`);
@@ -296,7 +296,7 @@ jobs:
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import { readFile } from 'node:fs/promises';
-          import { toolVersion } from '@api-docs/contracts';
+          import { toolVersion } from '@davidniessen/contracts';
           import { createHash } from 'node:crypto';
           const image = (await readFile('/tmp/api-docs-builder.id', 'utf8')).trim();
           const isolated = JSON.parse(await readFile('.api-docs/isolated-build-evidence.json', 'utf8'));

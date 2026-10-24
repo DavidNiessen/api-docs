@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { Parameter } from '@api-docs/contracts';
+import type { Parameter } from '@davidniessen/contracts';
 import { useUi } from '../ui-translation.js';
 
 export function ParameterInput({

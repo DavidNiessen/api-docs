@@ -2,9 +2,12 @@ import { useEffect, useRef } from 'react';
 import {
   createReaderExtensionSession,
   defineReaderExtension,
-} from '@api-docs/plugin-sdk/browser';
-import type { ReaderExtension, ReaderPage } from '@api-docs/plugin-sdk/browser';
-import type { ReaderExtensionAsset } from '@api-docs/contracts';
+} from '@davidniessen/plugin-sdk/browser';
+import type {
+  ReaderExtension,
+  ReaderPage,
+} from '@davidniessen/plugin-sdk/browser';
+import type { ReaderExtensionAsset } from '@davidniessen/contracts';
 type Session = ReturnType<typeof createReaderExtensionSession>;
 function assetUrl(asset: ReaderExtensionAsset, basePath: string) {
   if (

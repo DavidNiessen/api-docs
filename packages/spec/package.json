@@ -1,5 +1,5 @@
 {
-  "name": "@api-docs/spec",
+  "name": "@davidniessen/spec",
   "version": "0.2.0-candidate.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -13,7 +13,7 @@
     }
   },
   "dependencies": {
-    "@api-docs/contracts": "0.2.0-candidate.1",
+    "@davidniessen/contracts": "0.2.0-candidate.1",
     "@apidevtools/swagger-parser": "13.1.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",

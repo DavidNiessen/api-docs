@@ -1,5 +1,5 @@
-import { objectFieldSchema, resolveSchema } from '@api-docs/contracts';
-import type { Schema } from '@api-docs/contracts';
+import { objectFieldSchema, resolveSchema } from '@davidniessen/contracts';
+import type { Schema } from '@davidniessen/contracts';
 
 const object = (value: unknown): Schema =>
   value !== null && typeof value === 'object' && !Array.isArray(value)

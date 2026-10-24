@@ -1,5 +1,5 @@
 {
-  "name": "@api-docs/domain",
+  "name": "@davidniessen/domain",
   "version": "0.2.0-candidate.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -14,6 +14,6 @@
     }
   },
   "dependencies": {
-    "@api-docs/contracts": "0.2.0-candidate.1"
+    "@davidniessen/contracts": "0.2.0-candidate.1"
   }
 }

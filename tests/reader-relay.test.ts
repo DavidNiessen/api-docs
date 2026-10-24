@@ -1,12 +1,12 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { parseConfig } from '@api-docs/spec';
-import { isRelayEndpoint } from '@api-docs/contracts';
+import { parseConfig } from '@davidniessen/spec';
+import { isRelayEndpoint } from '@davidniessen/contracts';
 import {
   loadRelayPolicy,
   sendViaRelay,
 } from '../apps/reader/src/relay-transport.js';
 import type { ReaderRelayPolicy } from '../apps/reader/src/relay-transport.js';
-import type { PreparedRequest } from '@api-docs/explorer';
+import type { PreparedRequest } from '@davidniessen/explorer';
 const path = '/api/projects/gallery/relay';
 const policy: ReaderRelayPolicy = {
   maxRequestBytes: 1024 * 1024,

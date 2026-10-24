@@ -19,7 +19,7 @@ import type {
   MouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
-import { createSearchIndex, search } from '@api-docs/search';
+import { createSearchIndex, search } from '@davidniessen/search';
 import {
   guideHref,
   operationHref,
@@ -33,13 +33,13 @@ import {
   localeRoute,
   localizePath,
   localeName,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import type {
   ApiDocument,
   Operation,
   SiteData,
   SearchResult,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import { PanelResizeHandle } from './PanelResizeHandle.js';
 import { LocaleMenu } from './LocaleMenu.js';
 import { UiContext, useUi } from '../ui-translation.js';

@@ -3,9 +3,9 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { stringify } from 'yaml';
-import { compileProject, auditDocumentation } from '@api-docs/compiler';
-import { parseConfig } from '@api-docs/spec';
-import { createPageData } from '@api-docs/contracts';
+import { compileProject, auditDocumentation } from '@davidniessen/compiler';
+import { parseConfig } from '@davidniessen/spec';
+import { createPageData } from '@davidniessen/contracts';
 
 async function project(
   run: (root: string) => Promise<void>,

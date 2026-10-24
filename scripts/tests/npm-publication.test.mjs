@@ -14,7 +14,7 @@ const bytes = Buffer.from(
   'test fixture archive bytes, not a published package',
 );
 const pkg = {
-  name: '@api-docs/contracts',
+  name: '@davidniessen/contracts',
   version: '0.2.0',
   filename: 'api-docs-contracts-0.2.0.tgz',
   bytes: bytes.length,
@@ -22,7 +22,7 @@ const pkg = {
   integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'),
 };
 const tarball =
-  'https://registry.npmjs.org/@api-docs/contracts/-/contracts-0.2.0.tgz';
+  'https://registry.npmjs.org/@davidniessen/contracts/-/contracts-0.2.0.tgz';
 const metadata = () => ({
   name: pkg.name,
   version: pkg.version,
@@ -30,7 +30,7 @@ const metadata = () => ({
     integrity: pkg.integrity,
     tarball,
     attestations: {
-      url: 'https://registry.npmjs.org/-/npm/v1/attestations/@api-docs%2fcontracts@0.2.0',
+      url: 'https://registry.npmjs.org/-/npm/v1/attestations/@davidniessen%2fcontracts@0.2.0',
       provenance: { predicateType: 'https://slsa.dev/provenance/v1' },
     },
   },

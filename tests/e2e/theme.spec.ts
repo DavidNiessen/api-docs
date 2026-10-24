@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { themePresets } from '@api-docs/contracts';
+import { themePresets } from '@davidniessen/contracts';
 test('appearance settings offer prepared presets and the former custom-editor URL cannot expose editing controls', async ({
   page,
 }) => {

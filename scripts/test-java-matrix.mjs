@@ -4,7 +4,7 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve, delimiter } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { parseSource } from '@api-docs/spec';
+import { parseSource } from '@davidniessen/spec';
 import { clearJavaResults, readJavaResults } from './lib/java-results.mjs';
 
 const exec = promisify(execFile);

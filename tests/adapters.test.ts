@@ -12,11 +12,11 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import express from 'express';
 import Fastify from 'fastify';
-import { createExpressDocs } from '@api-docs/node/express';
-import { apiDocsPlugin } from '@api-docs/node/fastify';
-import { buildSite } from '@api-docs/cli';
-import { artifactIdentity } from '@api-docs/compiler';
-import type { ArtifactManifest } from '@api-docs/contracts';
+import { createExpressDocs } from '@davidniessen/node/express';
+import { apiDocsPlugin } from '@davidniessen/node/fastify';
+import { buildSite } from '@davidniessen/cli';
+import { artifactIdentity } from '@davidniessen/compiler';
+import type { ArtifactManifest } from '@davidniessen/contracts';
 describe.each(['', '/docs'])('framework adapters at %j', (prefix) => {
   let directory: string;
   let project: string;

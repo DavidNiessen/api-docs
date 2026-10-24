@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { Repository, BuildJobRepository } from '@api-docs/domain';
+import type { Repository, BuildJobRepository } from '@davidniessen/domain';
 import { createServer } from '../apps/server/src/index.js';
 
 it('separates authenticated worker traffic from management and unauthenticated request budgets', async () => {

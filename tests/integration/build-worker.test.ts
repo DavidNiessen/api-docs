@@ -5,16 +5,20 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
 import { setImmediate as yieldLoop } from 'node:timers/promises';
-import { PostgresRepository } from '@api-docs/storage';
-import { createServer } from '@api-docs/server';
-import { buildSite, inspectIsolatedSource, stageArtifact } from '@api-docs/cli';
-import { readBuildPolicy, toolVersion } from '@api-docs/contracts';
+import { PostgresRepository } from '@davidniessen/storage';
+import { createServer } from '@davidniessen/server';
+import {
+  buildSite,
+  inspectIsolatedSource,
+  stageArtifact,
+} from '@davidniessen/cli';
+import { readBuildPolicy, toolVersion } from '@davidniessen/contracts';
 import type {
   BuildJob,
   BuildLease,
   BuildResult,
   Project,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 import { readWorkerConfig } from '../../apps/worker/src/config.js';
 import type { PreparedSource } from '../../apps/worker/src/config.js';
 import { createWorkerClient } from '../../apps/worker/src/protocol.js';

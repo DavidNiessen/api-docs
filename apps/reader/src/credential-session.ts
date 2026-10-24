@@ -1,4 +1,4 @@
-import type { ApiDocument, Operation } from '@api-docs/contracts';
+import type { ApiDocument, Operation } from '@davidniessen/contracts';
 
 export const CREDENTIAL_MEMORY_MS = 30 * 60 * 1000;
 export interface CredentialValue {

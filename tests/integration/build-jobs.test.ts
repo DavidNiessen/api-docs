@@ -1,19 +1,19 @@
 import { beforeAll, afterAll, beforeEach, afterEach, expect, it } from 'vitest';
 import { randomUUID, randomBytes } from 'node:crypto';
 import pg from 'pg';
-import { PostgresRepository } from '@api-docs/storage';
-import { readBuildPolicy, toolVersion } from '@api-docs/contracts';
+import { PostgresRepository } from '@davidniessen/storage';
+import { readBuildPolicy, toolVersion } from '@davidniessen/contracts';
 import type {
   BuildSource,
   BuildLease,
   BuildResult,
   Project,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 import {
   BuildCapacityError,
   BuildLeaseLostError,
   ConflictError,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 const database = process.env.TEST_DATABASE_URL;
 if (!database)
   throw new Error(

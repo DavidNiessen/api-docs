@@ -3,8 +3,8 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
-import { checkExamples, loadSpec } from '@api-docs/spec';
-import type { Schema } from '@api-docs/contracts';
+import { checkExamples, loadSpec } from '@davidniessen/spec';
+import type { Schema } from '@davidniessen/contracts';
 
 async function fixture(
   schema: Schema | boolean,

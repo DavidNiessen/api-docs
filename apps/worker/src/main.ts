@@ -1,4 +1,4 @@
-import { readTextFile } from '@api-docs/spec';
+import { readTextFile } from '@davidniessen/spec';
 import { loadWorkerConfig } from './config.js';
 import { createWorkerClient } from './protocol.js';
 import {

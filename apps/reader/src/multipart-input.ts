@@ -3,8 +3,8 @@ import {
   resolveSchema,
   serializeJsonValue,
   objectFieldSchema,
-} from '@api-docs/contracts';
-import type { Media, Schema } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { Media, Schema } from '@davidniessen/contracts';
 
 const object = (value: unknown): Schema =>
   value !== null && typeof value === 'object' && !Array.isArray(value)

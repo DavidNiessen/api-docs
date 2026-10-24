@@ -3,8 +3,8 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
-import { diffApi, loadSpec } from '@api-docs/spec';
-import type { ApiDocument, Operation, Schema } from '@api-docs/contracts';
+import { diffApi, loadSpec } from '@davidniessen/spec';
+import type { ApiDocument, Operation, Schema } from '@davidniessen/contracts';
 
 function api(
   schema: Schema = { type: 'string' },

@@ -4,8 +4,8 @@ import { setImmediate as yieldLoop } from 'node:timers/promises';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { readBuildPolicy, toolVersion } from '@api-docs/contracts';
-import type { BuildLease, BuildResult } from '@api-docs/domain';
+import { readBuildPolicy, toolVersion } from '@davidniessen/contracts';
+import type { BuildLease, BuildResult } from '@davidniessen/domain';
 import {
   readWorkerConfig,
   loadWorkerConfig,

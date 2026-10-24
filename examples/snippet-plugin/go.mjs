@@ -1,14 +1,14 @@
-import { definePlugin } from '@api-docs/plugin-sdk';
+import { definePlugin } from '@davidniessen/plugin-sdk';
 import {
   exampleChoices,
   formatExample,
   isJsonMediaType,
-} from '@api-docs/contracts';
-import { prepareRequest, redactRequest } from '@api-docs/explorer';
+} from '@davidniessen/contracts';
+import { prepareRequest, redactRequest } from '@davidniessen/explorer';
 import { goSnippet } from './go-code.mjs';
 
 export default definePlugin({
-  name: '@api-docs/example-go-snippets',
+  name: '@davidniessen/example-go-snippets',
   version: '0.1.0',
   pluginApi: '1',
   capabilities: ['snippets'],

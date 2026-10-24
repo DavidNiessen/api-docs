@@ -1,6 +1,6 @@
-import { isRelayEndpoint } from '@api-docs/contracts';
-import { toFetchRequest } from '@api-docs/explorer';
-import type { PreparedRequest } from '@api-docs/explorer';
+import { isRelayEndpoint } from '@davidniessen/contracts';
+import { toFetchRequest } from '@davidniessen/explorer';
+import type { PreparedRequest } from '@davidniessen/explorer';
 
 const REQUEST_LIMIT = 1024 * 1024;
 const RESPONSE_LIMIT = 2 * 1024 * 1024;

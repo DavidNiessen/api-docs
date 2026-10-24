@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ApiDocument, Operation } from '@api-docs/contracts';
-import { safeNavigationHref } from '@api-docs/contracts';
+import type { ApiDocument, Operation } from '@davidniessen/contracts';
+import { safeNavigationHref } from '@davidniessen/contracts';
 import {
   readExpandedOperation,
   readOperationCatalog,

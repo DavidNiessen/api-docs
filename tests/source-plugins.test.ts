@@ -6,14 +6,14 @@ import { spawnSync } from 'node:child_process';
 import {
   checkProjectPluginConformance,
   compileProject,
-} from '@api-docs/compiler';
+} from '@davidniessen/compiler';
 import {
   runSourcePluginFiles,
   checkSourcePluginConformance,
   definePlugin,
-} from '@api-docs/plugin-sdk';
-import { buildSite } from '@api-docs/cli';
-import type { SpecSource } from '@api-docs/plugin-sdk';
+} from '@davidniessen/plugin-sdk';
+import { buildSite } from '@davidniessen/cli';
+import type { SpecSource } from '@davidniessen/plugin-sdk';
 
 const document = {
   openapi: '3.1.0',

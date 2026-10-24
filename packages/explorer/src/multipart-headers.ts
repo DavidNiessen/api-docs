@@ -1,5 +1,5 @@
-import { resolveHeaderObject } from '@api-docs/contracts';
-import type { Media, Parameter, Schema } from '@api-docs/contracts';
+import { resolveHeaderObject } from '@davidniessen/contracts';
+import type { Media, Parameter, Schema } from '@davidniessen/contracts';
 import { serializeHeaderValue } from './parameters.js';
 
 export type MultipartHeaders = Record<string, Record<string, string>>;

@@ -4,14 +4,14 @@ import {
   isImmutableBuilderImage,
   readBuildPolicy,
   readSourceSnapshotInfo,
-} from '@api-docs/contracts';
-import { BuildInputError, BuildLeaseLostError } from '@api-docs/domain';
+} from '@davidniessen/contracts';
+import { BuildInputError, BuildLeaseLostError } from '@davidniessen/domain';
 import type {
   BuildJobRepository,
   Project,
   Role,
   ProjectBuildCapabilities,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 import { verifyProjectArtifact } from './artifacts.js';
 
 const uuid = z.string().regex(/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i);

@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { generateMockResponse } from '@api-docs/explorer';
-import type { Media, Operation, Schema } from '@api-docs/contracts';
+import { generateMockResponse } from '@davidniessen/explorer';
+import type { Media, Operation, Schema } from '@davidniessen/contracts';
 
 const operation = (media: Media, status = '200'): Operation => ({
   id: 'mock',

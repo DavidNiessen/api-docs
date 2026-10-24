@@ -1,5 +1,5 @@
-import { checkExamples } from '@api-docs/spec';
-import { renderMarkdown } from '@api-docs/content';
+import { checkExamples } from '@davidniessen/spec';
+import { renderMarkdown } from '@davidniessen/content';
 import {
   guideHref,
   operationHref,
@@ -10,14 +10,14 @@ import {
   localePaths,
   guidesForLocale,
   localizePath,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 import type {
   Diagnostic,
   SiteData,
   Media,
   Schema,
   ApiDocument,
-} from '@api-docs/contracts';
+} from '@davidniessen/contracts';
 const codes = new Set([
   'operation-description',
   'operation-responses',

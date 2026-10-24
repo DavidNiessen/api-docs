@@ -2,8 +2,8 @@ import {
   parseJsonValue,
   serializeJsonValue,
   resolveSchema,
-} from '@api-docs/contracts';
-import type { JsonValueNode, Schema } from '@api-docs/contracts';
+} from '@davidniessen/contracts';
+import type { JsonValueNode, Schema } from '@davidniessen/contracts';
 
 export interface BodyRedaction {
   schema: Schema;

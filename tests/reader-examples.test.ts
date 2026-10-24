@@ -7,9 +7,9 @@ import {
   formatExample,
   hasExternalExamples,
   isJsonMediaType,
-} from '@api-docs/contracts';
-import { loadSpec } from '@api-docs/spec';
-import { prepareRequest } from '@api-docs/explorer';
+} from '@davidniessen/contracts';
+import { loadSpec } from '@davidniessen/spec';
+import { prepareRequest } from '@davidniessen/explorer';
 
 describe('authored example presentation', () => {
   it('resolves legacy reference aliases without adopting ignored siblings', () => {

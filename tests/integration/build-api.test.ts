@@ -3,17 +3,17 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { PostgresRepository } from '@api-docs/storage';
-import { createServer } from '@api-docs/server';
-import { buildSite, inspectIsolatedSource } from '@api-docs/cli';
-import { readBuildPolicy, toolVersion } from '@api-docs/contracts';
+import { PostgresRepository } from '@davidniessen/storage';
+import { createServer } from '@davidniessen/server';
+import { buildSite, inspectIsolatedSource } from '@davidniessen/cli';
+import { readBuildPolicy, toolVersion } from '@davidniessen/contracts';
 import type {
   BuildJob,
   BuildLease,
   BuildSource,
   Project,
   Role,
-} from '@api-docs/domain';
+} from '@davidniessen/domain';
 
 const database = process.env.TEST_DATABASE_URL;
 if (!database)

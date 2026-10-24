@@ -30,8 +30,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { downloadSpec, loadSpec } from '@api-docs/spec';
-import { importRemoteSpec } from '@api-docs/cli';
+import { downloadSpec, loadSpec } from '@davidniessen/spec';
+import { importRemoteSpec } from '@davidniessen/cli';
 import { isAllowedImportAddress } from '../packages/spec/src/remote-policy.js';
 
 vi.mock('node:dns/promises', async (original) => {

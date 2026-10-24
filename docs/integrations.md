@@ -8,7 +8,7 @@ Build with `basePath: /docs`, then mount the adapter:
 
 ```js
 import express from 'express';
-import { createExpressDocs } from '@api-docs/node/express';
+import { createExpressDocs } from '@davidniessen/node/express';
 
 const app = express();
 const docs = await createExpressDocs({
@@ -25,7 +25,7 @@ The optional middleware runs before every documentation request, including searc
 
 ```js
 import Fastify from 'fastify';
-import { apiDocsPlugin } from '@api-docs/node/fastify';
+import { apiDocsPlugin } from '@davidniessen/node/fastify';
 
 const app = Fastify();
 await app.register(apiDocsPlugin, {

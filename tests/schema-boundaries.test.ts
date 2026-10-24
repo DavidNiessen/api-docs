@@ -3,8 +3,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { stringify } from 'yaml';
-import { loadSpec } from '@api-docs/spec';
-import type { Schema } from '@api-docs/contracts';
+import { loadSpec } from '@davidniessen/spec';
+import type { Schema } from '@davidniessen/contracts';
 import { validateSchemaBoundaries } from '../packages/spec/src/schema-boundaries.js';
 
 async function load(

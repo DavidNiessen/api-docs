@@ -100,10 +100,13 @@ Messages render as text, including accessible labels and confirmation dialogs. T
 
 ## Public message API
 
-`@api-docs/contracts` exports `defaultUiMessages`, `createUiTranslation`, `validUiMessage`, `UiMessageKey`, `UiMessages`, `UiConfiguration`, `UiText` and `UiTranslation`. Inspect the default catalog to obtain the supported stable IDs and English values:
+`@davidniessen/contracts` exports `defaultUiMessages`, `createUiTranslation`, `validUiMessage`, `UiMessageKey`, `UiMessages`, `UiConfiguration`, `UiText` and `UiTranslation`. Inspect the default catalog to obtain the supported stable IDs and English values:
 
 ```js
-import { defaultUiMessages, createUiTranslation } from '@api-docs/contracts';
+import {
+  defaultUiMessages,
+  createUiTranslation,
+} from '@davidniessen/contracts';
 console.log(JSON.stringify(defaultUiMessages, null, 2));
 const ui = createUiTranslation('de-DE', config.i18n);
 console.log(ui.text('playground.dialog', { title: 'Create project' }));

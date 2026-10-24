@@ -9,7 +9,7 @@ import {
   generateSnippet,
   encodeFormBody,
   createMultipartParts,
-} from '@api-docs/explorer';
+} from '@davidniessen/explorer';
 
 const exec = promisify(execFile);
 const directory = await mkdtemp(join(tmpdir(), 'api-docs-snippets-'));

@@ -1,6 +1,6 @@
 # Development candidates and release gates
 
-The project is in development. There is no approved stable release, registry ownership is not verified, and these commands do not publish anything. The current `@api-docs` scope and `api-docs` artifact names remain provisional pending the product rename. The selected Maven group is `dev.niessen`; Maven Central namespace authorization remains unverified. Never install or execute artifacts from an untrusted pull request.
+The project is in development. There is no approved stable release, registry ownership is not verified, and these commands do not publish anything. The current `@davidniessen` scope and `api-docs` artifact names remain provisional pending the product rename. The selected Maven group is `dev.niessen`; Maven Central namespace authorization remains unverified. Never install or execute artifacts from an untrusted pull request.
 
 ## Review a release plan
 

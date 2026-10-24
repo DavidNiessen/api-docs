@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join, extname } from 'node:path';
-import { verifyArtifact } from '@api-docs/compiler';
+import { verifyArtifact } from '@davidniessen/compiler';
 
 const root = new URL('../.api-docs/pages-demo/', import.meta.url).pathname;
 const manifest = await verifyArtifact(root);

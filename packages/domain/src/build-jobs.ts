@@ -1,4 +1,4 @@
-import type { BuildPolicy, SourceSnapshotInfo } from '@api-docs/contracts';
+import type { BuildPolicy, SourceSnapshotInfo } from '@davidniessen/contracts';
 export interface ProjectBuildCapabilities {
   projectId: string;
   approveSource: boolean;

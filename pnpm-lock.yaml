@@ -13,48 +13,48 @@ importers:
 
   .:
     devDependencies:
-      '@api-docs/cli':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/cli
-      '@api-docs/compiler':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/compiler
-      '@api-docs/content':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/content
-      '@api-docs/contracts':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/contracts
-      '@api-docs/domain':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/domain
-      '@api-docs/explorer':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/explorer
-      '@api-docs/node':
-        specifier: 0.2.0-candidate.1
-        version: link:integrations/node
-      '@api-docs/plugin-sdk':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/plugin-sdk
-      '@api-docs/reader':
-        specifier: 0.2.0-candidate.1
-        version: link:apps/reader
-      '@api-docs/search':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/search
-      '@api-docs/server':
-        specifier: 0.2.0-candidate.1
-        version: link:apps/server
-      '@api-docs/spec':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/spec
-      '@api-docs/storage':
-        specifier: 0.2.0-candidate.1
-        version: link:packages/storage
       '@axe-core/playwright':
         specifier: 4.11.0
         version: 4.11.0(playwright-core@1.64.1)
+      '@davidniessen/cli':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/cli
+      '@davidniessen/compiler':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/compiler
+      '@davidniessen/content':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/content
+      '@davidniessen/contracts':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/contracts
+      '@davidniessen/domain':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/domain
+      '@davidniessen/explorer':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/explorer
+      '@davidniessen/node':
+        specifier: 0.2.0-candidate.1
+        version: link:integrations/node
+      '@davidniessen/plugin-sdk':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/plugin-sdk
+      '@davidniessen/reader':
+        specifier: 0.2.0-candidate.1
+        version: link:apps/reader
+      '@davidniessen/search':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/search
+      '@davidniessen/server':
+        specifier: 0.2.0-candidate.1
+        version: link:apps/server
+      '@davidniessen/spec':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/spec
+      '@davidniessen/storage':
+        specifier: 0.2.0-candidate.1
+        version: link:packages/storage
       '@eslint/js':
         specifier: 10.0.1
         version: 10.0.1(eslint@10.13.0)
@@ -151,16 +151,16 @@ importers:
 
   apps/reader:
     dependencies:
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/contracts
-      '@api-docs/explorer':
+      '@davidniessen/explorer':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/explorer
-      '@api-docs/plugin-sdk':
+      '@davidniessen/plugin-sdk':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/plugin-sdk
-      '@api-docs/search':
+      '@davidniessen/search':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/search
       dompurify:
@@ -178,22 +178,22 @@ importers:
 
   apps/server:
     dependencies:
-      '@api-docs/cli':
+      '@davidniessen/cli':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/cli
-      '@api-docs/compiler':
+      '@davidniessen/compiler':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/compiler
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/contracts
-      '@api-docs/domain':
+      '@davidniessen/domain':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/domain
-      '@api-docs/spec':
+      '@davidniessen/spec':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/spec
-      '@api-docs/storage':
+      '@davidniessen/storage':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/storage
       '@fastify/cookie':
@@ -217,10 +217,10 @@ importers:
 
   apps/studio:
     dependencies:
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/contracts
-      '@api-docs/domain':
+      '@davidniessen/domain':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/domain
       react:
@@ -232,28 +232,28 @@ importers:
 
   apps/worker:
     dependencies:
-      '@api-docs/cli':
+      '@davidniessen/cli':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/cli
-      '@api-docs/compiler':
+      '@davidniessen/compiler':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/compiler
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/contracts
-      '@api-docs/domain':
+      '@davidniessen/domain':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/domain
-      '@api-docs/spec':
+      '@davidniessen/spec':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/spec
 
   integrations/node:
     dependencies:
-      '@api-docs/compiler':
+      '@davidniessen/compiler':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/compiler
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../../packages/contracts
       '@fastify/static':
@@ -271,22 +271,22 @@ importers:
 
   packages/cli:
     dependencies:
-      '@api-docs/compiler':
+      '@davidniessen/compiler':
         specifier: 0.2.0-candidate.1
         version: link:../compiler
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../contracts
-      '@api-docs/plugin-sdk':
+      '@davidniessen/plugin-sdk':
         specifier: 0.2.0-candidate.1
         version: link:../plugin-sdk
-      '@api-docs/reader':
+      '@davidniessen/reader':
         specifier: 0.2.0-candidate.1
         version: link:../../apps/reader
-      '@api-docs/search':
+      '@davidniessen/search':
         specifier: 0.2.0-candidate.1
         version: link:../search
-      '@api-docs/spec':
+      '@davidniessen/spec':
         specifier: 0.2.0-candidate.1
         version: link:../spec
       '@fastify/static':
@@ -304,28 +304,28 @@ importers:
 
   packages/compiler:
     dependencies:
-      '@api-docs/content':
+      '@davidniessen/content':
         specifier: 0.2.0-candidate.1
         version: link:../content
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../contracts
-      '@api-docs/plugin-sdk':
+      '@davidniessen/plugin-sdk':
         specifier: 0.2.0-candidate.1
         version: link:../plugin-sdk
-      '@api-docs/search':
+      '@davidniessen/search':
         specifier: 0.2.0-candidate.1
         version: link:../search
-      '@api-docs/spec':
+      '@davidniessen/spec':
         specifier: 0.2.0-candidate.1
         version: link:../spec
 
   packages/content:
     dependencies:
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../contracts
-      '@api-docs/spec':
+      '@davidniessen/spec':
         specifier: 0.2.0-candidate.1
         version: link:../spec
       '@mdx-js/mdx':
@@ -369,19 +369,19 @@ importers:
 
   packages/domain:
     dependencies:
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../contracts
 
   packages/explorer:
     dependencies:
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../contracts
 
   packages/plugin-sdk:
     dependencies:
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../contracts
       zod:
@@ -390,18 +390,18 @@ importers:
 
   packages/search:
     dependencies:
-      '@api-docs/contracts':
+      '@davidniessen/contracts':
         specifier: 0.2.0-candidate.1
         version: link:../contracts
 
   packages/spec:
     dependencies:
-      '@api-docs/contracts':
-        specifier: 0.2.0-candidate.1
-        version: link:../contracts
       '@apidevtools/swagger-parser':
         specifier: 13.1.0
         version: 13.1.0(openapi-types@12.1.3)
+      '@davidniessen/contracts':
+        specifier: 0.2.0-candidate.1
+        version: link:../contracts
       ajv:
         specifier: 8.20.0
         version: 8.20.0
@@ -420,7 +420,7 @@ importers:
 
   packages/storage:
     dependencies:
-      '@api-docs/domain':
+      '@davidniessen/domain':
         specifier: 0.2.0-candidate.1
         version: link:../domain
       pg:
