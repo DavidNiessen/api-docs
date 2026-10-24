@@ -136,6 +136,8 @@ Retain test artifacts, traces on failure, accessibility reports, and benchmark m
 
 Checked items identify delivered implementation or documentation. Unchecked items remain required launch work. These checks do not replace exact-candidate acceptance or approve publication.
 
+Owner decision on 2026-10-24: defer the independent security, isolation, accessibility, license reviews and external pilots for now and continue prerelease distribution acceptance. These items remain unchecked and are not completed reviews. [ADR 0002](../adr/0002-deferred-prerelease-reviews.md) records the decision; source policy permits the deferral only for prereleases. Automated severity, signature, repository-protection and fresh-consumer gates remain required. The final product name remains deliberately deferred by the owner.
+
 ### Project and community
 
 - [ ] Adopt the final name and verify namespace/trademark availability.

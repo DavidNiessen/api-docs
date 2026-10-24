@@ -73,6 +73,8 @@ jobs:
             `npm: ${plan.npm.packages.length} packages, ${plan.npm.version}, tag ${plan.npm.tag}.`,
             `Maven: ${plan.maven.groupId}:${plan.maven.version}.`,
             `Container: ${plan.container.repository}:${plan.container.tag}.`,
+            ...Object.entries(plan.reviews).map(([kind, status]) => `Review ${kind}: ${status}.`),
+            ...(plan.reviewDeferral ? [`Review deferral (${plan.reviewDeferral.scope}) by ${plan.reviewDeferral.authorizedBy}: ${plan.reviewDeferral.reason}`] : []),
             '', ...plan.blockers.map((text) => `- ${text}`), '',
             'Publication requires explicit confirmation, approved policy and protected environment approval.',
           ];

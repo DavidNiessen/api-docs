@@ -33,8 +33,9 @@ export function publicationPlan(policy, context, { packages, mavenGroup }) {
     'maven',
     'container',
     'reviews',
+    'reviewDeferral',
   ]);
-  assert.equal(policy.schemaVersion, 2);
+  assert.equal(policy.schemaVersion, 3);
   boolean(policy.publicationEnabled);
   assert.equal(policy.environment, 'release');
   fields(policy.npm, ['scope', 'registry', 'ownershipVerified']);
@@ -95,16 +96,52 @@ export function publicationPlan(policy, context, { packages, mavenGroup }) {
     if (!policy[kind].ownershipVerified)
       blockers.push(`${kind} namespace ownership is unverified.`);
   }
-  for (const [kind, approved] of Object.entries(policy.reviews)) {
-    boolean(approved);
-    if (!approved) blockers.push(`${kind} launch review is pending.`);
+  const deferredReviews = [];
+  for (const [kind, status] of Object.entries(policy.reviews)) {
+    assert(
+      ['pending', 'approved', 'deferred'].includes(status),
+      'Review status must be pending, approved or deferred.',
+    );
+    if (status === 'pending')
+      blockers.push(`${kind} launch review is pending.`);
+    if (status === 'deferred') deferredReviews.push(kind);
+  }
+  if (deferredReviews.length) {
+    fields(policy.reviewDeferral, ['authorizedBy', 'reason', 'scope']);
+    assert.equal(
+      policy.reviewDeferral.authorizedBy,
+      context.repository.split('/')[0],
+      'Review deferral must identify the source repository owner.',
+    );
+    assert.equal(policy.reviewDeferral.scope, 'prerelease');
+    const reason = policy.reviewDeferral.reason;
+    assert(
+      typeof reason === 'string' &&
+        reason.trim().length > 0 &&
+        reason.length <= 512 &&
+        ![...reason].some((character) => {
+          const code = character.charCodeAt(0);
+          return code < 32 || code === 127;
+        }),
+      'Review deferral requires a bounded public reason.',
+    );
+    if (!prerelease(context.version))
+      for (const kind of deferredReviews)
+        blockers.push(
+          `${kind} launch review is deferred; stable publication requires approval.`,
+        );
+  } else {
+    assert.equal(policy.reviewDeferral, null, 'No reviews are deferred.');
   }
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     ...context,
     policyApproved: blockers.length === 0,
     publicationApproved: false,
     blockers,
+    reviews: { ...policy.reviews },
+    deferredReviews,
+    reviewDeferral: policy.reviewDeferral ? { ...policy.reviewDeferral } : null,
     environment: policy.environment,
     npm: {
       registry: policy.npm.registry,

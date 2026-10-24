@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 2,
-  "publicationEnabled": false,
+  "schemaVersion": 3,
+  "publicationEnabled": true,
   "environment": "release",
   "npm": {
     "scope": "@davidniessen",
@@ -17,10 +17,15 @@
     "ownershipVerified": true
   },
   "reviews": {
-    "security": false,
-    "isolation": false,
-    "accessibility": false,
-    "licenses": false,
-    "pilot": false
+    "security": "deferred",
+    "isolation": "deferred",
+    "accessibility": "deferred",
+    "licenses": "deferred",
+    "pilot": "deferred"
+  },
+  "reviewDeferral": {
+    "authorizedBy": "DavidNiessen",
+    "reason": "The repository owner requested postponing the five independent launch reviews and pilots on 2026-10-24 while continuing release implementation and registry acceptance.",
+    "scope": "prerelease"
   }
 }

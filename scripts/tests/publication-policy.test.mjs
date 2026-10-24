@@ -11,9 +11,17 @@ import {
 } from '../lib/publication-policy.mjs';
 import { readWorkspacePackages } from '../lib/workspaces.mjs';
 
-const policy = JSON.parse(
+const repositoryPolicy = JSON.parse(
   await readFile(new URL('../../release-policy.json', import.meta.url)),
 );
+const policy = {
+  ...structuredClone(repositoryPolicy),
+  publicationEnabled: false,
+  reviews: Object.fromEntries(
+    Object.keys(repositoryPolicy.reviews).map((kind) => [kind, 'pending']),
+  ),
+  reviewDeferral: null,
+};
 const context = {
   repository: 'DavidNiessen/api-docs',
   commit: 'a'.repeat(40),
@@ -183,12 +191,112 @@ test('all source policy decisions are necessary even with repository-owned GitHu
   ready.publicationEnabled = true;
   for (const kind of ['npm', 'maven', 'container'])
     ready[kind].ownershipVerified = true;
-  for (const kind of Object.keys(ready.reviews)) ready.reviews[kind] = true;
+  for (const kind of Object.keys(ready.reviews))
+    ready.reviews[kind] = 'approved';
   assert.equal(publicationPlan(ready, context, source).policyApproved, true);
-  ready.reviews.licenses = false;
+  ready.reviews.licenses = 'pending';
   assert.deepEqual(publicationPlan(ready, context, source).blockers, [
     'licenses launch review is pending.',
   ]);
+});
+
+test('owner-authorized review deferrals permit prereleases while preserving pending and stable gates', () => {
+  const deferred = structuredClone(policy);
+  deferred.publicationEnabled = true;
+  for (const kind of Object.keys(deferred.reviews))
+    deferred.reviews[kind] = 'deferred';
+  deferred.reviewDeferral = {
+    authorizedBy: 'DavidNiessen',
+    reason: 'Owner requested postponement for the prerelease.',
+    scope: 'prerelease',
+  };
+  const pre = {
+    ...context,
+    version: '0.2.0-candidate.3',
+    ref: 'refs/tags/v0.2.0-candidate.3',
+  };
+  const plan = publicationPlan(deferred, pre, source);
+  assert.equal(plan.policyApproved, true);
+  assert.equal(plan.publicationApproved, false);
+  assert.equal(plan.deferredReviews.length, 5);
+  assert.deepEqual(plan.reviews, deferred.reviews);
+  assert.deepEqual(plan.reviewDeferral, deferred.reviewDeferral);
+  const stable = publicationPlan(deferred, context, source);
+  assert.equal(stable.policyApproved, false);
+  assert.equal(stable.blockers.length, 5);
+  assert(
+    stable.blockers.every((message) =>
+      message.includes('stable publication requires approval'),
+    ),
+  );
+  deferred.reviews.security = 'pending';
+  assert.deepEqual(publicationPlan(deferred, pre, source).blockers, [
+    'security launch review is pending.',
+  ]);
+  deferred.publicationEnabled = false;
+  assert.equal(publicationPlan(deferred, pre, source).blockers.length, 2);
+  for (const change of [
+    (p) => {
+      p.reviewDeferral = null;
+    },
+    (p) => {
+      p.reviewDeferral.authorizedBy = 'another-owner';
+    },
+    (p) => {
+      p.reviewDeferral.scope = 'stable';
+    },
+    (p) => {
+      p.reviewDeferral.reason = ' ';
+    },
+    (p) => {
+      p.reviewDeferral.reason = 'a'.repeat(513);
+    },
+    (p) => {
+      p.reviewDeferral.reason = 'reason\nwith control';
+    },
+    (p) => {
+      p.reviewDeferral.unknown = true;
+    },
+    (p) => {
+      p.reviews.security = true;
+    },
+    (p) => {
+      p.reviews.security = 'waived';
+    },
+  ]) {
+    const invalid = structuredClone(deferred);
+    change(invalid);
+    assert.throws(() => publicationPlan(invalid, pre, source));
+  }
+  const stale = structuredClone(policy);
+  stale.reviewDeferral = { ...deferred.reviewDeferral };
+  assert.throws(() => publicationPlan(stale, pre, source));
+});
+
+test('the current source policy exposes deferrals without claiming completed reviews', () => {
+  const plan = publicationPlan(
+    repositoryPolicy,
+    {
+      ...context,
+      version: '0.2.0-candidate.3',
+      ref: 'refs/tags/v0.2.0-candidate.3',
+    },
+    source,
+  );
+  assert.equal(plan.policyApproved, true);
+  assert.equal(plan.publicationApproved, false);
+  assert.deepEqual(plan.deferredReviews.sort(), [
+    'accessibility',
+    'isolation',
+    'licenses',
+    'pilot',
+    'security',
+  ]);
+  assert(Object.values(plan.reviews).every((status) => status === 'deferred'));
+  assert.equal(
+    publicationPlan(repositoryPolicy, context, source).policyApproved,
+    false,
+  );
 });
 
 test('policy typos, embedded credentials, mismatched namespaces and truthy strings fail closed', () => {
