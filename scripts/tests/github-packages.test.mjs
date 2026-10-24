@@ -155,6 +155,12 @@ test('GitHub registry coordinates and credentials reject foreign repositories an
       ),
   );
   assert.throws(() => githubPackageHeaders('npm', {}));
+  const malformed = 'fixture-private-token\r\ninvalid-header';
+  assert.throws(
+    () => githubPackageHeaders('npm', { GITHUB_PACKAGES_TOKEN: malformed }),
+    (error) =>
+      error.actual === false && !error.stack.includes('fixture-private-token'),
+  );
   assert.throws(() =>
     githubPackageHeaders('npm', { GITHUB_PACKAGES_TOKEN: 'bad\r\nheader' }),
   );

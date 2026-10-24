@@ -21,9 +21,9 @@ export function githubPackageRegistries(repository) {
 }
 
 export function githubPackageHeaders(kind, env = process.env) {
-  assert.match(
-    env.GITHUB_PACKAGES_TOKEN ?? '',
-    /^[!-~]{1,4096}$/,
+  assert(
+    typeof env.GITHUB_PACKAGES_TOKEN === 'string' &&
+      /^[!-~]{1,4096}$/.test(env.GITHUB_PACKAGES_TOKEN),
     'A GitHub Packages token is required.',
   );
   if (kind === 'npm')
